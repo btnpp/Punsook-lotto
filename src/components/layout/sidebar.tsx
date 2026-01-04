@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   BarChart3,
+  Calendar,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -44,6 +45,11 @@ const menuItems = [
     title: "ตีออก",
     href: "/dashboard/layoff",
     icon: TrendingUp,
+  },
+  {
+    title: "งวดหวย/เลขอั้น",
+    href: "/dashboard/rounds",
+    icon: Calendar,
   },
   {
     title: "ผลหวย",
