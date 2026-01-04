@@ -15,6 +15,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  BarChart3,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -53,6 +54,11 @@ const menuItems = [
     title: "ประวัติ",
     href: "/dashboard/history",
     icon: History,
+  },
+  {
+    title: "รายงานการเงิน",
+    href: "/dashboard/reports",
+    icon: BarChart3,
   },
   {
     title: "ตั้งค่า",

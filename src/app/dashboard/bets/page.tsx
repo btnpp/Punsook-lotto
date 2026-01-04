@@ -225,7 +225,7 @@ export default function BetsPage() {
   };
 
   // Group bet types by digit count for better UX
-  const threeDigitTypes = ["THREE_TOP", "THREE_TOD"];
+  const threeDigitTypes = ["THREE_TOP", "THREE_TOD", "THREE_BOTTOM"];
   const twoDigitTypes = ["TWO_TOP", "TWO_BOTTOM"];
   const oneDigitTypes = ["RUN_TOP", "RUN_BOTTOM"];
 

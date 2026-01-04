@@ -45,6 +45,13 @@ export const BET_TYPES = {
     digits: 3,
     example: "123",
   },
+  THREE_BOTTOM: {
+    code: "THREE_BOTTOM",
+    name: "3 ตัวล่าง",
+    shortName: "3ล่าง",
+    digits: 3,
+    example: "456",
+  },
   TWO_TOP: {
     code: "TWO_TOP",
     name: "2 ตัวบน",
@@ -83,6 +90,7 @@ export const DEFAULT_PAY_RATES = {
   THAI: {
     THREE_TOP: 900,
     THREE_TOD: 150,
+    THREE_BOTTOM: 450,
     TWO_TOP: 90,
     TWO_BOTTOM: 90,
     RUN_TOP: 3.2,
@@ -91,6 +99,7 @@ export const DEFAULT_PAY_RATES = {
   LAO: {
     THREE_TOP: 850,
     THREE_TOD: 120,
+    THREE_BOTTOM: 400,
     TWO_TOP: 95,
     TWO_BOTTOM: 95,
     RUN_TOP: 3.5,
@@ -99,6 +108,7 @@ export const DEFAULT_PAY_RATES = {
   HANOI: {
     THREE_TOP: 850,
     THREE_TOD: 120,
+    THREE_BOTTOM: 400,
     TWO_TOP: 95,
     TWO_BOTTOM: 95,
     RUN_TOP: 3.5,
@@ -113,6 +123,7 @@ export const DEFAULT_PAY_RATES = {
 export const DEFAULT_GLOBAL_LIMITS = {
   THREE_TOP: 200,
   THREE_TOD: 500,
+  THREE_BOTTOM: 300,
   TWO_TOP: 5000,
   TWO_BOTTOM: 5000,
   RUN_TOP: 10000,
@@ -126,6 +137,7 @@ export const DEFAULT_GLOBAL_LIMITS = {
 export const DEFAULT_AGENT_QUOTAS = {
   THREE_TOP: 50,
   THREE_TOD: 100,
+  THREE_BOTTOM: 75,
   TWO_TOP: 500,
   TWO_BOTTOM: 500,
   RUN_TOP: 1000,
