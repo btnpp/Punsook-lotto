@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -24,7 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Trash2, Send, FileText, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Send, FileText, RefreshCw } from "lucide-react";
 import { formatNumber, formatCurrency, parseBulkBet, calculateNetAmount } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES, DEFAULT_PAY_RATES } from "@/lib/constants";
 
@@ -45,10 +46,22 @@ interface BetItem {
   payRate: number;
 }
 
+// ฟังก์ชันกลับเลข
+function reverseNumber(num: string): string {
+  return num.split("").reverse().join("");
+}
+
+// ฟังก์ชันสร้างเลขกลับทั้งหมด (permutations for 3 digits)
+function getReversedNumbers(num: string): string[] {
+  const reversed = reverseNumber(num);
+  if (reversed === num) return []; // ถ้าเลขเหมือนกัน ไม่ต้องเพิ่ม
+  return [reversed];
+}
+
 export default function BetsPage() {
   const [selectedAgent, setSelectedAgent] = useState("");
   const [selectedLottery, setSelectedLottery] = useState("THAI");
-  const [selectedBetType, setSelectedBetType] = useState("TWO_TOP");
+  const [selectedBetTypes, setSelectedBetTypes] = useState<string[]>(["TWO_TOP"]);
   const [singleNumber, setSingleNumber] = useState("");
   const [singleAmount, setSingleAmount] = useState("");
   const [bulkInput, setBulkInput] = useState("");
@@ -57,42 +70,137 @@ export default function BetsPage() {
 
   const agent = demoAgents.find((a) => a.id === selectedAgent);
   const discount = agent?.discount[selectedLottery as keyof typeof agent.discount] || 0;
-  const payRate = DEFAULT_PAY_RATES[selectedLottery as keyof typeof DEFAULT_PAY_RATES]?.[selectedBetType as keyof typeof DEFAULT_PAY_RATES.THAI] || 0;
+
+  // Toggle bet type selection
+  const toggleBetType = (betType: string) => {
+    setSelectedBetTypes((prev) => {
+      if (prev.includes(betType)) {
+        // ต้องเหลืออย่างน้อย 1 ประเภท
+        if (prev.length === 1) return prev;
+        return prev.filter((t) => t !== betType);
+      } else {
+        return [...prev, betType];
+      }
+    });
+  };
+
+  // Get max digits from selected bet types
+  const getMaxDigits = (): number => {
+    const digitCounts = selectedBetTypes.map(
+      (type) => BET_TYPES[type as keyof typeof BET_TYPES]?.digits || 2
+    );
+    return Math.max(...digitCounts);
+  };
 
   const handleAddSingleBet = () => {
     if (!singleNumber || !singleAmount || !selectedAgent) return;
 
     const amount = parseFloat(singleAmount);
-    const netAmount = calculateNetAmount(amount, discount);
+    const newBets: BetItem[] = [];
 
-    const newBet: BetItem = {
-      id: Date.now().toString(),
-      number: singleNumber,
-      betType: selectedBetType,
-      amount,
-      discount,
-      netAmount,
-      payRate,
-    };
+    // เพิ่มเลขสำหรับทุกประเภทที่เลือก
+    selectedBetTypes.forEach((betType) => {
+      const betTypeInfo = BET_TYPES[betType as keyof typeof BET_TYPES];
+      // ตรวจสอบว่าเลขตรงกับประเภท
+      if (singleNumber.length === betTypeInfo.digits) {
+        const payRate = DEFAULT_PAY_RATES[selectedLottery as keyof typeof DEFAULT_PAY_RATES]?.[betType as keyof typeof DEFAULT_PAY_RATES.THAI] || 0;
+        const netAmount = calculateNetAmount(amount, discount);
 
-    setBetItems([...betItems, newBet]);
-    setSingleNumber("");
-    setSingleAmount("");
+        newBets.push({
+          id: `${Date.now()}-${betType}`,
+          number: singleNumber,
+          betType,
+          amount,
+          discount,
+          netAmount,
+          payRate,
+        });
+      }
+    });
+
+    if (newBets.length > 0) {
+      setBetItems([...betItems, ...newBets]);
+      setSingleNumber("");
+      setSingleAmount("");
+    }
+  };
+
+  // ฟังก์ชันกลับเลขและเพิ่มรายการ
+  const handleReverseAndAdd = () => {
+    if (!singleNumber || !singleAmount || !selectedAgent) return;
+    if (singleNumber.length < 2) return;
+
+    const reversedNum = reverseNumber(singleNumber);
+    if (reversedNum === singleNumber) {
+      alert("เลขนี้กลับแล้วเหมือนเดิม");
+      return;
+    }
+
+    const amount = parseFloat(singleAmount);
+    const newBets: BetItem[] = [];
+
+    // เพิ่มเลขต้นฉบับ
+    selectedBetTypes.forEach((betType) => {
+      const betTypeInfo = BET_TYPES[betType as keyof typeof BET_TYPES];
+      if (singleNumber.length === betTypeInfo.digits) {
+        const payRate = DEFAULT_PAY_RATES[selectedLottery as keyof typeof DEFAULT_PAY_RATES]?.[betType as keyof typeof DEFAULT_PAY_RATES.THAI] || 0;
+        const netAmount = calculateNetAmount(amount, discount);
+
+        // เลขต้นฉบับ
+        newBets.push({
+          id: `${Date.now()}-${betType}-orig`,
+          number: singleNumber,
+          betType,
+          amount,
+          discount,
+          netAmount,
+          payRate,
+        });
+
+        // เลขกลับ
+        newBets.push({
+          id: `${Date.now()}-${betType}-rev`,
+          number: reversedNum,
+          betType,
+          amount,
+          discount,
+          netAmount,
+          payRate,
+        });
+      }
+    });
+
+    if (newBets.length > 0) {
+      setBetItems([...betItems, ...newBets]);
+      setSingleNumber("");
+      setSingleAmount("");
+    }
   };
 
   const handleParseBulk = () => {
     if (!bulkInput || !selectedAgent) return;
 
     const parsed = parseBulkBet(bulkInput);
-    const newBets: BetItem[] = parsed.map((bet, index) => ({
-      id: `${Date.now()}-${index}`,
-      number: bet.number,
-      betType: selectedBetType,
-      amount: bet.amount,
-      discount,
-      netAmount: calculateNetAmount(bet.amount, discount),
-      payRate,
-    }));
+    const newBets: BetItem[] = [];
+
+    parsed.forEach((bet, index) => {
+      selectedBetTypes.forEach((betType) => {
+        const betTypeInfo = BET_TYPES[betType as keyof typeof BET_TYPES];
+        if (bet.number.length === betTypeInfo.digits) {
+          const payRate = DEFAULT_PAY_RATES[selectedLottery as keyof typeof DEFAULT_PAY_RATES]?.[betType as keyof typeof DEFAULT_PAY_RATES.THAI] || 0;
+          
+          newBets.push({
+            id: `${Date.now()}-${index}-${betType}`,
+            number: bet.number,
+            betType,
+            amount: bet.amount,
+            discount,
+            netAmount: calculateNetAmount(bet.amount, discount),
+            payRate,
+          });
+        }
+      });
+    });
 
     setBetItems([...betItems, ...newBets]);
     setBulkInput("");
@@ -115,6 +223,11 @@ export default function BetsPage() {
     alert(`ส่งโพยสำเร็จ!\nจำนวน ${betItems.length} รายการ\nยอดรวม ${formatCurrency(totalNetAmount)}`);
     setBetItems([]);
   };
+
+  // Group bet types by digit count for better UX
+  const threeDigitTypes = ["THREE_TOP", "THREE_TOD"];
+  const twoDigitTypes = ["TWO_TOP", "TWO_BOTTOM"];
+  const oneDigitTypes = ["RUN_TOP", "RUN_BOTTOM"];
 
   return (
     <div className="min-h-screen">
@@ -177,23 +290,94 @@ export default function BetsPage() {
               </CardContent>
             </Card>
 
-            {/* Bet Type Selection */}
+            {/* Bet Type Selection - Multi Select */}
             <Card>
               <CardContent className="p-6">
-                <Label className="mb-3 block">ประเภทการแทง</Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {Object.entries(BET_TYPES).map(([key, type]) => (
-                    <Button
-                      key={key}
-                      variant={selectedBetType === key ? "default" : "outline"}
-                      className="justify-start"
-                      onClick={() => setSelectedBetType(key)}
-                    >
-                      <span className="font-mono mr-2">{type.example}</span>
-                      {type.name}
-                    </Button>
-                  ))}
+                <Label className="mb-4 block">ประเภทการแทง (เลือกได้หลายประเภท)</Label>
+                
+                {/* 3 ตัว */}
+                <div className="mb-4">
+                  <p className="text-xs text-slate-400 mb-2">3 ตัว</p>
+                  <div className="flex flex-wrap gap-2">
+                    {threeDigitTypes.map((key) => {
+                      const type = BET_TYPES[key as keyof typeof BET_TYPES];
+                      const isSelected = selectedBetTypes.includes(key);
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => toggleBetType(key)}
+                          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                            isSelected
+                              ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
+                              : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                          }`}
+                        >
+                          {type.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                {/* 2 ตัว */}
+                <div className="mb-4">
+                  <p className="text-xs text-slate-400 mb-2">2 ตัว</p>
+                  <div className="flex flex-wrap gap-2">
+                    {twoDigitTypes.map((key) => {
+                      const type = BET_TYPES[key as keyof typeof BET_TYPES];
+                      const isSelected = selectedBetTypes.includes(key);
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => toggleBetType(key)}
+                          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                            isSelected
+                              ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
+                              : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                          }`}
+                        >
+                          {type.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* วิ่ง */}
+                <div>
+                  <p className="text-xs text-slate-400 mb-2">วิ่ง</p>
+                  <div className="flex flex-wrap gap-2">
+                    {oneDigitTypes.map((key) => {
+                      const type = BET_TYPES[key as keyof typeof BET_TYPES];
+                      const isSelected = selectedBetTypes.includes(key);
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => toggleBetType(key)}
+                          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                            isSelected
+                              ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
+                              : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                          }`}
+                        >
+                          {type.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* แสดงประเภทที่เลือก */}
+                {selectedBetTypes.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <span className="text-sm text-slate-400">เลือกแล้ว:</span>
+                    {selectedBetTypes.map((type) => (
+                      <Badge key={type} variant="default">
+                        {BET_TYPES[type as keyof typeof BET_TYPES]?.name}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -215,11 +399,11 @@ export default function BetsPage() {
                         <Label>เลข</Label>
                         <Input
                           type="text"
-                          placeholder={BET_TYPES[selectedBetType as keyof typeof BET_TYPES]?.example || ""}
+                          placeholder={getMaxDigits() === 3 ? "xxx" : getMaxDigits() === 2 ? "xx" : "x"}
                           value={singleNumber}
                           onChange={(e) => setSingleNumber(e.target.value.replace(/\D/g, ""))}
                           className="text-2xl font-mono text-center tracking-widest"
-                          maxLength={BET_TYPES[selectedBetType as keyof typeof BET_TYPES]?.digits || 3}
+                          maxLength={getMaxDigits()}
                         />
                       </div>
                       <div className="space-y-2">
@@ -233,14 +417,42 @@ export default function BetsPage() {
                         />
                       </div>
                     </div>
-                    <Button
-                      className="w-full gap-2"
-                      onClick={handleAddSingleBet}
-                      disabled={!singleNumber || !singleAmount || !selectedAgent}
-                    >
-                      <Plus className="w-4 h-4" />
-                      เพิ่มรายการ
-                    </Button>
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        className="flex-1 gap-2"
+                        onClick={handleAddSingleBet}
+                        disabled={!singleNumber || !singleAmount || !selectedAgent}
+                      >
+                        <Plus className="w-4 h-4" />
+                        เพิ่มรายการ
+                      </Button>
+                      
+                      {/* ปุ่มกลับเลข */}
+                      <Button
+                        variant="outline"
+                        className="gap-2"
+                        onClick={handleReverseAndAdd}
+                        disabled={!singleNumber || !singleAmount || !selectedAgent || singleNumber.length < 2}
+                        title="เพิ่มเลขกลับด้วย"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        กลับเลข
+                      </Button>
+                    </div>
+
+                    {/* แสดงตัวอย่างเลขกลับ */}
+                    {singleNumber.length >= 2 && (
+                      <div className="p-3 rounded-lg bg-slate-800/50 text-sm">
+                        <span className="text-slate-400">เลขกลับ: </span>
+                        <span className="font-mono text-amber-400 text-lg">
+                          {reverseNumber(singleNumber)}
+                        </span>
+                        {reverseNumber(singleNumber) === singleNumber && (
+                          <span className="text-slate-500 ml-2">(เหมือนเดิม)</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -360,16 +572,23 @@ export default function BetsPage() {
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">ประเภท</span>
+                  <span className="text-slate-400">ประเภทที่เลือก</span>
                   <span className="text-slate-100">
-                    {BET_TYPES[selectedBetType as keyof typeof BET_TYPES]?.name}
+                    {selectedBetTypes.length} ประเภท
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">อัตราจ่าย</span>
-                  <span className="text-amber-400">×{payRate}</span>
-                </div>
-                <div className="flex justify-between">
+                {selectedBetTypes.map((type) => {
+                  const payRate = DEFAULT_PAY_RATES[selectedLottery as keyof typeof DEFAULT_PAY_RATES]?.[type as keyof typeof DEFAULT_PAY_RATES.THAI] || 0;
+                  return (
+                    <div key={type} className="flex justify-between pl-2 border-l-2 border-amber-500/30">
+                      <span className="text-slate-400">
+                        {BET_TYPES[type as keyof typeof BET_TYPES]?.name}
+                      </span>
+                      <span className="text-amber-400">×{payRate}</span>
+                    </div>
+                  );
+                })}
+                <div className="flex justify-between pt-2 border-t border-slate-700">
                   <span className="text-slate-400">ส่วนลด</span>
                   <span className="text-emerald-400">{discount}%</span>
                 </div>
@@ -381,4 +600,3 @@ export default function BetsPage() {
     </div>
   );
 }
-
