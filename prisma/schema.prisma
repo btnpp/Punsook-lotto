@@ -45,6 +45,7 @@ model Agent {
 
   // Relations
   discounts   AgentDiscount[]
+  payRates    AgentPayRate[]
   quotas      AgentQuota[]
   bets        Bet[]
   betSessions BetSession[]
@@ -62,6 +63,21 @@ model AgentDiscount {
   agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
 
   @@unique([agentId, lotteryType])
+}
+
+// อัตราจ่ายเฉพาะ Agent (ถ้าไม่ตั้งจะใช้อัตราจ่ายกลาง)
+model AgentPayRate {
+  id          String   @id @default(cuid())
+  agentId     String
+  lotteryType String   // THAI, LAO, HANOI
+  betType     String   // THREE_TOP, THREE_TOD, TWO_TOP, TWO_BOTTOM, RUN_TOP, RUN_BOTTOM
+  payRate     Float    // อัตราจ่ายเฉพาะ Agent นี้
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, lotteryType, betType])
 }
 
 // โควต้า Agent แยกตามประเภทหวยและประเภทแทง

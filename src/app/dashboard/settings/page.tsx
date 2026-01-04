@@ -68,14 +68,32 @@ export default function SettingsPage() {
 
           {/* Pay Rates Tab */}
           <TabsContent value="payrates" className="space-y-6">
+            {/* หมายเหตุเกี่ยวกับอัตราจ่าย */}
+            <Card className="border-amber-500/30 bg-amber-500/5">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <DollarSign className="w-5 h-5 text-amber-400 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-400">อัตราจ่ายกลาง (Default)</p>
+                    <p className="text-sm text-slate-400 mt-1">
+                      อัตราจ่ายด้านล่างนี้เป็นค่าตั้งต้น ใช้สำหรับ Agent ที่ไม่ได้กำหนดอัตราจ่ายเฉพาะ
+                      <br />
+                      สามารถตั้งค่าอัตราจ่ายเฉพาะแต่ละ Agent ได้ในหน้า <span className="text-amber-400">จัดการ Agent</span>
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {Object.entries(LOTTERY_TYPES).map(([lotteryKey, lottery]) => (
               <Card key={lotteryKey}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <span className="text-2xl">{lottery.flag}</span>
                     {lottery.name}
+                    <span className="text-xs bg-slate-700 px-2 py-0.5 rounded ml-2">อัตราจ่ายกลาง</span>
                   </CardTitle>
-                  <CardDescription>กำหนดอัตราจ่ายสำหรับ{lottery.name}</CardDescription>
+                  <CardDescription>กำหนดอัตราจ่ายเริ่มต้นสำหรับ{lottery.name}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
