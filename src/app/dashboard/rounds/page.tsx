@@ -110,6 +110,15 @@ interface Restriction {
   value?: number;
 }
 
+// ฟังก์ชันแยกเลขจาก input
+function parseNumbers(input: string): string[] {
+  // แยกด้วย , ; เว้นวรรค หรือขึ้นบรรทัดใหม่
+  return input
+    .split(/[,;\s\n]+/)
+    .map((n) => n.trim().replace(/\D/g, ""))
+    .filter((n) => n.length > 0);
+}
+
 export default function RoundsPage() {
   const [rounds, setRounds] = useState(demoRounds);
   const [lotterySettings, setLotterySettings] = useState(defaultLotterySettings);
@@ -118,27 +127,40 @@ export default function RoundsPage() {
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [selectedLotteryForSettings, setSelectedLotteryForSettings] = useState<string | null>(null);
   
-  const [newRestriction, setNewRestriction] = useState<Restriction>({
-    number: "",
+  // รองรับหลายเลข
+  const [numbersInput, setNumbersInput] = useState("");
+  const [newRestriction, setNewRestriction] = useState<Omit<Restriction, 'number'>>({
     betType: "TWO_TOP",
     type: "BLOCKED",
     value: undefined,
   });
 
+  // แสดง preview เลขที่จะเพิ่ม
+  const parsedNumbers = parseNumbers(numbersInput);
+
   const handleAddRestriction = () => {
-    if (!selectedRound || !newRestriction.number) return;
+    if (!selectedRound || parsedNumbers.length === 0) return;
+
+    // สร้าง restrictions จากทุกเลขที่กรอก
+    const newRestrictions: Restriction[] = parsedNumbers.map((num) => ({
+      number: num,
+      betType: newRestriction.betType,
+      type: newRestriction.type,
+      value: newRestriction.value,
+    }));
 
     setRounds(
       rounds.map((r) =>
         r.id === selectedRound.id
           ? {
               ...r,
-              restrictions: [...r.restrictions, newRestriction],
+              restrictions: [...r.restrictions, ...newRestrictions],
             }
           : r
       )
     );
-    setNewRestriction({ number: "", betType: "TWO_TOP", type: "BLOCKED", value: undefined });
+    setNumbersInput("");
+    setNewRestriction({ betType: "TWO_TOP", type: "BLOCKED", value: undefined });
     setIsRestrictionDialogOpen(false);
   };
 
@@ -500,20 +522,31 @@ export default function RoundsPage() {
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>เลขที่ต้องการอั้น</Label>
-              <Input
-                type="text"
-                placeholder="กรอกเลข เช่น 25, 123"
-                value={newRestriction.number}
-                onChange={(e) =>
-                  setNewRestriction({
-                    ...newRestriction,
-                    number: e.target.value.replace(/\D/g, ""),
-                  })
-                }
-                className="text-2xl font-mono text-center"
-                maxLength={3}
+              <Label>เลขที่ต้องการอั้น (ใส่ได้หลายเลข)</Label>
+              <textarea
+                placeholder="กรอกเลข คั่นด้วย , หรือเว้นวรรค หรือขึ้นบรรทัดใหม่&#10;ตัวอย่าง: 25, 36, 99&#10;หรือ&#10;25&#10;36&#10;99"
+                value={numbersInput}
+                onChange={(e) => setNumbersInput(e.target.value)}
+                className="w-full min-h-[100px] p-3 rounded-lg bg-slate-800 border border-slate-700 text-lg font-mono focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none resize-none"
               />
+              {/* Preview */}
+              {parsedNumbers.length > 0 && (
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                  <p className="text-sm text-amber-400 mb-2">
+                    จะเพิ่ม {parsedNumbers.length} เลข:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {parsedNumbers.map((num, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1 rounded-lg bg-slate-800 font-mono text-lg text-amber-400"
+                      >
+                        {num}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -586,8 +619,8 @@ export default function RoundsPage() {
             <Button variant="outline" onClick={() => setIsRestrictionDialogOpen(false)}>
               ยกเลิก
             </Button>
-            <Button onClick={handleAddRestriction} disabled={!newRestriction.number}>
-              เพิ่มเลขอั้น
+            <Button onClick={handleAddRestriction} disabled={parsedNumbers.length === 0}>
+              เพิ่มเลขอั้น {parsedNumbers.length > 0 && `(${parsedNumbers.length} เลข)`}
             </Button>
           </DialogFooter>
         </DialogContent>
