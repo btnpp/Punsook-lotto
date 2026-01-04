@@ -219,6 +219,19 @@ export default function RoundsPage() {
     );
   };
 
+  // ล้างเลขอั้นทั้งหมดในงวดนั้น
+  const handleClearAllRestrictions = (roundId: string) => {
+    if (!confirm("ต้องการล้างเลขอั้นทั้งหมดในงวดนี้หรือไม่?")) return;
+    
+    setRounds(
+      rounds.map((r) =>
+        r.id === roundId
+          ? { ...r, restrictions: [] }
+          : r
+      )
+    );
+  };
+
   const handleOpenRestrictionDialog = (round: typeof demoRounds[0]) => {
     setSelectedRound(round);
     setIsRestrictionDialogOpen(true);
@@ -357,16 +370,28 @@ export default function RoundsPage() {
                               <Plus className="w-4 h-4 mr-1" />
                               เพิ่มเลขอั้น
                             </Button>
+                            {round.restrictions.length > 0 && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleClearAllRestrictions(round.id)}
+                              >
+                                <Trash2 className="w-4 h-4 mr-1" />
+                                ล้างทั้งหมด
+                              </Button>
+                            )}
                           </div>
                         </div>
 
                         {/* Restrictions List */}
                         {round.restrictions.length > 0 ? (
                           <div className="space-y-2">
-                            <p className="text-sm font-medium text-red-400 flex items-center gap-2">
-                              <AlertTriangle className="w-4 h-4" />
-                              เลขอั้น ({round.restrictions.length} เลข)
-                            </p>
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-medium text-red-400 flex items-center gap-2">
+                                <AlertTriangle className="w-4 h-4" />
+                                เลขอั้น ({round.restrictions.length} เลข)
+                              </p>
+                            </div>
                             <Table>
                               <TableHeader>
                                 <TableRow>
