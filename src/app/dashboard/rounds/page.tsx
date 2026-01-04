@@ -129,25 +129,62 @@ export default function RoundsPage() {
   
   // รองรับหลายเลข
   const [numbersInput, setNumbersInput] = useState("");
-  const [newRestriction, setNewRestriction] = useState<Omit<Restriction, 'number'>>({
-    betType: "TWO_TOP",
-    type: "BLOCKED",
-    value: undefined,
-  });
+  const [parsedNumbers, setParsedNumbers] = useState<string[]>([]);
+  const [selectedBetTypes, setSelectedBetTypes] = useState<string[]>(["TWO_TOP"]);
+  const [restrictionType, setRestrictionType] = useState("BLOCKED");
+  const [restrictionValue, setRestrictionValue] = useState<number | undefined>(undefined);
 
-  // แสดง preview เลขที่จะเพิ่ม
-  const parsedNumbers = parseNumbers(numbersInput);
+  // Handle input change and parse numbers
+  const handleNumbersInputChange = (value: string) => {
+    setNumbersInput(value);
+    setParsedNumbers(parseNumbers(value));
+  };
+
+  // ฟังก์ชันกลับเลข
+  const reverseNumber = (num: string): string | null => {
+    if (num.length < 2) return null;
+    const reversed = num.split("").reverse().join("");
+    return reversed !== num ? reversed : null;
+  };
+
+  // เพิ่มเลขกลับ
+  const handleAddReversedNumbers = () => {
+    const newNumbers = new Set(parsedNumbers);
+    parsedNumbers.forEach((num) => {
+      const reversed = reverseNumber(num);
+      if (reversed) {
+        newNumbers.add(reversed);
+      }
+    });
+    const updatedNumbers = Array.from(newNumbers);
+    setParsedNumbers(updatedNumbers);
+    setNumbersInput(updatedNumbers.join(" "));
+  };
+
+  // Toggle bet type selection
+  const toggleBetType = (betType: string) => {
+    setSelectedBetTypes((prev) =>
+      prev.includes(betType)
+        ? prev.filter((t) => t !== betType)
+        : [...prev, betType]
+    );
+  };
 
   const handleAddRestriction = () => {
-    if (!selectedRound || parsedNumbers.length === 0) return;
+    if (!selectedRound || parsedNumbers.length === 0 || selectedBetTypes.length === 0) return;
 
-    // สร้าง restrictions จากทุกเลขที่กรอก
-    const newRestrictions: Restriction[] = parsedNumbers.map((num) => ({
-      number: num,
-      betType: newRestriction.betType,
-      type: newRestriction.type,
-      value: newRestriction.value,
-    }));
+    // สร้าง restrictions จากทุกเลขและทุกประเภทที่เลือก
+    const newRestrictions: Restriction[] = [];
+    parsedNumbers.forEach((num) => {
+      selectedBetTypes.forEach((betType) => {
+        newRestrictions.push({
+          number: num,
+          betType,
+          type: restrictionType,
+          value: restrictionValue,
+        });
+      });
+    });
 
     setRounds(
       rounds.map((r) =>
@@ -160,7 +197,10 @@ export default function RoundsPage() {
       )
     );
     setNumbersInput("");
-    setNewRestriction({ betType: "TWO_TOP", type: "BLOCKED", value: undefined });
+    setParsedNumbers([]);
+    setSelectedBetTypes(["TWO_TOP"]);
+    setRestrictionType("BLOCKED");
+    setRestrictionValue(undefined);
     setIsRestrictionDialogOpen(false);
   };
 
@@ -524,11 +564,23 @@ export default function RoundsPage() {
             <div className="space-y-2">
               <Label>เลขที่ต้องการอั้น (ใส่ได้หลายเลข)</Label>
               <textarea
-                placeholder="กรอกเลข คั่นด้วย , หรือเว้นวรรค หรือขึ้นบรรทัดใหม่&#10;ตัวอย่าง: 25, 36, 99&#10;หรือ&#10;25&#10;36&#10;99"
+                placeholder="กรอกเลข คั่นด้วย , หรือเว้นวรรค หรือขึ้นบรรทัดใหม่&#10;ตัวอย่าง: 25, 36, 99"
                 value={numbersInput}
-                onChange={(e) => setNumbersInput(e.target.value)}
-                className="w-full min-h-[100px] p-3 rounded-lg bg-slate-800 border border-slate-700 text-lg font-mono focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none resize-none"
+                onChange={(e) => handleNumbersInputChange(e.target.value)}
+                className="w-full min-h-[80px] p-3 rounded-lg bg-slate-800 border border-slate-700 text-lg font-mono focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none resize-none"
               />
+              {/* ปุ่มกลับเลข */}
+              {parsedNumbers.length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddReversedNumbers}
+                  className="gap-2"
+                >
+                  🔄 กลับเลข
+                </Button>
+              )}
               {/* Preview */}
               {parsedNumbers.length > 0 && (
                 <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
@@ -550,33 +602,31 @@ export default function RoundsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>ประเภทการแทง</Label>
-              <Select
-                value={newRestriction.betType}
-                onValueChange={(value) =>
-                  setNewRestriction({ ...newRestriction, betType: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(BET_TYPES).map(([key, type]) => (
-                    <SelectItem key={key} value={key}>
-                      {type.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>ประเภทการแทง (เลือกได้หลายประเภท)</Label>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(BET_TYPES).map(([key, type]) => (
+                  <Button
+                    key={key}
+                    type="button"
+                    variant={selectedBetTypes.includes(key) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => toggleBetType(key)}
+                    className={selectedBetTypes.includes(key) ? "bg-amber-500 hover:bg-amber-600" : ""}
+                  >
+                    {type.shortName}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-xs text-slate-400">
+                เลือก: {selectedBetTypes.map(t => BET_TYPES[t as keyof typeof BET_TYPES]?.shortName).join(", ") || "ยังไม่ได้เลือก"}
+              </p>
             </div>
 
             <div className="space-y-2">
               <Label>ประเภทการอั้น</Label>
               <Select
-                value={newRestriction.type}
-                onValueChange={(value) =>
-                  setNewRestriction({ ...newRestriction, type: value })
-                }
+                value={restrictionType}
+                onValueChange={setRestrictionType}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -594,22 +644,17 @@ export default function RoundsPage() {
               </Select>
             </div>
 
-            {(newRestriction.type === "REDUCED_LIMIT" ||
-              newRestriction.type === "REDUCED_PAYOUT") && (
+            {(restrictionType === "REDUCED_LIMIT" ||
+              restrictionType === "REDUCED_PAYOUT") && (
               <div className="space-y-2">
                 <Label>
-                  {newRestriction.type === "REDUCED_LIMIT" ? "Limit ใหม่ (บาท)" : "อัตราจ่ายใหม่"}
+                  {restrictionType === "REDUCED_LIMIT" ? "Limit ใหม่ (บาท)" : "อัตราจ่ายใหม่"}
                 </Label>
                 <Input
                   type="number"
-                  placeholder={newRestriction.type === "REDUCED_LIMIT" ? "1000" : "70"}
-                  value={newRestriction.value || ""}
-                  onChange={(e) =>
-                    setNewRestriction({
-                      ...newRestriction,
-                      value: parseFloat(e.target.value) || undefined,
-                    })
-                  }
+                  placeholder={restrictionType === "REDUCED_LIMIT" ? "1000" : "70"}
+                  value={restrictionValue || ""}
+                  onChange={(e) => setRestrictionValue(parseFloat(e.target.value) || undefined)}
                 />
               </div>
             )}
@@ -619,8 +664,11 @@ export default function RoundsPage() {
             <Button variant="outline" onClick={() => setIsRestrictionDialogOpen(false)}>
               ยกเลิก
             </Button>
-            <Button onClick={handleAddRestriction} disabled={parsedNumbers.length === 0}>
-              เพิ่มเลขอั้น {parsedNumbers.length > 0 && `(${parsedNumbers.length} เลข)`}
+            <Button 
+              onClick={handleAddRestriction} 
+              disabled={parsedNumbers.length === 0 || selectedBetTypes.length === 0}
+            >
+              เพิ่มเลขอั้น ({parsedNumbers.length * selectedBetTypes.length} รายการ)
             </Button>
           </DialogFooter>
         </DialogContent>
