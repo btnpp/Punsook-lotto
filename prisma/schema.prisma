@@ -1,0 +1,276 @@
+// Prisma Schema for Punsook Lotto System
+// ระบบคีย์หวยสำหรับเจ้ามือ
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// =============================================
+// USER MANAGEMENT
+// =============================================
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  name      String
+  role      String   @default("ADMIN") // ADMIN only for now
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  bets       Bet[]
+  layoffs    Layoff[]
+  activities ActivityLog[]
+}
+
+// =============================================
+// AGENT MANAGEMENT
+// =============================================
+
+model Agent {
+  id        String   @id @default(cuid())
+  code      String   @unique // รหัส Agent เช่น A001
+  name      String
+  phone     String?
+  note      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  discounts   AgentDiscount[]
+  quotas      AgentQuota[]
+  bets        Bet[]
+  betSessions BetSession[]
+}
+
+// ส่วนลด Agent แยกตามประเภทหวย
+model AgentDiscount {
+  id          String   @id @default(cuid())
+  agentId     String
+  lotteryType String   // THAI, LAO, HANOI
+  discount    Float    @default(0) // % ส่วนลด
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, lotteryType])
+}
+
+// โควต้า Agent แยกตามประเภทหวยและประเภทแทง
+model AgentQuota {
+  id           String   @id @default(cuid())
+  agentId      String
+  lotteryType  String   // THAI, LAO, HANOI
+  betType      String   // THREE_TOP, THREE_TOD, TWO_TOP, TWO_BOTTOM, RUN_TOP, RUN_BOTTOM
+  quotaAmount  Float    @default(500) // โควต้าต่อเลข
+  allowDynamic Boolean  @default(true) // อนุญาตเกินโควต้าถ้า Global เหลือ
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, lotteryType, betType])
+}
+
+// =============================================
+// LOTTERY SETTINGS
+// =============================================
+
+// ประเภทหวย
+model LotteryType {
+  id           String   @id @default(cuid())
+  code         String   @unique // THAI, LAO, HANOI
+  name         String   // หวยไทย, หวยลาว, หวยฮานอย
+  description  String?
+  drawDays     String?  // วันออกผล เช่น "1,16" หรือ "MON,WED,FRI"
+  closeTime    String?  // เวลาปิดรับ เช่น "14:30"
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  payRates     PayRate[]
+  globalLimits GlobalLimit[]
+  rounds       LotteryRound[]
+}
+
+// อัตราจ่าย
+model PayRate {
+  id            String   @id @default(cuid())
+  lotteryTypeId String
+  betType       String   // THREE_TOP, THREE_TOD, TWO_TOP, TWO_BOTTOM, RUN_TOP, RUN_BOTTOM
+  payRate       Float    // อัตราจ่าย เช่น 900, 150, 90
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  lotteryType LotteryType @relation(fields: [lotteryTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([lotteryTypeId, betType])
+}
+
+// Global Limit ต่อเลข
+model GlobalLimit {
+  id            String   @id @default(cuid())
+  lotteryTypeId String
+  betType       String   // THREE_TOP, THREE_TOD, TWO_TOP, TWO_BOTTOM, RUN_TOP, RUN_BOTTOM
+  limitAmount   Float    // Limit รวมต่อเลข
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  lotteryType LotteryType @relation(fields: [lotteryTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([lotteryTypeId, betType])
+}
+
+// =============================================
+// CAPITAL & RISK MANAGEMENT
+// =============================================
+
+// ตั้งค่าทุน
+model CapitalSetting {
+  id             String   @id @default(cuid())
+  totalCapital   Float    // ทุนทั้งหมด
+  riskMode       String   @default("BALANCED") // CONSERVATIVE, BALANCED, AGGRESSIVE, CUSTOM
+  riskPercentage Float    @default(75) // % ที่ใช้
+  usableCapital  Float    // ทุนที่ใช้ได้ = total × risk%
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// =============================================
+// LOTTERY ROUNDS
+// =============================================
+
+model LotteryRound {
+  id            String    @id @default(cuid())
+  lotteryTypeId String
+  roundDate     DateTime  // วันที่งวด
+  status        String    @default("OPEN") // OPEN, CLOSED, RESULTED
+  result3Top    String?   // ผล 3 ตัวบน
+  result3Tod    String?   // ผล 3 ตัวโต๊ด (comma separated)
+  result2Top    String?   // ผล 2 ตัวบน
+  result2Bottom String?   // ผล 2 ตัวล่าง
+  closedAt      DateTime?
+  resultedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  lotteryType  LotteryType         @relation(fields: [lotteryTypeId], references: [id])
+  bets         Bet[]
+  restrictions NumberRestriction[]
+  layoffs      Layoff[]
+
+  @@unique([lotteryTypeId, roundDate])
+}
+
+// =============================================
+// BETTING
+// =============================================
+
+model BetSession {
+  id        String   @id @default(cuid())
+  agentId   String
+  note      String?
+  createdAt DateTime @default(now())
+
+  agent Agent @relation(fields: [agentId], references: [id])
+  bets  Bet[]
+}
+
+model Bet {
+  id            String   @id @default(cuid())
+  sessionId     String?
+  agentId       String
+  roundId       String
+  number        String   // เลขที่แทง
+  betType       String   // THREE_TOP, THREE_TOD, TWO_TOP, TWO_BOTTOM, RUN_TOP, RUN_BOTTOM
+  amount        Float    // ยอดแทง
+  discountPct   Float    @default(0) // % ส่วนลด ณ ขณะแทง
+  discountAmt   Float    @default(0) // จำนวนส่วนลด
+  netAmount     Float    // ยอดสุทธิหลังหักส่วนลด
+  payRate       Float    // อัตราจ่าย ณ ขณะแทง
+  isWin         Boolean?
+  winAmount     Float?   // ยอดถูกรางวัล
+  status        String   @default("ACTIVE") // ACTIVE, CANCELLED, WON, LOST
+  createdById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  session   BetSession?  @relation(fields: [sessionId], references: [id])
+  agent     Agent        @relation(fields: [agentId], references: [id])
+  round     LotteryRound @relation(fields: [roundId], references: [id])
+  createdBy User?        @relation(fields: [createdById], references: [id])
+}
+
+// =============================================
+// NUMBER RESTRICTIONS (เลขอั้น)
+// =============================================
+
+model NumberRestriction {
+  id              String   @id @default(cuid())
+  roundId         String
+  number          String   // เลขที่อั้น
+  betType         String   // ประเภทที่อั้น
+  restrictionType String   // BLOCKED, REDUCED_LIMIT, REDUCED_PAYOUT
+  value           Float?   // limit หรือ payout rate ใหม่
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  round LotteryRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, number, betType])
+}
+
+// =============================================
+// LAY OFF (ตีออก)
+// =============================================
+
+model Layoff {
+  id           String    @id @default(cuid())
+  roundId      String
+  number       String
+  betType      String
+  totalAmount  Float     // ยอดรับรวม
+  limitAmount  Float     // Limit ที่รับได้
+  excessAmount Float     // ยอดเกิน = total - limit
+  layoffAmount Float     // ยอดที่ตีออก
+  keepAmount   Float     // ยอดที่เก็บเอง
+  status       String    @default("PENDING") // PENDING, EXPORTED, SENT, CONFIRMED
+  sentTo       String?   // เจ้าที่ส่งให้
+  note         String?
+  exportedAt   DateTime?
+  confirmedAt  DateTime?
+  createdById  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  round     LotteryRound @relation(fields: [roundId], references: [id])
+  createdBy User?        @relation(fields: [createdById], references: [id])
+}
+
+// =============================================
+// ACTIVITY LOG
+// =============================================
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String   // LOGIN, LOGOUT, CREATE_BET, CANCEL_BET, etc.
+  entityType String?  // Agent, Bet, Round, etc.
+  entityId   String?
+  details    String?  // JSON string for additional details
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+}
