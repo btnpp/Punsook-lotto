@@ -389,9 +389,6 @@ export default function AgentsPage() {
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" title="ดูรายละเอียด">
-                          <Eye className="w-4 h-4" />
-                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

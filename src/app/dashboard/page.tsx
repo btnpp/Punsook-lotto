@@ -78,24 +78,24 @@ export default function DashboardPage() {
       <div className="p-6 space-y-6">
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-3">
-          <Link href="/dashboard/bets/new">
-            <Button className="gap-2">
+          <Button className="gap-2" asChild>
+            <Link href="/dashboard/bets">
               <Plus className="w-4 h-4" />
               คีย์หวยใหม่
-            </Button>
-          </Link>
-          <Link href="/dashboard/agents/new">
-            <Button variant="outline" className="gap-2">
+            </Link>
+          </Button>
+          <Button variant="outline" className="gap-2" asChild>
+            <Link href="/dashboard/agents">
               <Users className="w-4 h-4" />
               เพิ่ม Agent
-            </Button>
-          </Link>
-          <Link href="/dashboard/risk">
-            <Button variant="outline" className="gap-2">
+            </Link>
+          </Button>
+          <Button variant="outline" className="gap-2" asChild>
+            <Link href="/dashboard/risk">
               <Eye className="w-4 h-4" />
               ดูความเสี่ยง
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
 
         {/* Stats */}

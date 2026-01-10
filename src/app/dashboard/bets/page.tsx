@@ -62,11 +62,33 @@ export default function BetsPage() {
   const [selectedAgent, setSelectedAgent] = useState("");
   const [selectedLottery, setSelectedLottery] = useState("THAI");
   const [selectedBetTypes, setSelectedBetTypes] = useState<string[]>(["TWO_TOP"]);
-  const [singleNumber, setSingleNumber] = useState("");
+  const [singleNumbers, setSingleNumbers] = useState(""); // รองรับหลายเลข คั่นด้วย , หรือ เว้นวรรค
   const [singleAmount, setSingleAmount] = useState("");
   const [bulkInput, setBulkInput] = useState("");
   const [betItems, setBetItems] = useState<BetItem[]>([]);
   const [mode, setMode] = useState<"single" | "bulk">("single");
+
+  // ฟังก์ชันแปลง input เป็นหลายเลข
+  const parseMultipleNumbers = (input: string): string[] => {
+    // แยกด้วย comma, space, หรือ newline
+    const numbers = input
+      .split(/[\s,\n]+/)
+      .map((n) => n.trim().replace(/\D/g, ""))
+      .filter((n) => n.length > 0);
+    return [...new Set(numbers)]; // ลบเลขซ้ำ
+  };
+
+  // นับเลขที่ valid จาก input
+  const getValidNumbersFromInput = (): string[] => {
+    const numbers = parseMultipleNumbers(singleNumbers);
+    return numbers.filter((n) => {
+      // ตรวจสอบว่าเลขตรงกับประเภทที่เลือกอย่างน้อย 1 ประเภท
+      return selectedBetTypes.some((betType) => {
+        const betTypeInfo = BET_TYPES[betType as keyof typeof BET_TYPES];
+        return n.length === betTypeInfo.digits;
+      });
+    });
+  };
 
   const agent = demoAgents.find((a) => a.id === selectedAgent);
   const discount = agent?.discount[selectedLottery as keyof typeof agent.discount] || 0;
@@ -93,88 +115,57 @@ export default function BetsPage() {
   };
 
   const handleAddSingleBet = () => {
-    if (!singleNumber || !singleAmount || !selectedAgent) return;
+    const validNumbers = getValidNumbersFromInput();
+    if (validNumbers.length === 0 || !singleAmount || !selectedAgent) return;
 
     const amount = parseFloat(singleAmount);
     const newBets: BetItem[] = [];
 
-    // เพิ่มเลขสำหรับทุกประเภทที่เลือก
-    selectedBetTypes.forEach((betType) => {
-      const betTypeInfo = BET_TYPES[betType as keyof typeof BET_TYPES];
-      // ตรวจสอบว่าเลขตรงกับประเภท
-      if (singleNumber.length === betTypeInfo.digits) {
-        const payRate = DEFAULT_PAY_RATES[selectedLottery as keyof typeof DEFAULT_PAY_RATES]?.[betType as keyof typeof DEFAULT_PAY_RATES.THAI] || 0;
-        const netAmount = calculateNetAmount(amount, discount);
+    // เพิ่มทุกเลขสำหรับทุกประเภทที่เลือก
+    validNumbers.forEach((number, numIndex) => {
+      selectedBetTypes.forEach((betType) => {
+        const betTypeInfo = BET_TYPES[betType as keyof typeof BET_TYPES];
+        // ตรวจสอบว่าเลขตรงกับประเภท
+        if (number.length === betTypeInfo.digits) {
+          const payRate = DEFAULT_PAY_RATES[selectedLottery as keyof typeof DEFAULT_PAY_RATES]?.[betType as keyof typeof DEFAULT_PAY_RATES.THAI] || 0;
+          const netAmount = calculateNetAmount(amount, discount);
 
-        newBets.push({
-          id: `${Date.now()}-${betType}`,
-          number: singleNumber,
-          betType,
-          amount,
-          discount,
-          netAmount,
-          payRate,
-        });
-      }
+          newBets.push({
+            id: `${Date.now()}-${numIndex}-${betType}`,
+            number,
+            betType,
+            amount,
+            discount,
+            netAmount,
+            payRate,
+          });
+        }
+      });
     });
 
     if (newBets.length > 0) {
       setBetItems([...betItems, ...newBets]);
-      setSingleNumber("");
+      setSingleNumbers("");
       setSingleAmount("");
     }
   };
 
-  // ฟังก์ชันกลับเลขและเพิ่มรายการ
-  const handleReverseAndAdd = () => {
-    if (!singleNumber || !singleAmount || !selectedAgent) return;
-    if (singleNumber.length < 2) return;
+  // ฟังก์ชันกลับเลขและเพิ่มเข้า input
+  const handleReverseNumbers = () => {
+    const validNumbers = getValidNumbersFromInput();
+    if (validNumbers.length === 0) return;
 
-    const reversedNum = reverseNumber(singleNumber);
-    if (reversedNum === singleNumber) {
-      alert("เลขนี้กลับแล้วเหมือนเดิม");
-      return;
-    }
-
-    const amount = parseFloat(singleAmount);
-    const newBets: BetItem[] = [];
-
-    // เพิ่มเลขต้นฉบับ
-    selectedBetTypes.forEach((betType) => {
-      const betTypeInfo = BET_TYPES[betType as keyof typeof BET_TYPES];
-      if (singleNumber.length === betTypeInfo.digits) {
-        const payRate = DEFAULT_PAY_RATES[selectedLottery as keyof typeof DEFAULT_PAY_RATES]?.[betType as keyof typeof DEFAULT_PAY_RATES.THAI] || 0;
-        const netAmount = calculateNetAmount(amount, discount);
-
-        // เลขต้นฉบับ
-        newBets.push({
-          id: `${Date.now()}-${betType}-orig`,
-          number: singleNumber,
-          betType,
-          amount,
-          discount,
-          netAmount,
-          payRate,
-        });
-
-        // เลขกลับ
-        newBets.push({
-          id: `${Date.now()}-${betType}-rev`,
-          number: reversedNum,
-          betType,
-          amount,
-          discount,
-          netAmount,
-          payRate,
-        });
+    const allNumbers = [...validNumbers];
+    validNumbers.forEach((num) => {
+      if (num.length >= 2) {
+        const reversed = reverseNumber(num);
+        if (reversed !== num && !allNumbers.includes(reversed)) {
+          allNumbers.push(reversed);
+        }
       }
     });
 
-    if (newBets.length > 0) {
-      setBetItems([...betItems, ...newBets]);
-      setSingleNumber("");
-      setSingleAmount("");
-    }
+    setSingleNumbers(allNumbers.join(", "));
   };
 
   const handleParseBulk = () => {
@@ -394,65 +385,79 @@ export default function BetsPage() {
               <CardContent>
                 {mode === "single" ? (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>เลข</Label>
+                    {/* ช่องใส่เลข */}
+                    <div className="space-y-2">
+                      <Label>เลข (พิมพ์หลายเลขคั่นด้วย , หรือ เว้นวรรค)</Label>
+                      <div className="flex gap-2">
                         <Input
                           type="text"
-                          placeholder={getMaxDigits() === 3 ? "xxx" : getMaxDigits() === 2 ? "xx" : "x"}
-                          value={singleNumber}
-                          onChange={(e) => setSingleNumber(e.target.value.replace(/\D/g, ""))}
-                          className="text-2xl font-mono text-center tracking-widest"
-                          maxLength={getMaxDigits()}
+                          placeholder={`เช่น 12, 34, 56 หรือ 12 34 56`}
+                          value={singleNumbers}
+                          onChange={(e) => setSingleNumbers(e.target.value)}
+                          className="text-lg font-mono tracking-wide flex-1"
                         />
+                        {/* ปุ่มกลับเลข */}
+                        <Button
+                          variant="outline"
+                          onClick={handleReverseNumbers}
+                          disabled={getValidNumbersFromInput().length === 0}
+                          title="เพิ่มเลขกลับ"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </Button>
                       </div>
-                      <div className="space-y-2">
-                        <Label>จำนวนเงิน</Label>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          value={singleAmount}
-                          onChange={(e) => setSingleAmount(e.target.value)}
-                          className="text-2xl font-mono text-center"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        className="flex-1 gap-2"
-                        onClick={handleAddSingleBet}
-                        disabled={!singleNumber || !singleAmount || !selectedAgent}
-                      >
-                        <Plus className="w-4 h-4" />
-                        เพิ่มรายการ
-                      </Button>
-                      
-                      {/* ปุ่มกลับเลข */}
-                      <Button
-                        variant="outline"
-                        className="gap-2"
-                        onClick={handleReverseAndAdd}
-                        disabled={!singleNumber || !singleAmount || !selectedAgent || singleNumber.length < 2}
-                        title="เพิ่มเลขกลับด้วย"
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                        กลับเลข
-                      </Button>
                     </div>
 
-                    {/* แสดงตัวอย่างเลขกลับ */}
-                    {singleNumber.length >= 2 && (
-                      <div className="p-3 rounded-lg bg-slate-800/50 text-sm">
-                        <span className="text-slate-400">เลขกลับ: </span>
-                        <span className="font-mono text-amber-400 text-lg">
-                          {reverseNumber(singleNumber)}
-                        </span>
-                        {reverseNumber(singleNumber) === singleNumber && (
-                          <span className="text-slate-500 ml-2">(เหมือนเดิม)</span>
-                        )}
+                    {/* แสดง Preview เลขที่พิมพ์ */}
+                    {getValidNumbersFromInput().length > 0 && (
+                      <div className="p-3 rounded-lg bg-slate-800/70 border border-slate-700">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm text-slate-400">เลขที่จะเพิ่ม:</span>
+                          {getValidNumbersFromInput().map((num) => (
+                            <span
+                              key={num}
+                              className="px-2 py-1 rounded bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 font-mono font-bold text-amber-400"
+                            >
+                              {num}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     )}
+
+                    {/* จำนวนเงิน */}
+                    <div className="space-y-2">
+                      <Label>จำนวนเงิน (ต่อเลข)</Label>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        value={singleAmount}
+                        onChange={(e) => setSingleAmount(e.target.value)}
+                        className="text-2xl font-mono text-center"
+                      />
+                    </div>
+                    
+                    {/* Preview ยอดรวม */}
+                    {getValidNumbersFromInput().length > 0 && singleAmount && (
+                      <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-slate-300">ยอดรวม ({getValidNumbersFromInput().length} เลข × ฿{formatNumber(parseFloat(singleAmount) || 0)})</span>
+                          <span className="font-bold text-emerald-400">
+                            ฿{formatNumber(getValidNumbersFromInput().length * (parseFloat(singleAmount) || 0))}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <Button
+                      className="w-full gap-2"
+                      size="lg"
+                      onClick={handleAddSingleBet}
+                      disabled={getValidNumbersFromInput().length === 0 || !singleAmount || !selectedAgent}
+                    >
+                      <Plus className="w-4 h-4" />
+                      เพิ่มรายการ ({getValidNumbersFromInput().length} เลข)
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-4">

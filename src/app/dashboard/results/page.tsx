@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -20,10 +21,68 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
-import { Check, Calendar, Trophy, Calculator } from "lucide-react";
+import { Check, Calendar, Trophy, Calculator, Plus, ArrowRight } from "lucide-react";
 import { formatNumber, formatCurrency } from "@/lib/utils";
 import { LOTTERY_TYPES } from "@/lib/constants";
+
+// Helper function to calculate next draw date
+function getNextDrawDate(lotteryType: string, currentDate: Date): Date {
+  const next = new Date(currentDate);
+  
+  switch (lotteryType) {
+    case "THAI":
+      // Thai lottery: 1st or 16th of month
+      const currentDay = currentDate.getDate();
+      if (currentDay < 16) {
+        // Next is 16th of same month
+        next.setDate(16);
+      } else {
+        // Next is 1st of next month
+        next.setMonth(next.getMonth() + 1);
+        next.setDate(1);
+      }
+      break;
+      
+    case "LAO":
+      // Lao lottery: Monday (1), Wednesday (3), Friday (5)
+      const laoDays = [1, 3, 5]; // Monday, Wednesday, Friday
+      let currentDayOfWeek = currentDate.getDay();
+      let daysToAdd = 1;
+      
+      // Find the next draw day
+      for (let i = 1; i <= 7; i++) {
+        const nextDay = (currentDayOfWeek + i) % 7;
+        if (laoDays.includes(nextDay)) {
+          daysToAdd = i;
+          break;
+        }
+      }
+      next.setDate(next.getDate() + daysToAdd);
+      break;
+      
+    case "HANOI":
+      // Hanoi lottery: Every day
+      next.setDate(next.getDate() + 1);
+      break;
+      
+    default:
+      next.setDate(next.getDate() + 1);
+  }
+  
+  return next;
+}
+
+// Get default close time for lottery type
+function getDefaultCloseTime(lotteryType: string): string {
+  switch (lotteryType) {
+    case "THAI": return "14:30";
+    case "LAO": return "20:00";
+    case "HANOI": return "18:00";
+    default: return "18:00";
+  }
+}
 
 // Demo rounds data
 const demoRounds = [
@@ -80,16 +139,24 @@ const demoRounds = [
 ];
 
 export default function ResultsPage() {
+  const [rounds, setRounds] = useState(demoRounds);
   const [selectedRound, setSelectedRound] = useState<typeof demoRounds[0] | null>(null);
   const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
+  const [autoCreateNextRound, setAutoCreateNextRound] = useState(true);
+  const [lastCreatedRound, setLastCreatedRound] = useState<{
+    lotteryType: string;
+    date: Date;
+    closeTime: string;
+  } | null>(null);
   const [resultInput, setResultInput] = useState({
     result3Top: "",
     result2Top: "",
     result2Bottom: "",
   });
 
-  const openRounds = demoRounds.filter((r) => r.status === "OPEN");
-  const resultedRounds = demoRounds.filter((r) => r.status === "RESULTED");
+  const openRounds = rounds.filter((r) => r.status === "OPEN");
+  const resultedRounds = rounds.filter((r) => r.status === "RESULTED");
 
   const handleOpenResultDialog = (round: typeof demoRounds[0]) => {
     setSelectedRound(round);
@@ -102,11 +169,62 @@ export default function ResultsPage() {
   };
 
   const handleSubmitResult = () => {
-    // TODO: Submit result to API
-    alert(
-      `บันทึกผลหวยสำเร็จ!\n3 ตัวบน: ${resultInput.result3Top}\n2 ตัวบน: ${resultInput.result2Top}\n2 ตัวล่าง: ${resultInput.result2Bottom}`
+    if (!selectedRound) return;
+
+    // Calculate fake win amount and profit for demo
+    const fakeWinAmount = Math.floor(Math.random() * selectedRound.totalBets * 0.4);
+    const fakeProfit = selectedRound.totalBets - fakeWinAmount;
+
+    // Update the current round to RESULTED
+    let updatedRounds = rounds.map((r) =>
+      r.id === selectedRound.id
+        ? {
+            ...r,
+            status: "RESULTED" as const,
+            result3Top: resultInput.result3Top,
+            result2Top: resultInput.result2Top,
+            result2Bottom: resultInput.result2Bottom,
+            winAmount: fakeWinAmount,
+            profit: fakeProfit,
+          }
+        : r
     );
+
+    // Auto-create next round if enabled
+    if (autoCreateNextRound) {
+      const nextDate = getNextDrawDate(selectedRound.lotteryType, selectedRound.roundDate);
+      const closeTime = getDefaultCloseTime(selectedRound.lotteryType);
+      
+      // Check if round already exists for this date
+      const roundExists = updatedRounds.some(
+        (r) =>
+          r.lotteryType === selectedRound.lotteryType &&
+          r.roundDate.toDateString() === nextDate.toDateString()
+      );
+
+      if (!roundExists) {
+        const newRound = {
+          id: `auto-${Date.now()}`,
+          lotteryType: selectedRound.lotteryType,
+          roundDate: nextDate,
+          status: "OPEN" as const,
+          closeTime,
+          totalBets: 0,
+          betCount: 0,
+        };
+        updatedRounds = [...updatedRounds, newRound];
+        
+        setLastCreatedRound({
+          lotteryType: selectedRound.lotteryType,
+          date: nextDate,
+          closeTime,
+        });
+      }
+    }
+
+    setRounds(updatedRounds);
     setIsResultDialogOpen(false);
+    setIsSuccessDialogOpen(true);
   };
 
   return (
@@ -346,6 +464,30 @@ export default function ResultsPage() {
                   จำนวน {selectedRound.betCount} รายการ
                 </p>
               </div>
+
+              {/* Auto-create next round option */}
+              <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="autoCreate"
+                    checked={autoCreateNextRound}
+                    onCheckedChange={(checked) => setAutoCreateNextRound(checked as boolean)}
+                    className="mt-0.5"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="autoCreate" className="text-sm font-medium text-emerald-400 cursor-pointer">
+                      🔄 เปิดงวดถัดไปอัตโนมัติ
+                    </label>
+                    <p className="text-xs text-slate-400 mt-1">
+                      งวดถัดไป:{" "}
+                      <span className="text-emerald-400 font-medium">
+                        {getNextDrawDate(selectedRound.lotteryType, selectedRound.roundDate).toLocaleDateString("th-TH")}
+                      </span>
+                      {" "}ปิดรับ {getDefaultCloseTime(selectedRound.lotteryType)} น.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -367,6 +509,87 @@ export default function ResultsPage() {
             >
               <Calculator className="w-4 h-4" />
               คำนวณผล
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Dialog */}
+      <Dialog open={isSuccessDialogOpen} onOpenChange={setIsSuccessDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-400">
+              <Check className="w-6 h-6" />
+              บันทึกผลหวยสำเร็จ!
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Result Summary */}
+            <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+              <p className="text-sm text-slate-400 mb-2">ผลหวยที่บันทึก:</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="text-center">
+                  <p className="text-xs text-slate-500">3 ตัวบน</p>
+                  <p className="text-xl font-mono font-bold text-amber-400">
+                    {resultInput.result3Top}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-slate-500">2 ตัวบน</p>
+                  <p className="text-xl font-mono font-bold text-amber-400">
+                    {resultInput.result2Top}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-slate-500">2 ตัวล่าง</p>
+                  <p className="text-xl font-mono font-bold text-amber-400">
+                    {resultInput.result2Bottom}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Next Round Created */}
+            {lastCreatedRound && (
+              <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Plus className="w-5 h-5 text-emerald-400" />
+                  <p className="font-medium text-emerald-400">สร้างงวดถัดไปแล้ว!</p>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-2xl">
+                    {LOTTERY_TYPES[lastCreatedRound.lotteryType as keyof typeof LOTTERY_TYPES]?.flag}
+                  </span>
+                  <div>
+                    <p className="text-slate-100">
+                      {LOTTERY_TYPES[lastCreatedRound.lotteryType as keyof typeof LOTTERY_TYPES]?.name}
+                    </p>
+                    <p className="text-slate-400">
+                      งวด {lastCreatedRound.date.toLocaleDateString("th-TH")} • ปิดรับ {lastCreatedRound.closeTime} น.
+                    </p>
+                  </div>
+                  <Badge variant="success" className="ml-auto">เปิดรับแล้ว</Badge>
+                </div>
+              </div>
+            )}
+
+            {!lastCreatedRound && autoCreateNextRound && (
+              <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
+                <p className="text-sm text-slate-400">
+                  ℹ️ งวดถัดไปมีอยู่ในระบบแล้ว
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => {
+              setIsSuccessDialogOpen(false);
+              setLastCreatedRound(null);
+              setResultInput({ result3Top: "", result2Top: "", result2Bottom: "" });
+            }}>
+              ตกลง
             </Button>
           </DialogFooter>
         </DialogContent>

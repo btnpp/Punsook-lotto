@@ -125,7 +125,10 @@ export default function RoundsPage() {
   const [selectedRound, setSelectedRound] = useState<typeof demoRounds[0] | null>(null);
   const [isRestrictionDialogOpen, setIsRestrictionDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
+  const [isEditRoundDialogOpen, setIsEditRoundDialogOpen] = useState(false);
   const [selectedLotteryForSettings, setSelectedLotteryForSettings] = useState<string | null>(null);
+  const [editRoundDate, setEditRoundDate] = useState("");
+  const [editCloseTime, setEditCloseTime] = useState("");
   
   // รองรับหลายเลข
   const [numbersInput, setNumbersInput] = useState("");
@@ -258,6 +261,33 @@ export default function RoundsPage() {
     );
   };
 
+  const handleOpenEditRoundDialog = (round: typeof demoRounds[0]) => {
+    setSelectedRound(round);
+    // Format date for input type="date"
+    const dateStr = round.roundDate.toISOString().split("T")[0];
+    setEditRoundDate(dateStr);
+    setEditCloseTime(round.closeTime);
+    setIsEditRoundDialogOpen(true);
+  };
+
+  const handleSaveRoundChanges = () => {
+    if (!selectedRound || !editRoundDate) return;
+
+    setRounds(
+      rounds.map((r) =>
+        r.id === selectedRound.id
+          ? {
+              ...r,
+              roundDate: new Date(editRoundDate),
+              closeTime: editCloseTime,
+            }
+          : r
+      )
+    );
+    setIsEditRoundDialogOpen(false);
+    setSelectedRound(null);
+  };
+
   return (
     <div className="min-h-screen">
       <Header title="จัดการงวดหวย" subtitle="ตั้งค่างวดหวย เลขอั้น และเวลาเปิด-ปิด" />
@@ -346,6 +376,14 @@ export default function RoundsPage() {
                             )}
                           </div>
                           <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenEditRoundDialog(round)}
+                            >
+                              <Edit className="w-4 h-4 mr-1" />
+                              แก้ไขงวด
+                            </Button>
                             <Button
                               variant="outline"
                               size="sm"
@@ -791,6 +829,89 @@ export default function RoundsPage() {
               ยกเลิก
             </Button>
             <Button onClick={handleSaveSettings}>บันทึก</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Round Dialog */}
+      <Dialog open={isEditRoundDialogOpen} onOpenChange={setIsEditRoundDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-amber-400" />
+              แก้ไขงวดหวย
+            </DialogTitle>
+            <DialogDescription>
+              {selectedRound && LOTTERY_TYPES[selectedRound.lotteryType as keyof typeof LOTTERY_TYPES]?.name}
+              {" - "}งวดเดิม: {selectedRound?.roundDate.toLocaleDateString("th-TH")}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+              <p className="text-sm text-amber-400 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                สำหรับกรณีวันหยุด หรือเหตุการณ์พิเศษที่ต้องเลื่อนวันออกผล
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>วันที่ออกผลใหม่</Label>
+              <Input
+                type="date"
+                value={editRoundDate}
+                onChange={(e) => setEditRoundDate(e.target.value)}
+                className="font-mono"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>เวลาปิดรับ</Label>
+              <Input
+                type="time"
+                value={editCloseTime}
+                onChange={(e) => setEditCloseTime(e.target.value)}
+              />
+              <p className="text-xs text-slate-400">
+                ปรับเวลาปิดรับหากต้องการเปลี่ยนแปลง
+              </p>
+            </div>
+
+            {editRoundDate && selectedRound && (
+              <div className="p-3 rounded-lg bg-slate-800 border border-slate-700">
+                <p className="text-sm text-slate-400 mb-2">สรุปการเปลี่ยนแปลง:</p>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-500">วันเดิม:</span>
+                    <span className="line-through text-red-400">
+                      {selectedRound.roundDate.toLocaleDateString("th-TH")}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-500">วันใหม่:</span>
+                    <span className="text-emerald-400 font-bold">
+                      {new Date(editRoundDate).toLocaleDateString("th-TH")}
+                    </span>
+                  </div>
+                  {editCloseTime !== selectedRound.closeTime && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500">ปิดรับ:</span>
+                      <span className="line-through text-red-400">{selectedRound.closeTime}</span>
+                      <span className="text-emerald-400">→ {editCloseTime} น.</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditRoundDialogOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button onClick={handleSaveRoundChanges}>
+              บันทึกการเปลี่ยนแปลง
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
