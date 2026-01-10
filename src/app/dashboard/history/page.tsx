@@ -47,6 +47,8 @@ interface BetItem {
 interface Slip {
   id: string;
   date: Date;
+  roundId: string;
+  roundDate: Date;
   agent: { code: string; name: string };
   lottery: string;
   items: BetItem[];
@@ -56,11 +58,22 @@ interface Slip {
   status: string;
 }
 
+// Demo rounds
+const demoRounds = [
+  { id: "R001", date: new Date("2026-01-16"), lottery: "THAI", name: "หวยไทย 16/1/69" },
+  { id: "R002", date: new Date("2026-01-10"), lottery: "LAO", name: "หวยลาว 10/1/69" },
+  { id: "R003", date: new Date("2026-01-09"), lottery: "HANOI", name: "หวยฮานอย 9/1/69" },
+  { id: "R004", date: new Date("2026-01-08"), lottery: "LAO", name: "หวยลาว 8/1/69" },
+  { id: "R005", date: new Date("2026-01-01"), lottery: "THAI", name: "หวยไทย 1/1/69" },
+];
+
 // Demo slip data - จัดกลุ่มเป็นโพย
 const demoSlips: Slip[] = [
   {
     id: "SLIP-001",
     date: new Date("2026-01-04T10:30:00"),
+    roundId: "R001",
+    roundDate: new Date("2026-01-16"),
     agent: { code: "A001", name: "นายสมชาย" },
     lottery: "THAI",
     items: [
@@ -76,6 +89,8 @@ const demoSlips: Slip[] = [
   {
     id: "SLIP-002",
     date: new Date("2026-01-04T10:25:00"),
+    roundId: "R001",
+    roundDate: new Date("2026-01-16"),
     agent: { code: "A001", name: "นายสมชาย" },
     lottery: "THAI",
     items: [
@@ -89,6 +104,8 @@ const demoSlips: Slip[] = [
   {
     id: "SLIP-003",
     date: new Date("2026-01-04T09:45:00"),
+    roundId: "R002",
+    roundDate: new Date("2026-01-10"),
     agent: { code: "A002", name: "นายวิชัย" },
     lottery: "LAO",
     items: [
@@ -105,6 +122,8 @@ const demoSlips: Slip[] = [
   {
     id: "SLIP-004",
     date: new Date("2026-01-03T16:30:00"),
+    roundId: "R003",
+    roundDate: new Date("2026-01-09"),
     agent: { code: "A003", name: "นายประสิทธิ์" },
     lottery: "HANOI",
     items: [
@@ -119,6 +138,8 @@ const demoSlips: Slip[] = [
   {
     id: "SLIP-005",
     date: new Date("2026-01-03T14:30:00"),
+    roundId: "R005",
+    roundDate: new Date("2026-01-01"),
     agent: { code: "A001", name: "นายสมชาย" },
     lottery: "THAI",
     items: [
@@ -134,6 +155,8 @@ const demoSlips: Slip[] = [
   {
     id: "SLIP-006",
     date: new Date("2026-01-02T11:00:00"),
+    roundId: "R004",
+    roundDate: new Date("2026-01-08"),
     agent: { code: "A002", name: "นายวิชัย" },
     lottery: "LAO",
     items: [
@@ -179,9 +202,14 @@ function getSlipStatusBadge(status: string, items: BetItem[]) {
 export default function HistoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLottery, setFilterLottery] = useState("ALL");
-  const [filterAgent, setFilterAgent] = useState("ALL");
+  const [filterRound, setFilterRound] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [selectedSlip, setSelectedSlip] = useState<Slip | null>(null);
+
+  // Get available rounds based on selected lottery
+  const availableRounds = filterLottery === "ALL" 
+    ? demoRounds 
+    : demoRounds.filter((r) => r.lottery === filterLottery);
 
   const filteredSlips = demoSlips.filter((slip) => {
     const matchSearch =
@@ -190,10 +218,10 @@ export default function HistoryPage() {
       slip.agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       slip.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchLottery = filterLottery === "ALL" || slip.lottery === filterLottery;
-    const matchAgent = filterAgent === "ALL" || slip.agent.code === filterAgent;
+    const matchRound = filterRound === "ALL" || slip.roundId === filterRound;
     const matchStatus = filterStatus === "ALL" || slip.status === filterStatus;
 
-    return matchSearch && matchLottery && matchAgent && matchStatus;
+    return matchSearch && matchLottery && matchRound && matchStatus;
   });
 
   const totalSlips = filteredSlips.length;
@@ -218,7 +246,13 @@ export default function HistoryPage() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Select value={filterLottery} onValueChange={setFilterLottery}>
+              <Select 
+                value={filterLottery} 
+                onValueChange={(value) => {
+                  setFilterLottery(value);
+                  setFilterRound("ALL"); // Reset round when lottery changes
+                }}
+              >
                 <SelectTrigger className="w-[150px]">
                   <SelectValue placeholder="ประเภทหวย" />
                 </SelectTrigger>
@@ -231,15 +265,19 @@ export default function HistoryPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={filterAgent} onValueChange={setFilterAgent}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Agent" />
+              <Select value={filterRound} onValueChange={setFilterRound}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="งวด" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">ทั้งหมด</SelectItem>
-                  <SelectItem value="A001">A001</SelectItem>
-                  <SelectItem value="A002">A002</SelectItem>
-                  <SelectItem value="A003">A003</SelectItem>
+                  <SelectItem value="ALL">ทุกงวด</SelectItem>
+                  {availableRounds.map((round) => (
+                    <SelectItem key={round.id} value={round.id}>
+                      {round.date.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" })}
+                      {" - "}
+                      {LOTTERY_TYPES[round.lottery as keyof typeof LOTTERY_TYPES]?.flag}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -305,6 +343,7 @@ export default function HistoryPage() {
                   <TableHead>วันที่/เวลา</TableHead>
                   <TableHead>Agent</TableHead>
                   <TableHead>หวย</TableHead>
+                  <TableHead>งวด</TableHead>
                   <TableHead>เลข</TableHead>
                   <TableHead className="text-center">รายการ</TableHead>
                   <TableHead className="text-right">ยอดรวม</TableHead>
@@ -346,6 +385,11 @@ export default function HistoryPage() {
                       <span>
                         {LOTTERY_TYPES[slip.lottery as keyof typeof LOTTERY_TYPES]?.flag}{" "}
                         {LOTTERY_TYPES[slip.lottery as keyof typeof LOTTERY_TYPES]?.name}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-slate-300">
+                        {slip.roundDate.toLocaleDateString("th-TH", { day: "numeric", month: "short" })}
                       </span>
                     </TableCell>
                     <TableCell>

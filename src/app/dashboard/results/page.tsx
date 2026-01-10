@@ -23,9 +23,38 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Check, Calendar, Trophy, Calculator, Plus, ArrowRight } from "lucide-react";
+import { Check, Calendar, Trophy, Calculator, Plus, ArrowRight, Eye, Users } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { formatNumber, formatCurrency } from "@/lib/utils";
-import { LOTTERY_TYPES } from "@/lib/constants";
+import { LOTTERY_TYPES, BET_TYPES } from "@/lib/constants";
+
+// Demo winners data - ข้อมูลผู้ถูกรางวัลตัวอย่าง
+const demoWinners: Record<string, Array<{
+  id: string;
+  agent: { code: string; name: string };
+  number: string;
+  betType: string;
+  amount: number;
+  payRate: number;
+  winAmount: number;
+}>> = {
+  "4": [ // Round ID for Thai 1/1/69
+    { id: "w1", agent: { code: "A001", name: "นายสมชาย" }, number: "123", betType: "THREE_TOP", amount: 100, payRate: 900, winAmount: 90000 },
+    { id: "w2", agent: { code: "A001", name: "นายสมชาย" }, number: "23", betType: "TWO_TOP", amount: 500, payRate: 90, winAmount: 45000 },
+    { id: "w3", agent: { code: "A002", name: "นายวิชัย" }, number: "45", betType: "TWO_BOTTOM", amount: 300, payRate: 90, winAmount: 27000 },
+  ],
+  "5": [ // Round ID for Lao 3/1/69
+    { id: "w4", agent: { code: "A003", name: "นายประสิทธิ์" }, number: "789", betType: "THREE_TOD", amount: 200, payRate: 150, winAmount: 30000 },
+    { id: "w5", agent: { code: "A001", name: "นายสมชาย" }, number: "89", betType: "TWO_TOP", amount: 1000, payRate: 90, winAmount: 90000 },
+  ],
+};
 
 // Helper function to calculate next draw date
 function getNextDrawDate(lotteryType: string, currentDate: Date): Date {
@@ -143,6 +172,7 @@ export default function ResultsPage() {
   const [selectedRound, setSelectedRound] = useState<typeof demoRounds[0] | null>(null);
   const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
+  const [isWinnersDialogOpen, setIsWinnersDialogOpen] = useState(false);
   const [autoCreateNextRound, setAutoCreateNextRound] = useState(true);
   const [lastCreatedRound, setLastCreatedRound] = useState<{
     lotteryType: string;
@@ -157,6 +187,16 @@ export default function ResultsPage() {
 
   const openRounds = rounds.filter((r) => r.status === "OPEN");
   const resultedRounds = rounds.filter((r) => r.status === "RESULTED");
+
+  // Get winners for selected round
+  const getWinners = (roundId: string) => {
+    return demoWinners[roundId] || [];
+  };
+
+  const handleOpenWinnersDialog = (round: typeof demoRounds[0]) => {
+    setSelectedRound(round);
+    setIsWinnersDialogOpen(true);
+  };
 
   const handleOpenResultDialog = (round: typeof demoRounds[0]) => {
     setSelectedRound(round);
@@ -358,6 +398,18 @@ export default function ResultsPage() {
                         </span>
                       </div>
                     </div>
+
+                    {/* View Winners Button */}
+                    {getWinners(round.id).length > 0 && (
+                      <Button
+                        variant="outline"
+                        className="w-full mt-4 gap-2"
+                        onClick={() => handleOpenWinnersDialog(round)}
+                      >
+                        <Users className="w-4 h-4" />
+                        ดูผู้ถูกรางวัล ({getWinners(round.id).length} รายการ)
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -590,6 +642,119 @@ export default function ResultsPage() {
               setResultInput({ result3Top: "", result2Top: "", result2Bottom: "" });
             }}>
               ตกลง
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Winners Dialog - ดูผู้ถูกรางวัล */}
+      <Dialog open={isWinnersDialogOpen} onOpenChange={setIsWinnersDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-amber-400" />
+              รายการผู้ถูกรางวัล
+            </DialogTitle>
+            <DialogDescription>
+              {selectedRound && (
+                <span className="flex items-center gap-2">
+                  <span className="text-lg">
+                    {LOTTERY_TYPES[selectedRound.lotteryType as keyof typeof LOTTERY_TYPES]?.flag}
+                  </span>
+                  {LOTTERY_TYPES[selectedRound.lotteryType as keyof typeof LOTTERY_TYPES]?.name}
+                  {" - งวด "}
+                  {selectedRound.roundDate.toLocaleDateString("th-TH")}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedRound && (
+            <div className="space-y-4">
+              {/* Results Display */}
+              <div className="grid grid-cols-3 gap-3 p-3 rounded-lg bg-slate-800/50">
+                <div className="text-center">
+                  <p className="text-xs text-slate-400">3 ตัวบน</p>
+                  <p className="text-xl font-mono font-bold text-amber-400">{selectedRound.result3Top}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-slate-400">2 ตัวบน</p>
+                  <p className="text-xl font-mono font-bold text-amber-400">{selectedRound.result2Top}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-slate-400">2 ตัวล่าง</p>
+                  <p className="text-xl font-mono font-bold text-amber-400">{selectedRound.result2Bottom}</p>
+                </div>
+              </div>
+
+              {/* Winners Table */}
+              <div className="rounded-lg border border-slate-700 overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Agent</TableHead>
+                      <TableHead>เลขที่ถูก</TableHead>
+                      <TableHead>ประเภท</TableHead>
+                      <TableHead className="text-right">ยอดแทง</TableHead>
+                      <TableHead className="text-right">อัตราจ่าย</TableHead>
+                      <TableHead className="text-right">ถูกรางวัล</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {getWinners(selectedRound.id).map((winner) => (
+                      <TableRow key={winner.id}>
+                        <TableCell>
+                          <div>
+                            <span className="font-mono text-amber-400">{winner.agent.code}</span>
+                            <p className="text-xs text-slate-400">{winner.agent.name}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-xl font-bold text-emerald-400">
+                            {winner.number}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {BET_TYPES[winner.betType as keyof typeof BET_TYPES]?.name || winner.betType}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ฿{formatNumber(winner.amount)}
+                        </TableCell>
+                        <TableCell className="text-right text-slate-400">
+                          x{formatNumber(winner.payRate)}
+                        </TableCell>
+                        <TableCell className="text-right text-lg font-bold text-emerald-400">
+                          +฿{formatNumber(winner.winAmount)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Summary */}
+              <div className="flex items-center justify-between p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-emerald-400" />
+                  <span className="text-slate-300">
+                    รวม {getWinners(selectedRound.id).length} รายการ
+                  </span>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-slate-400">รวมจ่ายรางวัล</p>
+                  <p className="text-2xl font-bold text-emerald-400">
+                    ฿{formatNumber(getWinners(selectedRound.id).reduce((sum, w) => sum + w.winAmount, 0))}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsWinnersDialogOpen(false)}>
+              ปิด
             </Button>
           </DialogFooter>
         </DialogContent>
