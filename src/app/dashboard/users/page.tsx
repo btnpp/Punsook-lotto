@@ -109,7 +109,7 @@ const PERMISSION_GROUPS = {
     permissions: [PERMISSIONS.SETTINGS_VIEW, PERMISSIONS.SETTINGS_MANAGE],
   },
   user: {
-    name: "จัดการ User",
+    name: "จัดการ Admin",
     icon: "👤",
     permissions: [
       PERMISSIONS.USER_VIEW,
@@ -144,10 +144,10 @@ const getPermissionName = (perm: string): string => {
     "report:export": "Export รายงาน",
     "settings:view": "ดูตั้งค่า",
     "settings:manage": "แก้ไขตั้งค่า",
-    "user:view": "ดูรายการ User",
-    "user:create": "เพิ่ม User",
-    "user:edit": "แก้ไข User",
-    "user:delete": "ลบ User",
+    "user:view": "ดูรายการ Admin",
+    "user:create": "เพิ่ม Admin",
+    "user:edit": "แก้ไข Admin",
+    "user:delete": "ลบ Admin",
   };
   return names[perm] || perm;
 };
@@ -419,7 +419,7 @@ export default function UsersPage() {
   if (!isMaster()) {
     return (
       <div className="min-h-screen">
-        <Header title="จัดการ User" subtitle="ไม่มีสิทธิ์เข้าถึง" />
+        <Header title="จัดการ Admin" subtitle="ไม่มีสิทธิ์เข้าถึง" />
         <div className="p-6">
           <Card>
             <CardContent className="p-12 text-center">
@@ -428,7 +428,7 @@ export default function UsersPage() {
                 ไม่มีสิทธิ์เข้าถึงหน้านี้
               </h2>
               <p className="text-slate-400">
-                เฉพาะ Master เท่านั้นที่สามารถจัดการ User ได้
+                เฉพาะ Master เท่านั้นที่สามารถจัดการ Admin ได้
               </p>
             </CardContent>
           </Card>
@@ -439,7 +439,7 @@ export default function UsersPage() {
 
   return (
     <div className="min-h-screen">
-      <Header title="จัดการ User" subtitle="เพิ่ม แก้ไข และกำหนดสิทธิ์ผู้ใช้งาน" />
+      <Header title="จัดการ Admin" subtitle="เพิ่ม แก้ไข และกำหนดสิทธิ์ผู้ใช้งาน" />
 
       <div className="p-6 space-y-6">
         {/* Stats Cards */}
@@ -534,7 +534,7 @@ export default function UsersPage() {
                 }}
               >
                 <Plus className="w-4 h-4" />
-                เพิ่ม User
+                เพิ่ม Admin
               </Button>
             </div>
           </CardContent>
@@ -545,7 +545,7 @@ export default function UsersPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserCog className="w-5 h-5" />
-              รายชื่อ User ({filteredUsers.length})
+              รายชื่อ Admin ({filteredUsers.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -688,7 +688,7 @@ export default function UsersPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserCog className="w-5 h-5 text-amber-400" />
-              {isCreateDialogOpen ? "เพิ่ม User ใหม่" : "แก้ไข User"}
+              {isCreateDialogOpen ? "เพิ่ม Admin ใหม่" : "แก้ไข Admin"}
             </DialogTitle>
           </DialogHeader>
 
@@ -829,7 +829,7 @@ export default function UsersPage() {
                 (isCreateDialogOpen && !formData.password)
               }
             >
-              {isCreateDialogOpen ? "เพิ่ม User" : "บันทึก"}
+              {isCreateDialogOpen ? "เพิ่ม Admin" : "บันทึก"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -839,9 +839,9 @@ export default function UsersPage() {
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-red-400">ยืนยันการลบ User</DialogTitle>
+            <DialogTitle className="text-red-400">ยืนยันการลบ Admin</DialogTitle>
             <DialogDescription>
-              คุณต้องการลบ User "{selectedUser?.name}" ({selectedUser?.username}) ใช่หรือไม่?
+              คุณต้องการลบ Admin "{selectedUser?.name}" ({selectedUser?.username}) ใช่หรือไม่?
               การกระทำนี้ไม่สามารถย้อนกลับได้
             </DialogDescription>
           </DialogHeader>
@@ -850,7 +850,7 @@ export default function UsersPage() {
               ยกเลิก
             </Button>
             <Button variant="destructive" onClick={handleDeleteUser}>
-              ลบ User
+              ลบ Admin
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -881,7 +881,7 @@ export default function UsersPage() {
               {selectedUser.customPermissions && (
                 <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/30">
                   <p className="text-sm text-purple-300">
-                    ⚠️ User นี้มีสิทธิ์ที่กำหนดเองแทน Role เดิม
+                    ⚠️ Admin นี้มีสิทธิ์ที่กำหนดเองแทน Role เดิม
                   </p>
                 </div>
               )}
@@ -950,7 +950,7 @@ export default function UsersPage() {
               แก้ไขสิทธิ์ของ {selectedUser?.name}
             </DialogTitle>
             <DialogDescription>
-              เลือกสิทธิ์ที่ต้องการให้ User นี้มี
+              เลือกสิทธิ์ที่ต้องการให้ Admin นี้มี
             </DialogDescription>
           </DialogHeader>
 
@@ -962,7 +962,7 @@ export default function UsersPage() {
                   <p className="font-medium text-slate-100">ใช้สิทธิ์กำหนดเอง</p>
                   <p className="text-sm text-slate-400">
                     {useCustomPermissions 
-                      ? "กำหนดสิทธิ์เฉพาะสำหรับ User นี้" 
+                      ? "กำหนดสิทธิ์เฉพาะสำหรับ Admin นี้" 
                       : `ใช้สิทธิ์ตาม Role (${ROLE_DEFINITIONS[selectedUser.role as RoleCode]?.name})`}
                   </p>
                 </div>

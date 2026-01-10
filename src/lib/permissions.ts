@@ -60,14 +60,14 @@ export const ROLE_DEFINITIONS = {
   MASTER: {
     code: "MASTER",
     name: "Master",
-    description: "เจ้าของระบบ - เข้าถึงทุกเมนู รวมถึงจัดการ User และตั้งค่า",
+    description: "เจ้าของระบบ - เข้าถึงทุกเมนู รวมถึงจัดการ Admin และตั้งค่า",
     permissions: Object.values(PERMISSIONS), // All permissions
     isSystem: true,
   },
   ADMIN: {
     code: "ADMIN",
     name: "Admin",
-    description: "ผู้ดูแลระบบ - เข้าถึงทุกเมนู ยกเว้น จัดการ User และบางตั้งค่า",
+    description: "ผู้ดูแลระบบ - เข้าถึงทุกเมนู ยกเว้น จัดการ Admin และบางตั้งค่า",
     permissions: [
       PERMISSIONS.DASHBOARD_VIEW,
       PERMISSIONS.AGENT_VIEW,
@@ -181,7 +181,7 @@ export const MENU_ITEMS: MenuItem[] = [
     requiredPermission: PERMISSIONS.REPORT_VIEW,
   },
   {
-    title: "จัดการ User",
+    title: "จัดการ Admin",
     href: "/dashboard/users",
     icon: "UserCog",
     requiredPermission: PERMISSIONS.USER_VIEW,
