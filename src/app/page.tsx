@@ -6,10 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, User, Ticket } from "lucide-react";
+import { Lock, User, Ticket, Info } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -22,11 +24,9 @@ export default function LoginPage() {
     const username = formData.get("username") as string;
     const password = formData.get("password") as string;
 
-    // Simple demo login - in production use proper auth
-    if (username === "admin" && password === "admin") {
-      // Store simple session
-      localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("username", username);
+    const success = await login(username, password);
+    
+    if (success) {
       router.push("/dashboard");
     } else {
       setError("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
@@ -124,8 +124,30 @@ export default function LoginPage() {
               )}
             </Button>
 
-            <div className="text-center text-sm text-slate-500">
-              Demo: username = <span className="text-amber-400">admin</span>, password = <span className="text-amber-400">admin</span>
+            {/* Demo Accounts */}
+            <div className="space-y-2 p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+              <div className="flex items-center gap-2 text-sm text-slate-400 mb-2">
+                <Info className="w-4 h-4" />
+                <span>Demo Accounts:</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2 rounded bg-amber-500/10 border border-amber-500/30">
+                  <p className="text-amber-400 font-medium">Master</p>
+                  <p className="text-slate-400">master / master123</p>
+                </div>
+                <div className="p-2 rounded bg-blue-500/10 border border-blue-500/30">
+                  <p className="text-blue-400 font-medium">Admin</p>
+                  <p className="text-slate-400">admin / admin123</p>
+                </div>
+                <div className="p-2 rounded bg-emerald-500/10 border border-emerald-500/30">
+                  <p className="text-emerald-400 font-medium">Operator</p>
+                  <p className="text-slate-400">operator / operator123</p>
+                </div>
+                <div className="p-2 rounded bg-slate-500/10 border border-slate-500/30">
+                  <p className="text-slate-300 font-medium">Viewer</p>
+                  <p className="text-slate-400">viewer / viewer123</p>
+                </div>
+              </div>
             </div>
           </form>
         </CardContent>

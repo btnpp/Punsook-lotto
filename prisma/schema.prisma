@@ -10,20 +10,38 @@ datasource db {
 }
 
 // =============================================
-// USER MANAGEMENT
+// USER MANAGEMENT & ROLES
 // =============================================
+
+// Role ระบบ - กำหนดสิทธิ์การเข้าถึงเมนู
+model Role {
+  id          String   @id @default(cuid())
+  code        String   @unique // MASTER, ADMIN, OPERATOR, VIEWER
+  name        String   // ชื่อแสดง
+  description String?
+  permissions String   // JSON array of permission codes
+  isSystem    Boolean  @default(false) // true = ไม่สามารถลบได้
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+}
 
 model User {
   id        String   @id @default(cuid())
   username  String   @unique
   password  String
   name      String
-  role      String   @default("ADMIN") // ADMIN only for now
+  email     String?
+  phone     String?
+  roleId    String
   isActive  Boolean  @default(true)
+  lastLogin DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
+  role       Role          @relation(fields: [roleId], references: [id])
   bets       Bet[]
   layoffs    Layoff[]
   activities ActivityLog[]

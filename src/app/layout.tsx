@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
   title: "Punsook Lotto | ระบบคีย์หวยสำหรับเจ้ามือ",
@@ -22,7 +23,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-pattern font-sans">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

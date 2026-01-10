@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-context";
+import { MENU_ITEMS, hasPermission, ROLE_COLORS } from "@/lib/permissions";
 import {
   LayoutDashboard,
   Users,
@@ -17,71 +19,42 @@ import {
   ChevronRight,
   BarChart3,
   Calendar,
+  UserCog,
+  LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
 
-const menuItems = [
-  {
-    title: "หน้าหลัก",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "จัดการ Agent",
-    href: "/dashboard/agents",
-    icon: Users,
-  },
-  {
-    title: "คีย์หวย",
-    href: "/dashboard/bets",
-    icon: Ticket,
-  },
-  {
-    title: "ความเสี่ยง",
-    href: "/dashboard/risk",
-    icon: Shield,
-  },
-  {
-    title: "ตีออก",
-    href: "/dashboard/layoff",
-    icon: TrendingUp,
-  },
-  {
-    title: "งวดหวย/เลขอั้น",
-    href: "/dashboard/rounds",
-    icon: Calendar,
-  },
-  {
-    title: "ผลหวย",
-    href: "/dashboard/results",
-    icon: FileSpreadsheet,
-  },
-  {
-    title: "ประวัติ",
-    href: "/dashboard/history",
-    icon: History,
-  },
-  {
-    title: "รายงานการเงิน",
-    href: "/dashboard/reports",
-    icon: BarChart3,
-  },
-  {
-    title: "ตั้งค่า",
-    href: "/dashboard/settings",
-    icon: Settings,
-  },
-];
+// Map icon names to components
+const ICON_MAP: Record<string, LucideIcon> = {
+  LayoutDashboard,
+  Users,
+  Ticket,
+  Settings,
+  TrendingUp,
+  FileSpreadsheet,
+  Shield,
+  History,
+  BarChart3,
+  Calendar,
+  UserCog,
+};
 
 export function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { user, logout } = useAuth();
 
-  const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("username");
-    window.location.href = "/";
-  };
+  // Get user permissions (default to empty if not logged in)
+  const userPermissions = user?.role?.permissions || [];
+
+  // Filter menu items based on user permissions
+  const accessibleMenuItems = MENU_ITEMS.filter((item) =>
+    hasPermission(userPermissions, item.requiredPermission)
+  );
+
+  // Get role color
+  const roleColor = user?.role?.code ? ROLE_COLORS[user.role.code] : null;
 
   return (
     <aside
@@ -109,10 +82,40 @@ export function Sidebar() {
           )}
         </div>
 
+        {/* User Info */}
+        {user && !isCollapsed && (
+          <div className="px-4 py-3 border-b border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-slate-600 to-slate-700 rounded-full flex items-center justify-center text-sm font-bold text-white">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-100 truncate">
+                  {user.name}
+                </p>
+                {roleColor && (
+                  <Badge 
+                    variant="outline" 
+                    className={cn(
+                      "text-xs px-1.5 py-0",
+                      roleColor.bg,
+                      roleColor.text,
+                      roleColor.border
+                    )}
+                  >
+                    {user.role.name}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-3">
           <ul className="space-y-1">
-            {menuItems.map((item) => {
+            {accessibleMenuItems.map((item) => {
+              const IconComponent = ICON_MAP[item.icon] || LayoutDashboard;
               const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
               return (
                 <li key={item.href}>
@@ -125,8 +128,9 @@ export function Sidebar() {
                         : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/50",
                       isCollapsed && "justify-center"
                     )}
+                    title={isCollapsed ? item.title : undefined}
                   >
-                    <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-amber-400")} />
+                    <IconComponent className={cn("h-5 w-5 shrink-0", isActive && "text-amber-400")} />
                     {!isCollapsed && <span>{item.title}</span>}
                   </Link>
                 </li>
@@ -150,7 +154,7 @@ export function Sidebar() {
         {/* Logout */}
         <div className="border-t border-slate-800 p-3">
           <button
-            onClick={handleLogout}
+            onClick={logout}
             className={cn(
               "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium w-full",
               "text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200",
@@ -165,4 +169,3 @@ export function Sidebar() {
     </aside>
   );
 }
-
