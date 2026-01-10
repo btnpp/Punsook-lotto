@@ -994,7 +994,7 @@ export default function UsersPage() {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => setEditingPermissions([PERMISSIONS.DASHBOARD_VIEW])}
+                      onClick={() => setEditingPermissions([])}
                     >
                       ล้างทั้งหมด
                     </Button>
