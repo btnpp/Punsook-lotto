@@ -47,8 +47,127 @@ import { cn } from "@/lib/utils";
 import { ROLE_DEFINITIONS, ROLE_COLORS, PERMISSIONS, RoleCode } from "@/lib/permissions";
 import { useAuth } from "@/lib/auth-context";
 
+// Permission groups for better UI organization
+const PERMISSION_GROUPS = {
+  dashboard: {
+    name: "Dashboard",
+    icon: "📊",
+    permissions: [PERMISSIONS.DASHBOARD_VIEW],
+  },
+  agent: {
+    name: "จัดการ Agent",
+    icon: "👥",
+    permissions: [
+      PERMISSIONS.AGENT_VIEW,
+      PERMISSIONS.AGENT_CREATE,
+      PERMISSIONS.AGENT_EDIT,
+      PERMISSIONS.AGENT_DELETE,
+    ],
+  },
+  betting: {
+    name: "คีย์หวย",
+    icon: "🎫",
+    permissions: [
+      PERMISSIONS.BET_VIEW,
+      PERMISSIONS.BET_CREATE,
+      PERMISSIONS.BET_CANCEL,
+    ],
+  },
+  risk: {
+    name: "ความเสี่ยง",
+    icon: "🛡️",
+    permissions: [PERMISSIONS.RISK_VIEW, PERMISSIONS.RISK_MANAGE],
+  },
+  layoff: {
+    name: "ตีออก",
+    icon: "📤",
+    permissions: [PERMISSIONS.LAYOFF_VIEW, PERMISSIONS.LAYOFF_MANAGE],
+  },
+  round: {
+    name: "งวดหวย/เลขอั้น",
+    icon: "📅",
+    permissions: [PERMISSIONS.ROUND_VIEW, PERMISSIONS.ROUND_MANAGE],
+  },
+  result: {
+    name: "ผลหวย",
+    icon: "🏆",
+    permissions: [PERMISSIONS.RESULT_VIEW, PERMISSIONS.RESULT_SUBMIT],
+  },
+  history: {
+    name: "ประวัติ",
+    icon: "📜",
+    permissions: [PERMISSIONS.HISTORY_VIEW],
+  },
+  report: {
+    name: "รายงาน",
+    icon: "📈",
+    permissions: [PERMISSIONS.REPORT_VIEW, PERMISSIONS.REPORT_EXPORT],
+  },
+  settings: {
+    name: "ตั้งค่า",
+    icon: "⚙️",
+    permissions: [PERMISSIONS.SETTINGS_VIEW, PERMISSIONS.SETTINGS_MANAGE],
+  },
+  user: {
+    name: "จัดการ User",
+    icon: "👤",
+    permissions: [
+      PERMISSIONS.USER_VIEW,
+      PERMISSIONS.USER_CREATE,
+      PERMISSIONS.USER_EDIT,
+      PERMISSIONS.USER_DELETE,
+    ],
+  },
+};
+
+// Get permission display name
+const getPermissionName = (perm: string): string => {
+  const names: Record<string, string> = {
+    "dashboard:view": "ดู Dashboard",
+    "agent:view": "ดูรายการ Agent",
+    "agent:create": "เพิ่ม Agent",
+    "agent:edit": "แก้ไข Agent",
+    "agent:delete": "ลบ Agent",
+    "bet:view": "ดูรายการแทง",
+    "bet:create": "คีย์หวย",
+    "bet:cancel": "ยกเลิกรายการ",
+    "risk:view": "ดูความเสี่ยง",
+    "risk:manage": "จัดการความเสี่ยง",
+    "layoff:view": "ดูตีออก",
+    "layoff:manage": "จัดการตีออก",
+    "round:view": "ดูงวดหวย",
+    "round:manage": "จัดการงวด/เลขอั้น",
+    "result:view": "ดูผลหวย",
+    "result:submit": "กรอกผลหวย",
+    "history:view": "ดูประวัติ",
+    "report:view": "ดูรายงาน",
+    "report:export": "Export รายงาน",
+    "settings:view": "ดูตั้งค่า",
+    "settings:manage": "แก้ไขตั้งค่า",
+    "user:view": "ดูรายการ User",
+    "user:create": "เพิ่ม User",
+    "user:edit": "แก้ไข User",
+    "user:delete": "ลบ User",
+  };
+  return names[perm] || perm;
+};
+
+// User type with custom permissions
+interface UserData {
+  id: string;
+  username: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  role: string;
+  customPermissions: string[] | null; // null = use role default
+  isActive: boolean;
+  lastLogin: Date | null;
+  createdAt: Date;
+}
+
 // Demo users data
-const initialUsers = [
+const initialUsers: UserData[] = [
   {
     id: "1",
     username: "master",
@@ -56,6 +175,7 @@ const initialUsers = [
     email: "master@punsook.com",
     phone: "081-234-5678",
     role: "MASTER",
+    customPermissions: null,
     isActive: true,
     lastLogin: new Date("2026-01-10T10:30:00"),
     createdAt: new Date("2025-01-01"),
@@ -67,6 +187,7 @@ const initialUsers = [
     email: "admin@punsook.com",
     phone: "082-345-6789",
     role: "ADMIN",
+    customPermissions: null,
     isActive: true,
     lastLogin: new Date("2026-01-10T09:15:00"),
     createdAt: new Date("2025-06-15"),
@@ -78,6 +199,7 @@ const initialUsers = [
     email: "somchai@punsook.com",
     phone: "083-456-7890",
     role: "OPERATOR",
+    customPermissions: null,
     isActive: true,
     lastLogin: new Date("2026-01-09T16:45:00"),
     createdAt: new Date("2025-08-20"),
@@ -89,6 +211,7 @@ const initialUsers = [
     email: "reporter@punsook.com",
     phone: null,
     role: "VIEWER",
+    customPermissions: null,
     isActive: true,
     lastLogin: new Date("2026-01-08T11:00:00"),
     createdAt: new Date("2025-10-01"),
@@ -100,6 +223,7 @@ const initialUsers = [
     email: "old@punsook.com",
     phone: null,
     role: "ADMIN",
+    customPermissions: null,
     isActive: false,
     lastLogin: new Date("2025-12-01T08:00:00"),
     createdAt: new Date("2025-03-10"),
@@ -118,7 +242,10 @@ export default function UsersPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<typeof initialUsers[0] | null>(null);
+  const [isEditPermissionsDialogOpen, setIsEditPermissionsDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [editingPermissions, setEditingPermissions] = useState<string[]>([]);
+  const [useCustomPermissions, setUseCustomPermissions] = useState(false);
   
   // Form states
   const [showPassword, setShowPassword] = useState(false);
@@ -201,9 +328,70 @@ export default function UsersPage() {
     setIsEditDialogOpen(true);
   };
 
-  const openPermissionsDialog = (user: typeof initialUsers[0]) => {
+  const openPermissionsDialog = (user: UserData) => {
     setSelectedUser(user);
     setIsPermissionsDialogOpen(true);
+  };
+
+  const openEditPermissionsDialog = (user: UserData) => {
+    setSelectedUser(user);
+    // Get current effective permissions
+    const rolePermissions = ROLE_DEFINITIONS[user.role as RoleCode]?.permissions || [];
+    const currentPermissions = user.customPermissions || [...rolePermissions];
+    setEditingPermissions(currentPermissions as string[]);
+    setUseCustomPermissions(user.customPermissions !== null);
+    setIsEditPermissionsDialogOpen(true);
+  };
+
+  const handleSavePermissions = () => {
+    if (!selectedUser) return;
+    
+    setUsers(
+      users.map((u) =>
+        u.id === selectedUser.id
+          ? { 
+              ...u, 
+              customPermissions: useCustomPermissions ? editingPermissions : null 
+            }
+          : u
+      )
+    );
+    setIsEditPermissionsDialogOpen(false);
+    setSelectedUser(null);
+  };
+
+  const togglePermission = (perm: string) => {
+    if (editingPermissions.includes(perm)) {
+      setEditingPermissions(editingPermissions.filter((p) => p !== perm));
+    } else {
+      setEditingPermissions([...editingPermissions, perm]);
+    }
+  };
+
+  const toggleAllInGroup = (groupPerms: readonly string[]) => {
+    const allSelected = groupPerms.every((p) => editingPermissions.includes(p));
+    if (allSelected) {
+      setEditingPermissions(editingPermissions.filter((p) => !groupPerms.includes(p)));
+    } else {
+      const newPerms = [...editingPermissions];
+      groupPerms.forEach((p) => {
+        if (!newPerms.includes(p)) newPerms.push(p);
+      });
+      setEditingPermissions(newPerms);
+    }
+  };
+
+  const resetToRoleDefault = () => {
+    const rolePermissions = ROLE_DEFINITIONS[selectedUser?.role as RoleCode]?.permissions || [];
+    setEditingPermissions([...rolePermissions] as string[]);
+  };
+
+  // Get effective permissions for a user
+  const getEffectivePermissions = (user: UserData): string[] => {
+    if (user.customPermissions) {
+      return user.customPermissions;
+    }
+    return [...(ROLE_DEFINITIONS[user.role as RoleCode]?.permissions || [])] as string[];
   };
 
   const resetForm = () => {
@@ -393,16 +581,23 @@ export default function UsersPage() {
                         {user.email || "-"}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            roleColor?.bg,
-                            roleColor?.text,
-                            roleColor?.border
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              roleColor?.bg,
+                              roleColor?.text,
+                              roleColor?.border
+                            )}
+                          >
+                            {roleInfo?.name}
+                          </Badge>
+                          {user.customPermissions && (
+                            <Badge variant="outline" className="text-xs bg-purple-500/20 text-purple-400 border-purple-500/30">
+                              กำหนดเอง
+                            </Badge>
                           )}
-                        >
-                          {roleInfo?.name}
-                        </Badge>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -434,13 +629,23 @@ export default function UsersPage() {
                             onClick={() => openPermissionsDialog(user)}
                             title="ดูสิทธิ์"
                           >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditPermissionsDialog(user)}
+                            title="แก้ไขสิทธิ์"
+                            disabled={user.role === "MASTER"}
+                            className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+                          >
                             <Key className="w-4 h-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => openEditDialog(user)}
-                            title="แก้ไข"
+                            title="แก้ไขข้อมูล"
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
@@ -651,37 +856,46 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Permissions Dialog */}
+      {/* View Permissions Dialog */}
       <Dialog open={isPermissionsDialogOpen} onOpenChange={setIsPermissionsDialogOpen}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Key className="w-5 h-5 text-amber-400" />
+              <Eye className="w-5 h-5 text-amber-400" />
               สิทธิ์ของ {selectedUser?.name}
             </DialogTitle>
             <DialogDescription>
-              Role: {selectedUser && ROLE_DEFINITIONS[selectedUser.role as RoleCode]?.name}
+              <span className="flex items-center gap-2">
+                Role: {selectedUser && ROLE_DEFINITIONS[selectedUser.role as RoleCode]?.name}
+                {selectedUser?.customPermissions && (
+                  <Badge variant="outline" className="text-xs bg-purple-500/20 text-purple-400 border-purple-500/30">
+                    กำหนดเอง
+                  </Badge>
+                )}
+              </span>
             </DialogDescription>
           </DialogHeader>
 
           {selectedUser && (
             <div className="space-y-4">
-              <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
-                <p className="text-sm text-slate-300 mb-3">
-                  {ROLE_DEFINITIONS[selectedUser.role as RoleCode]?.description}
-                </p>
-              </div>
+              {selectedUser.customPermissions && (
+                <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/30">
+                  <p className="text-sm text-purple-300">
+                    ⚠️ User นี้มีสิทธิ์ที่กำหนดเองแทน Role เดิม
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-2">
-                <p className="text-sm font-medium text-slate-300">รายการสิทธิ์:</p>
+                <p className="text-sm font-medium text-slate-300">สิทธิ์ที่มี ({getEffectivePermissions(selectedUser).length}):</p>
                 <div className="grid grid-cols-2 gap-2">
-                  {ROLE_DEFINITIONS[selectedUser.role as RoleCode]?.permissions.map((perm) => (
+                  {getEffectivePermissions(selectedUser).map((perm) => (
                     <div
                       key={perm}
                       className="flex items-center gap-2 p-2 rounded bg-emerald-500/10 border border-emerald-500/30"
                     >
                       <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                      <span className="text-xs text-slate-300">{perm}</span>
+                      <span className="text-xs text-slate-300">{getPermissionName(perm)}</span>
                     </div>
                   ))}
                 </div>
@@ -691,17 +905,14 @@ export default function UsersPage() {
                 <p className="text-sm font-medium text-slate-300">สิทธิ์ที่ไม่มี:</p>
                 <div className="grid grid-cols-2 gap-2">
                   {Object.values(PERMISSIONS)
-                    .filter(
-                      (perm) =>
-                        !ROLE_DEFINITIONS[selectedUser.role as RoleCode]?.permissions.includes(perm)
-                    )
+                    .filter((perm) => !getEffectivePermissions(selectedUser).includes(perm))
                     .map((perm) => (
                       <div
                         key={perm}
                         className="flex items-center gap-2 p-2 rounded bg-slate-800/50 border border-slate-700"
                       >
                         <div className="w-2 h-2 rounded-full bg-slate-600" />
-                        <span className="text-xs text-slate-500">{perm}</span>
+                        <span className="text-xs text-slate-500">{getPermissionName(perm)}</span>
                       </div>
                     ))}
                 </div>
@@ -710,8 +921,168 @@ export default function UsersPage() {
           )}
 
           <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsPermissionsDialogOpen(false);
+                if (selectedUser && selectedUser.role !== "MASTER") {
+                  openEditPermissionsDialog(selectedUser);
+                }
+              }}
+              disabled={selectedUser?.role === "MASTER"}
+            >
+              <Key className="w-4 h-4 mr-2" />
+              แก้ไขสิทธิ์
+            </Button>
             <Button variant="outline" onClick={() => setIsPermissionsDialogOpen(false)}>
               ปิด
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Permissions Dialog */}
+      <Dialog open={isEditPermissionsDialogOpen} onOpenChange={setIsEditPermissionsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="w-5 h-5 text-purple-400" />
+              แก้ไขสิทธิ์ของ {selectedUser?.name}
+            </DialogTitle>
+            <DialogDescription>
+              เลือกสิทธิ์ที่ต้องการให้ User นี้มี
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedUser && (
+            <div className="space-y-4">
+              {/* Toggle Custom Permissions */}
+              <div className="flex items-center justify-between p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+                <div>
+                  <p className="font-medium text-slate-100">ใช้สิทธิ์กำหนดเอง</p>
+                  <p className="text-sm text-slate-400">
+                    {useCustomPermissions 
+                      ? "กำหนดสิทธิ์เฉพาะสำหรับ User นี้" 
+                      : `ใช้สิทธิ์ตาม Role (${ROLE_DEFINITIONS[selectedUser.role as RoleCode]?.name})`}
+                  </p>
+                </div>
+                <Switch
+                  checked={useCustomPermissions}
+                  onCheckedChange={(checked) => {
+                    setUseCustomPermissions(checked);
+                    if (!checked) {
+                      resetToRoleDefault();
+                    }
+                  }}
+                />
+              </div>
+
+              {useCustomPermissions && (
+                <>
+                  {/* Quick Actions */}
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={resetToRoleDefault}>
+                      รีเซ็ตตาม Role
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setEditingPermissions(Object.values(PERMISSIONS))}
+                    >
+                      เลือกทั้งหมด
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setEditingPermissions([PERMISSIONS.DASHBOARD_VIEW])}
+                    >
+                      ล้างทั้งหมด
+                    </Button>
+                  </div>
+
+                  {/* Permission Groups */}
+                  <div className="space-y-3">
+                    {Object.entries(PERMISSION_GROUPS).map(([key, group]) => {
+                      const allSelected = group.permissions.every((p) => 
+                        editingPermissions.includes(p)
+                      );
+                      const someSelected = group.permissions.some((p) => 
+                        editingPermissions.includes(p)
+                      );
+                      
+                      return (
+                        <div 
+                          key={key} 
+                          className="p-3 rounded-lg bg-slate-800/30 border border-slate-700"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span>{group.icon}</span>
+                              <span className="font-medium text-slate-100">{group.name}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {group.permissions.filter((p) => editingPermissions.includes(p)).length}/{group.permissions.length}
+                              </Badge>
+                            </div>
+                            <Switch
+                              checked={allSelected}
+                              onCheckedChange={() => toggleAllInGroup(group.permissions)}
+                              className={someSelected && !allSelected ? "bg-purple-500" : ""}
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {group.permissions.map((perm) => {
+                              const isSelected = editingPermissions.includes(perm);
+                              return (
+                                <button
+                                  key={perm}
+                                  onClick={() => togglePermission(perm)}
+                                  className={cn(
+                                    "flex items-center gap-2 p-2 rounded text-left text-sm transition-colors",
+                                    isSelected
+                                      ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-300"
+                                      : "bg-slate-800/50 border border-slate-700 text-slate-400 hover:bg-slate-700/50"
+                                  )}
+                                >
+                                  <div className={cn(
+                                    "w-3 h-3 rounded border-2 flex items-center justify-center",
+                                    isSelected 
+                                      ? "border-emerald-400 bg-emerald-400" 
+                                      : "border-slate-500"
+                                  )}>
+                                    {isSelected && (
+                                      <svg className="w-2 h-2 text-slate-900" fill="currentColor" viewBox="0 0 12 12">
+                                        <path d="M10.28 2.28L3.989 8.575 1.695 6.28A1 1 0 00.28 7.695l3 3a1 1 0 001.414 0l7-7A1 1 0 0010.28 2.28z" />
+                                      </svg>
+                                    )}
+                                  </div>
+                                  <span>{getPermissionName(perm)}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              {/* Summary */}
+              <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/30">
+                <p className="text-sm text-purple-300">
+                  สรุป: {editingPermissions.length} สิทธิ์
+                  {useCustomPermissions ? " (กำหนดเอง)" : ` (ตาม Role ${ROLE_DEFINITIONS[selectedUser.role as RoleCode]?.name})`}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditPermissionsDialogOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button onClick={handleSavePermissions}>
+              บันทึกสิทธิ์
             </Button>
           </DialogFooter>
         </DialogContent>
