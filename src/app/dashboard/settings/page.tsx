@@ -133,10 +133,21 @@ export default function SettingsPage() {
   const handleSaveCapital = async () => {
     setIsSaving(true);
     try {
+      // Calculate riskPercentage based on riskMode
+      const riskPercentage = capitalSettings.riskMode === "CUSTOM"
+        ? capitalSettings.customPercentage
+        : RISK_MODES[capitalSettings.riskMode as keyof typeof RISK_MODES]?.percentage || 75;
+
       const res = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ capitalSettings }),
+        body: JSON.stringify({
+          capitalSettings: {
+            totalCapital: capitalSettings.totalCapital,
+            riskMode: capitalSettings.riskMode,
+            riskPercentage,
+          },
+        }),
       });
       if (res.ok) {
         toast.success("บันทึกการตั้งค่าทุนสำเร็จ!");
