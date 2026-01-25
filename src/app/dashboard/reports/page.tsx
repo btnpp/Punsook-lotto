@@ -70,220 +70,89 @@ const demoPayments: Payment[] = [
   { id: "p4", agentCode: "A003", type: "RECEIVE", amount: 30000, note: "ชำระยอดค้าง", date: new Date("2026-01-05") },
 ];
 
-// Demo data สำหรับรายงานการเงิน
+// Default empty data (will be replaced by API data)
 const financialSummary = {
   today: {
-    totalBets: 458000,
-    discount: 68700,
-    netAmount: 389300,
-    totalPayout: 125000,
-    profit: 264300,
-    profitPct: 57.7,
+    totalBets: 0,
+    discount: 0,
+    netAmount: 0,
+    totalPayout: 0,
+    profit: 0,
+    profitPct: 0,
   },
   thisWeek: {
-    totalBets: 2850000,
-    discount: 399000,
-    netAmount: 2451000,
-    totalPayout: 850000,
-    profit: 1601000,
-    profitPct: 56.2,
+    totalBets: 0,
+    discount: 0,
+    netAmount: 0,
+    totalPayout: 0,
+    profit: 0,
+    profitPct: 0,
   },
   thisMonth: {
-    totalBets: 12500000,
-    discount: 1490300,
-    netAmount: 11009700,
-    totalPayout: 3750000,
-    profit: 7259700,
-    profitPct: 58.1,
+    totalBets: 0,
+    discount: 0,
+    netAmount: 0,
+    totalPayout: 0,
+    profit: 0,
+    profitPct: 0,
   },
 };
 
-const agentSummary = [
-  { 
-    code: "A001", 
-    name: "นายสมชาย ใจดี", 
-    phone: "081-234-5678",
-    discountPct: 15,
-    totalBets: 285000, 
-    discount: 42750,
-    netAmount: 242250,
-    payout: 85000, 
-    profit: 157250,
-    balance: 42500, // ยอดคงค้าง (+ = Agent ค้างจ่าย, - = เราค้างจ่าย)
-  },
-  { 
-    code: "A002", 
-    name: "นายวิชัย รวยมาก", 
-    phone: "089-876-5432",
-    discountPct: 12,
-    totalBets: 458000, 
-    discount: 54960,
-    netAmount: 403040,
-    payout: 185000, 
-    profit: 218040,
-    balance: -15000,
-  },
-  { 
-    code: "A003", 
-    name: "นายประสิทธิ์ ดีเลิศ", 
-    phone: "062-345-6789",
-    discountPct: 11,
-    totalBets: 125000, 
-    discount: 13750,
-    netAmount: 111250,
-    payout: 45000, 
-    profit: 66250,
-    balance: 28000,
-  },
-];
+// Will be populated from API
+const agentSummary: Array<{
+  code: string;
+  name: string;
+  phone?: string;
+  discountPct?: number;
+  totalBets: number;
+  discount: number;
+  netAmount: number;
+  payout: number;
+  profit: number;
+  balance: number;
+}> = [];
 
-const lotterySummary = [
-  { 
-    type: "THAI", 
-    name: "หวยไทย", 
-    flag: "🇹🇭",
-    discountPct: 15,
-    totalBets: 5800000,
-    discount: 870000,
-    netAmount: 4930000,
-    payout: 1750000, 
-    profit: 3180000,
-    rounds: 2
-  },
-  { 
-    type: "LAO", 
-    name: "หวยลาว", 
-    flag: "🇱🇦",
-    discountPct: 12,
-    totalBets: 4200000,
-    discount: 504000,
-    netAmount: 3696000,
-    payout: 1250000, 
-    profit: 2446000,
-    rounds: 12
-  },
-  { 
-    type: "HANOI", 
-    name: "หวยฮานอย", 
-    flag: "🇻🇳",
-    discountPct: 11,
-    totalBets: 2500000,
-    discount: 275000,
-    netAmount: 2225000,
-    payout: 750000, 
-    profit: 1475000,
-    rounds: 30
-  },
-];
+// Will be populated from API  
+const lotterySummary: Array<{
+  type: string;
+  name: string;
+  flag: string;
+  discountPct?: number;
+  totalBets: number;
+  discount: number;
+  netAmount: number;
+  payout: number;
+  profit: number;
+  rounds?: number;
+}> = [];
 
-const recentTransactions = [
-  { id: 1, date: "2024-01-15", type: "BET", agent: "A001", amount: 15000, description: "โพย #1234" },
-  { id: 2, date: "2024-01-15", type: "PAYOUT", agent: "A002", amount: -45000, description: "จ่ายรางวัล งวด 16/1/67" },
-  { id: 3, date: "2024-01-15", type: "BET", agent: "A002", amount: 28000, description: "โพย #1235" },
-  { id: 4, date: "2024-01-14", type: "BET", agent: "A003", amount: 12000, description: "โพย #1233" },
-  { id: 5, date: "2024-01-14", type: "COMMISSION", agent: "A001", amount: -4500, description: "ค่าคอมมิชชั่น" },
-];
+// Will be populated from API
+const recentTransactions: Array<{
+  id: number;
+  date: string;
+  type: string;
+  agent: string;
+  amount: number;
+  description: string;
+}> = [];
 
-// Demo data สำหรับสรุปตามงวด
-// ส่วนลด = ค่าคอมฯ ที่ให้ Agent (อันเดียวกัน)
-const roundSummary = [
-  {
-    id: "R001",
-    roundDate: new Date("2026-01-16"),
-    lottery: "THAI",
-    lotteryName: "หวยไทย",
-    flag: "🇹🇭",
-    status: "PENDING",
-    totalSlips: 45,
-    totalBets: 2850000,
-    discountPct: 15,
-    discountAmount: 427500,
-    netAmount: 2422500,
-    payout: 0,
-    profit: 2422500,
-    result: null,
-  },
-  {
-    id: "R002",
-    roundDate: new Date("2026-01-10"),
-    lottery: "LAO",
-    lotteryName: "หวยลาว",
-    flag: "🇱🇦",
-    status: "RESULTED",
-    totalSlips: 38,
-    totalBets: 1580000,
-    discountPct: 12,
-    discountAmount: 189600,
-    netAmount: 1390400,
-    payout: 485000,
-    profit: 905400,
-    result: { top3: "456", top2: "56", bottom2: "78" },
-  },
-  {
-    id: "R003",
-    roundDate: new Date("2026-01-09"),
-    lottery: "HANOI",
-    lotteryName: "หวยฮานอย",
-    flag: "🇻🇳",
-    status: "RESULTED",
-    totalSlips: 52,
-    totalBets: 980000,
-    discountPct: 11,
-    discountAmount: 107800,
-    netAmount: 872200,
-    payout: 320000,
-    profit: 552200,
-    result: { top3: "789", top2: "89", bottom2: "34" },
-  },
-  {
-    id: "R004",
-    roundDate: new Date("2026-01-08"),
-    lottery: "LAO",
-    lotteryName: "หวยลาว",
-    flag: "🇱🇦",
-    status: "RESULTED",
-    totalSlips: 41,
-    totalBets: 1250000,
-    discountPct: 12,
-    discountAmount: 150000,
-    netAmount: 1100000,
-    payout: 680000,
-    profit: 420000,
-    result: { top3: "123", top2: "23", bottom2: "99" },
-  },
-  {
-    id: "R005",
-    roundDate: new Date("2026-01-07"),
-    lottery: "HANOI",
-    lotteryName: "หวยฮานอย",
-    flag: "🇻🇳",
-    status: "RESULTED",
-    totalSlips: 48,
-    totalBets: 890000,
-    discountPct: 11,
-    discountAmount: 97900,
-    netAmount: 792100,
-    payout: 125000,
-    profit: 667100,
-    result: { top3: "567", top2: "67", bottom2: "12" },
-  },
-  {
-    id: "R006",
-    roundDate: new Date("2026-01-01"),
-    lottery: "THAI",
-    lotteryName: "หวยไทย",
-    flag: "🇹🇭",
-    status: "RESULTED",
-    totalSlips: 62,
-    totalBets: 3450000,
-    discountPct: 15,
-    discountAmount: 517500,
-    netAmount: 2932500,
-    payout: 1250000,
-    profit: 1682500,
-    result: { top3: "246", top2: "46", bottom2: "13" },
-  },
-];
+// Will be populated from API
+const roundSummary: Array<{
+  id: string;
+  roundDate: Date;
+  lottery: string;
+  lotteryName: string;
+  flag: string;
+  status: string;
+  totalSlips: number;
+  totalBets: number;
+  discountPct: number;
+  discountAmount: number;
+  netAmount: number;
+  payout: number;
+  profit: number;
+  result: { top3: string; top2: string; bottom2: string } | null;
+}> = [];
 
 interface ReportSummary {
   totalBets: number;
@@ -813,7 +682,7 @@ export default function ReportsPage() {
                       <TableRow className="bg-slate-800/50 font-bold">
                         <TableCell>รวมทั้งหมด</TableCell>
                         <TableCell className="text-center">
-                          {lotterySummary.reduce((sum, l) => sum + l.rounds, 0)}
+                          {lotterySummary.reduce((sum, l) => sum + (l.rounds || 0), 0)}
                         </TableCell>
                         <TableCell className="text-right">
                           ฿{formatNumber(lotterySummary.reduce((sum, l) => sum + l.totalBets, 0))}

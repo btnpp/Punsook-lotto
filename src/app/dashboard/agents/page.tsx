@@ -25,7 +25,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Edit, Settings, Eye, DollarSign, Percent, Loader2 } from "lucide-react";
+import { Plus, Search, Edit, Settings, Eye, DollarSign, Percent, Loader2, Trash2 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES, DEFAULT_PAY_RATES } from "@/lib/constants";
 
@@ -248,6 +248,36 @@ export default function AgentsPage() {
     }
   };
 
+  const handleDeleteAgent = async (agentId: string) => {
+    const agent = agents.find(a => a.id === agentId);
+    if (!agent) return;
+
+    const confirmMsg = `ต้องการลบ Agent "${agent.name}" (${agent.code}) หรือไม่?\n\nถ้า Agent มีประวัติการแทง จะถูกปิดการใช้งานแทนการลบ`;
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch(`/api/agents/${agentId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.softDeleted) {
+          alert("Agent ถูกปิดการใช้งาน (มีประวัติการแทง)");
+        } else {
+          alert("ลบ Agent สำเร็จ");
+        }
+        fetchAgents();
+      } else {
+        const error = await res.json();
+        alert(error.error || "ไม่สามารถลบ Agent ได้");
+      }
+    } catch (error) {
+      console.error("Delete agent error:", error);
+      alert("เกิดข้อผิดพลาดในการลบ");
+    }
+  };
+
   // ดึงอัตราจ่ายจริงของ Agent (ใช้ค่าเฉพาะหรือค่ากลาง)
   const getAgentPayRate = (agent: Agent, lotteryType: string, betType: string): number => {
     if (agent.customPayRates?.[lotteryType]?.[betType]) {
@@ -419,6 +449,15 @@ export default function AgentsPage() {
                           title="แก้ไข"
                         >
                           <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteAgent(agent.id)}
+                          title="ลบ"
+                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </TableCell>
