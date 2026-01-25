@@ -575,9 +575,13 @@ export default function HistoryPage() {
                     <span className="font-medium">฿{formatNumber(selectedSlip.totalAmount)}</span>
                   </div>
                   <div className="flex justify-between gap-8">
-                    <span className="text-slate-400">ส่วนลด ({selectedSlip.totalDiscount}%):</span>
+                    <span className="text-slate-400">
+                      ส่วนลด ({selectedSlip.totalAmount > 0 
+                        ? Math.round((selectedSlip.totalDiscount / selectedSlip.totalAmount) * 100) 
+                        : 0}%):
+                    </span>
                     <span className="text-emerald-400">
-                      -฿{formatNumber(selectedSlip.totalAmount - selectedSlip.totalNetAmount)}
+                      -฿{formatNumber(selectedSlip.totalDiscount)}
                     </span>
                   </div>
                   <div className="flex justify-between gap-8 text-lg font-bold">
