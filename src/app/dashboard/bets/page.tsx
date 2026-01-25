@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,16 +25,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Trash2, Send, FileText, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Send, FileText, RefreshCw, Loader2 } from "lucide-react";
 import { formatNumber, formatCurrency, parseBulkBet, calculateNetAmount } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES, DEFAULT_PAY_RATES } from "@/lib/constants";
 
-// Demo agents
-const demoAgents = [
-  { id: "1", code: "A001", name: "นายสมชาย ใจดี", discount: { THAI: 15, LAO: 12, HANOI: 10 } },
-  { id: "2", code: "A002", name: "นายวิชัย รวยมาก", discount: { THAI: 20, LAO: 15, HANOI: 12 } },
-  { id: "3", code: "A003", name: "นายประสิทธิ์ ดีเลิศ", discount: { THAI: 18, LAO: 14, HANOI: 11 } },
-];
+interface Agent {
+  id: string;
+  code: string;
+  name: string;
+  discounts: Array<{ lotteryType: string; discount: number }>;
+}
+
+interface Round {
+  id: string;
+  lotteryType: { code: string; name: string };
+  roundDate: string;
+  status: string;
+}
 
 interface BetItem {
   id: string;
@@ -59,14 +66,64 @@ function getReversedNumbers(num: string): string[] {
 }
 
 export default function BetsPage() {
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [rounds, setRounds] = useState<Round[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState("");
   const [selectedLottery, setSelectedLottery] = useState("THAI");
+  const [selectedRoundId, setSelectedRoundId] = useState("");
   const [selectedBetTypes, setSelectedBetTypes] = useState<string[]>(["TWO_TOP"]);
   const [singleNumbers, setSingleNumbers] = useState(""); // รองรับหลายเลข คั่นด้วย , หรือ เว้นวรรค
   const [singleAmount, setSingleAmount] = useState("");
   const [bulkInput, setBulkInput] = useState("");
   const [betItems, setBetItems] = useState<BetItem[]>([]);
   const [mode, setMode] = useState<"single" | "bulk">("single");
+
+  // Fetch agents and rounds on mount
+  useEffect(() => {
+    Promise.all([fetchAgents(), fetchRounds()]).finally(() => setIsLoading(false));
+  }, []);
+
+  // Update selected round when lottery changes
+  useEffect(() => {
+    const openRound = rounds.find(r => r.lotteryType.code === selectedLottery && r.status === "OPEN");
+    if (openRound) {
+      setSelectedRoundId(openRound.id);
+    }
+  }, [selectedLottery, rounds]);
+
+  const fetchAgents = async () => {
+    try {
+      const res = await fetch("/api/agents");
+      if (res.ok) {
+        const data = await res.json();
+        setAgents(data.agents.filter((a: Agent) => a));
+      }
+    } catch (error) {
+      console.error("Fetch agents error:", error);
+    }
+  };
+
+  const fetchRounds = async () => {
+    try {
+      const res = await fetch("/api/rounds?status=OPEN");
+      if (res.ok) {
+        const data = await res.json();
+        setRounds(data.rounds);
+      }
+    } catch (error) {
+      console.error("Fetch rounds error:", error);
+    }
+  };
+
+  // Helper to get agent discount
+  const getAgentDiscount = (agentId: string, lotteryCode: string): number => {
+    const agent = agents.find(a => a.id === agentId);
+    if (!agent) return 0;
+    const discountEntry = agent.discounts?.find(d => d.lotteryType === lotteryCode);
+    return discountEntry?.discount || 0;
+  };
 
   // ฟังก์ชันแปลง input เป็นหลายเลข
   const parseMultipleNumbers = (input: string): string[] => {
@@ -90,8 +147,8 @@ export default function BetsPage() {
     });
   };
 
-  const agent = demoAgents.find((a) => a.id === selectedAgent);
-  const discount = agent?.discount[selectedLottery as keyof typeof agent.discount] || 0;
+  const agent = agents.find((a) => a.id === selectedAgent);
+  const discount = getAgentDiscount(selectedAgent, selectedLottery);
 
   // Toggle bet type selection
   const toggleBetType = (betType: string) => {
@@ -209,16 +266,55 @@ export default function BetsPage() {
   const totalDiscount = betItems.reduce((sum, b) => sum + (b.amount - b.netAmount), 0);
   const totalNetAmount = betItems.reduce((sum, b) => sum + b.netAmount, 0);
 
-  const handleSubmit = () => {
-    // TODO: Submit to API
-    alert(`ส่งโพยสำเร็จ!\nจำนวน ${betItems.length} รายการ\nยอดรวม ${formatCurrency(totalNetAmount)}`);
-    setBetItems([]);
+  const handleSubmit = async () => {
+    if (!selectedAgent || !selectedRoundId || betItems.length === 0) {
+      alert("กรุณาเลือก Agent และเพิ่มรายการแทง");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Submit each bet item
+      let successCount = 0;
+      for (const bet of betItems) {
+        const res = await fetch("/api/bets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            roundId: selectedRoundId,
+            agentId: selectedAgent,
+            number: bet.number,
+            betType: bet.betType,
+            amount: bet.amount,
+          }),
+        });
+        if (res.ok) {
+          successCount++;
+        }
+      }
+      
+      alert(`ส่งโพยสำเร็จ!\nจำนวน ${successCount} รายการ\nยอดรวม ${formatCurrency(totalNetAmount)}`);
+      setBetItems([]);
+    } catch (error) {
+      console.error("Submit error:", error);
+      alert("เกิดข้อผิดพลาดในการส่งโพย");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Group bet types by digit count for better UX
   const threeDigitTypes = ["THREE_TOP", "THREE_TOD", "THREE_BOTTOM"];
   const twoDigitTypes = ["TWO_TOP", "TWO_BOTTOM"];
   const oneDigitTypes = ["RUN_TOP", "RUN_BOTTOM"];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -239,7 +335,7 @@ export default function BetsPage() {
                         <SelectValue placeholder="เลือก Agent" />
                       </SelectTrigger>
                       <SelectContent>
-                        {demoAgents.map((agent) => (
+                        {agents.map((agent) => (
                           <SelectItem key={agent.id} value={agent.id}>
                             <span className="flex items-center gap-2">
                               <span className="font-mono text-amber-400">{agent.code}</span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,44 +42,20 @@ import {
   Settings,
   Lock,
   Unlock,
-  Edit
+  Edit,
+  Loader2
 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES, RESTRICTION_TYPES } from "@/lib/constants";
 
-// Demo rounds data
-const demoRounds = [
-  {
-    id: "1",
-    lotteryType: "THAI",
-    roundDate: new Date("2026-01-16"),
-    status: "OPEN",
-    closeTime: "14:30",
-    restrictions: [
-      { number: "25", betType: "TWO_TOP", type: "BLOCKED" },
-      { number: "36", betType: "TWO_TOP", type: "REDUCED_LIMIT", value: 1000 },
-      { number: "99", betType: "TWO_BOTTOM", type: "REDUCED_PAYOUT", value: 70 },
-    ],
-  },
-  {
-    id: "2",
-    lotteryType: "LAO",
-    roundDate: new Date("2026-01-06"),
-    status: "OPEN",
-    closeTime: "20:00",
-    restrictions: [
-      { number: "123", betType: "THREE_TOP", type: "BLOCKED" },
-    ],
-  },
-  {
-    id: "3",
-    lotteryType: "HANOI",
-    roundDate: new Date("2026-01-04"),
-    status: "OPEN",
-    closeTime: "18:00",
-    restrictions: [],
-  },
-];
+interface Round {
+  id: string;
+  lotteryTypeId: string;
+  lotteryType: { code: string; name: string; closeTime: string };
+  roundDate: string;
+  status: string;
+  restrictions: Restriction[];
+}
 
 // Lottery settings
 const defaultLotterySettings = {
@@ -120,15 +96,48 @@ function parseNumbers(input: string): string[] {
 }
 
 export default function RoundsPage() {
-  const [rounds, setRounds] = useState(demoRounds);
+  const [rounds, setRounds] = useState<Round[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [lotterySettings, setLotterySettings] = useState(defaultLotterySettings);
-  const [selectedRound, setSelectedRound] = useState<typeof demoRounds[0] | null>(null);
+  const [selectedRound, setSelectedRound] = useState<Round | null>(null);
   const [isRestrictionDialogOpen, setIsRestrictionDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [isEditRoundDialogOpen, setIsEditRoundDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedLotteryForSettings, setSelectedLotteryForSettings] = useState<string | null>(null);
   const [editRoundDate, setEditRoundDate] = useState("");
   const [editCloseTime, setEditCloseTime] = useState("");
+  const [newRoundLotteryType, setNewRoundLotteryType] = useState("");
+  const [newRoundDate, setNewRoundDate] = useState("");
+
+  // Fetch rounds on mount
+  useEffect(() => {
+    fetchRounds();
+  }, []);
+
+  const fetchRounds = async () => {
+    try {
+      const res = await fetch("/api/rounds");
+      if (res.ok) {
+        const data = await res.json();
+        setRounds(data.rounds);
+      }
+    } catch (error) {
+      console.error("Fetch rounds error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Helper to get round by lottery type code
+  const getRoundByLotteryCode = (code: string) => {
+    return rounds.find(r => r.lotteryType.code === code && r.status === "OPEN");
+  };
+
+  // Helper to get rounds filtered by lottery code
+  const getRoundsByLotteryCode = (code: string) => {
+    return rounds.filter(r => r.lotteryType.code === code);
+  };
   
   // รองรับหลายเลข
   const [numbersInput, setNumbersInput] = useState("");
@@ -235,10 +244,19 @@ export default function RoundsPage() {
     );
   };
 
-  const handleOpenRestrictionDialog = (round: typeof demoRounds[0]) => {
+  const handleOpenRestrictionDialog = (round: Round) => {
     setSelectedRound(round);
     setIsRestrictionDialogOpen(true);
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      </div>
+    );
+  }
 
   const handleOpenSettingsDialog = (lotteryKey: string) => {
     setSelectedLotteryForSettings(lotteryKey);
@@ -251,41 +269,74 @@ export default function RoundsPage() {
     setIsSettingsDialogOpen(false);
   };
 
-  const handleToggleRoundStatus = (roundId: string) => {
-    setRounds(
-      rounds.map((r) =>
-        r.id === roundId
-          ? { ...r, status: r.status === "OPEN" ? "CLOSED" : "OPEN" }
-          : r
-      )
-    );
+  const handleToggleRoundStatus = async (roundId: string) => {
+    const round = rounds.find(r => r.id === roundId);
+    if (!round) return;
+
+    const newStatus = round.status === "OPEN" ? "CLOSED" : "OPEN";
+    try {
+      const res = await fetch(`/api/rounds/${roundId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        fetchRounds();
+      }
+    } catch (error) {
+      console.error("Toggle status error:", error);
+    }
   };
 
-  const handleOpenEditRoundDialog = (round: typeof demoRounds[0]) => {
+  const handleCreateRound = async () => {
+    if (!newRoundLotteryType || !newRoundDate) return;
+
+    try {
+      const res = await fetch("/api/rounds", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lotteryTypeId: newRoundLotteryType,
+          roundDate: newRoundDate,
+        }),
+      });
+      if (res.ok) {
+        fetchRounds();
+        setIsCreateDialogOpen(false);
+        setNewRoundLotteryType("");
+        setNewRoundDate("");
+      }
+    } catch (error) {
+      console.error("Create round error:", error);
+    }
+  };
+
+  const handleOpenEditRoundDialog = (round: Round) => {
     setSelectedRound(round);
     // Format date for input type="date"
-    const dateStr = round.roundDate.toISOString().split("T")[0];
+    const dateStr = new Date(round.roundDate).toISOString().split("T")[0];
     setEditRoundDate(dateStr);
-    setEditCloseTime(round.closeTime);
+    setEditCloseTime(round.lotteryType.closeTime);
     setIsEditRoundDialogOpen(true);
   };
 
-  const handleSaveRoundChanges = () => {
+  const handleSaveRoundChanges = async () => {
     if (!selectedRound || !editRoundDate) return;
 
-    setRounds(
-      rounds.map((r) =>
-        r.id === selectedRound.id
-          ? {
-              ...r,
-              roundDate: new Date(editRoundDate),
-              closeTime: editCloseTime,
-            }
-          : r
-      )
-    );
-    setIsEditRoundDialogOpen(false);
-    setSelectedRound(null);
+    try {
+      const res = await fetch(`/api/rounds/${selectedRound.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roundDate: editRoundDate }),
+      });
+      if (res.ok) {
+        fetchRounds();
+        setIsEditRoundDialogOpen(false);
+        setSelectedRound(null);
+      }
+    } catch (error) {
+      console.error("Save round changes error:", error);
+    }
   };
 
   return (
@@ -304,7 +355,7 @@ export default function RoundsPage() {
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {Object.entries(LOTTERY_TYPES).map(([key, lottery]) => {
-                const round = rounds.find((r) => r.lotteryType === key && r.status === "OPEN");
+                const round = getRoundByLotteryCode(key);
                 return (
                   <Card key={key} className={`${round ? "border-emerald-500/30" : "border-slate-700"}`}>
                     <CardContent className="p-4">
@@ -323,15 +374,15 @@ export default function RoundsPage() {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-slate-400">งวด</span>
-                            <span>{round.roundDate.toLocaleDateString("th-TH")}</span>
+                            <span>{new Date(round.roundDate).toLocaleDateString("th-TH")}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-400">ปิดรับ</span>
-                            <span className="text-amber-400">{round.closeTime} น.</span>
+                            <span className="text-amber-400">{round.lotteryType.closeTime} น.</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-slate-400">เลขอั้น</span>
-                            <span className="text-red-400">{round.restrictions.length} เลข</span>
+                            <span className="text-red-400">{round.restrictions?.length || 0} เลข</span>
                           </div>
                         </div>
                       )}
@@ -343,7 +394,7 @@ export default function RoundsPage() {
 
             {/* Rounds List */}
             {Object.entries(LOTTERY_TYPES).map(([lotteryKey, lottery]) => {
-              const lotteryRounds = rounds.filter((r) => r.lotteryType === lotteryKey);
+              const lotteryRounds = getRoundsByLotteryCode(lotteryKey);
               if (lotteryRounds.length === 0) return null;
 
               return (
@@ -363,10 +414,10 @@ export default function RoundsPage() {
                           <div className="flex items-center gap-4">
                             <div>
                               <p className="font-bold text-lg">
-                                งวด {round.roundDate.toLocaleDateString("th-TH")}
+                                งวด {new Date(round.roundDate).toLocaleDateString("th-TH")}
                               </p>
                               <p className="text-sm text-slate-400">
-                                ปิดรับ {round.closeTime} น.
+                                ปิดรับ {round.lotteryType.closeTime} น.
                               </p>
                             </div>
                             {round.status === "OPEN" ? (
@@ -422,12 +473,12 @@ export default function RoundsPage() {
                         </div>
 
                         {/* Restrictions List */}
-                        {round.restrictions.length > 0 ? (
+                        {(round.restrictions?.length || 0) > 0 ? (
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
                               <p className="text-sm font-medium text-red-400 flex items-center gap-2">
                                 <AlertTriangle className="w-4 h-4" />
-                                เลขอั้น ({round.restrictions.length} เลข)
+                                เลขอั้น ({round.restrictions?.length || 0} เลข)
                               </p>
                             </div>
                             <Table>
@@ -441,7 +492,7 @@ export default function RoundsPage() {
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {round.restrictions.map((res, idx) => (
+                                {(round.restrictions || []).map((res, idx) => (
                                   <TableRow key={idx}>
                                     <TableCell>
                                       <span className="font-mono font-bold text-xl text-amber-400">
@@ -618,8 +669,8 @@ export default function RoundsPage() {
               เพิ่มเลขอั้น
             </DialogTitle>
             <DialogDescription>
-              งวด {selectedRound?.roundDate.toLocaleDateString("th-TH")} -{" "}
-              {LOTTERY_TYPES[selectedRound?.lotteryType as keyof typeof LOTTERY_TYPES]?.name}
+              งวด {selectedRound && new Date(selectedRound.roundDate).toLocaleDateString("th-TH")} -{" "}
+              {selectedRound?.lotteryType.name}
             </DialogDescription>
           </DialogHeader>
 
@@ -842,8 +893,8 @@ export default function RoundsPage() {
               แก้ไขงวดหวย
             </DialogTitle>
             <DialogDescription>
-              {selectedRound && LOTTERY_TYPES[selectedRound.lotteryType as keyof typeof LOTTERY_TYPES]?.name}
-              {" - "}งวดเดิม: {selectedRound?.roundDate.toLocaleDateString("th-TH")}
+              {selectedRound?.lotteryType.name}
+              {" - "}งวดเดิม: {selectedRound && new Date(selectedRound.roundDate).toLocaleDateString("th-TH")}
             </DialogDescription>
           </DialogHeader>
 
@@ -884,7 +935,7 @@ export default function RoundsPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-slate-500">วันเดิม:</span>
                     <span className="line-through text-red-400">
-                      {selectedRound.roundDate.toLocaleDateString("th-TH")}
+                      {new Date(selectedRound.roundDate).toLocaleDateString("th-TH")}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -893,10 +944,10 @@ export default function RoundsPage() {
                       {new Date(editRoundDate).toLocaleDateString("th-TH")}
                     </span>
                   </div>
-                  {editCloseTime !== selectedRound.closeTime && (
+                  {editCloseTime !== selectedRound.lotteryType.closeTime && (
                     <div className="flex items-center gap-2">
                       <span className="text-slate-500">ปิดรับ:</span>
-                      <span className="line-through text-red-400">{selectedRound.closeTime}</span>
+                      <span className="line-through text-red-400">{selectedRound.lotteryType.closeTime}</span>
                       <span className="text-emerald-400">→ {editCloseTime} น.</span>
                     </div>
                   )}
