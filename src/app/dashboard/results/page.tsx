@@ -24,6 +24,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Check, Calendar, Trophy, Calculator, Plus, ArrowRight, Eye, Users, Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 import {
   Table,
   TableBody,
@@ -194,6 +195,7 @@ interface Winner {
 }
 
 export default function ResultsPage() {
+  const toast = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [rounds, setRounds] = useState<Round[]>([]);
   const [winners, setWinners] = useState<Winner[]>([]);
@@ -298,7 +300,7 @@ export default function ResultsPage() {
 
       if (!res.ok) {
         const error = await res.json();
-        alert(error.error || "เกิดข้อผิดพลาด");
+        toast.error(error.error || "เกิดข้อผิดพลาด");
         return;
       }
 
@@ -308,7 +310,7 @@ export default function ResultsPage() {
       setIsSuccessDialogOpen(true);
     } catch (error) {
       console.error("Submit result error:", error);
-      alert("เกิดข้อผิดพลาดในการบันทึกผล");
+      toast.error("เกิดข้อผิดพลาดในการบันทึกผล");
     }
   };
 

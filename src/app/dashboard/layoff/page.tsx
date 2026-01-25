@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { formatNumber, formatCurrency } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES } from "@/lib/constants";
+import { useToast } from "@/components/ui/toast";
 
 // Demo layoff data
 const demoLayoffItems = [
@@ -127,6 +128,7 @@ interface LayoffItem {
 }
 
 export default function LayoffPage() {
+  const toast = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLottery, setSelectedLottery] = useState("THAI");
   const [layoffItems, setLayoffItems] = useState<LayoffItem[]>([]);
@@ -252,7 +254,7 @@ export default function LayoffPage() {
 
   const handleExportExcel = () => {
     // TODO: Implement Excel export using xlsx library
-    alert("กำลังส่งออกไฟล์ Excel...");
+    toast.info("กำลังส่งออกไฟล์ Excel...");
   };
 
   const handleMarkAsSent = () => {

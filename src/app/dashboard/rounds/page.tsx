@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES, RESTRICTION_TYPES } from "@/lib/constants";
+import { useToast } from "@/components/ui/toast";
 
 interface Round {
   id: string;
@@ -96,6 +97,7 @@ function parseNumbers(input: string): string[] {
 }
 
 export default function RoundsPage() {
+  const toast = useToast();
   const [rounds, setRounds] = useState<Round[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lotterySettings, setLotterySettings] = useState(defaultLotterySettings);
@@ -265,7 +267,7 @@ export default function RoundsPage() {
 
   const handleSaveSettings = () => {
     // TODO: Save to API
-    alert("บันทึกการตั้งค่าสำเร็จ!");
+    toast.success("บันทึกการตั้งค่าสำเร็จ!");
     setIsSettingsDialogOpen(false);
   };
 

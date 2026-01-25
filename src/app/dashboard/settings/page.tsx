@@ -16,10 +16,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Save, RefreshCw, Shield, DollarSign, Clock, Bell, Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 import { formatNumber } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES, DEFAULT_PAY_RATES, DEFAULT_GLOBAL_LIMITS, RISK_MODES } from "@/lib/constants";
 
 export default function SettingsPage() {
+  const toast = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [payRates, setPayRates] = useState(DEFAULT_PAY_RATES);
@@ -93,7 +95,7 @@ export default function SettingsPage() {
         body: JSON.stringify({ payRates }),
       });
       if (res.ok) {
-        alert("บันทึกอัตราจ่ายสำเร็จ!");
+        toast.success("บันทึกอัตราจ่ายสำเร็จ!");
       }
     } catch (error) {
       console.error("Save pay rates error:", error);
@@ -111,7 +113,7 @@ export default function SettingsPage() {
         body: JSON.stringify({ globalLimits }),
       });
       if (res.ok) {
-        alert("บันทึก Limit สำเร็จ!");
+        toast.success("บันทึก Limit สำเร็จ!");
       }
     } catch (error) {
       console.error("Save limits error:", error);
@@ -129,7 +131,7 @@ export default function SettingsPage() {
         body: JSON.stringify({ capitalSettings }),
       });
       if (res.ok) {
-        alert("บันทึกการตั้งค่าทุนสำเร็จ!");
+        toast.success("บันทึกการตั้งค่าทุนสำเร็จ!");
       }
     } catch (error) {
       console.error("Save capital error:", error);
@@ -139,7 +141,7 @@ export default function SettingsPage() {
   };
 
   const handleSaveNotifications = () => {
-    alert("บันทึกการแจ้งเตือนสำเร็จ!");
+    toast.success("บันทึกการแจ้งเตือนสำเร็จ!");
   };
 
   if (isLoading) {

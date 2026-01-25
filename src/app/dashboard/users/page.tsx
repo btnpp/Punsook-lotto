@@ -47,6 +47,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ROLE_DEFINITIONS, ROLE_COLORS, PERMISSIONS, RoleCode } from "@/lib/permissions";
 import { useAuth } from "@/lib/auth-context";
+import { useToast } from "@/components/ui/toast";
 
 // Permission groups for better UI organization
 const PERMISSION_GROUPS = {
@@ -233,6 +234,7 @@ const initialUsers: UserData[] = [
 
 export default function UsersPage() {
   const { user: currentUser, isMaster } = useAuth();
+  const toast = useToast();
   const [users, setUsers] = useState<UserData[]>([]);
   const [roles, setRoles] = useState<Array<{ code: string; name: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -332,7 +334,7 @@ export default function UsersPage() {
         resetForm();
       } else {
         const data = await res.json();
-        alert(data.error || "เกิดข้อผิดพลาด");
+        toast.error(data.error || "เกิดข้อผิดพลาด");
       }
     } catch (error) {
       console.error("Create user error:", error);
@@ -457,14 +459,14 @@ export default function UsersPage() {
         );
         setIsEditPermissionsDialogOpen(false);
         setSelectedUser(null);
-        alert("บันทึกสิทธิ์สำเร็จ");
+        toast.success("บันทึกสิทธิ์สำเร็จ");
       } else {
         const error = await res.json();
-        alert(error.error || "ไม่สามารถบันทึกสิทธิ์ได้");
+        toast.error(error.error || "ไม่สามารถบันทึกสิทธิ์ได้");
       }
     } catch (error) {
       console.error("Save permissions error:", error);
-      alert("เกิดข้อผิดพลาดในการบันทึก");
+      toast.error("เกิดข้อผิดพลาดในการบันทึก");
     } finally {
       setIsSaving(false);
     }

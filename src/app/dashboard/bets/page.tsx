@@ -26,6 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, Trash2, Send, FileText, RefreshCw, Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 import { formatNumber, formatCurrency, parseBulkBet, calculateNetAmount } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES, DEFAULT_PAY_RATES } from "@/lib/constants";
 
@@ -66,6 +67,7 @@ function getReversedNumbers(num: string): string[] {
 }
 
 export default function BetsPage() {
+  const toast = useToast();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [rounds, setRounds] = useState<Round[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -268,7 +270,7 @@ export default function BetsPage() {
 
   const handleSubmit = async () => {
     if (!selectedAgent || !selectedRoundId || betItems.length === 0) {
-      alert("กรุณาเลือก Agent และเพิ่มรายการแทง");
+      toast.warning("กรุณาเลือก Agent และเพิ่มรายการแทง");
       return;
     }
 
@@ -293,11 +295,11 @@ export default function BetsPage() {
         }
       }
       
-      alert(`ส่งโพยสำเร็จ!\nจำนวน ${successCount} รายการ\nยอดรวม ${formatCurrency(totalNetAmount)}`);
+      toast.success(`ส่งโพยสำเร็จ! จำนวน ${successCount} รายการ ยอดรวม ${formatCurrency(totalNetAmount)}`);
       setBetItems([]);
     } catch (error) {
       console.error("Submit error:", error);
-      alert("เกิดข้อผิดพลาดในการส่งโพย");
+      toast.error("เกิดข้อผิดพลาดในการส่งโพย");
     } finally {
       setIsSubmitting(false);
     }

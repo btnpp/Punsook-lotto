@@ -26,6 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Edit, Settings, Eye, DollarSign, Percent, Loader2, Trash2 } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 import { formatNumber } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES, DEFAULT_PAY_RATES } from "@/lib/constants";
 
@@ -61,6 +62,7 @@ const createEmptyPayRates = () => {
 };
 
 export default function AgentsPage() {
+  const toast = useToast();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -263,18 +265,18 @@ export default function AgentsPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.softDeleted) {
-          alert("Agent ถูกปิดการใช้งาน (มีประวัติการแทง)");
+          toast.warning("Agent ถูกปิดการใช้งาน (มีประวัติการแทง)");
         } else {
-          alert("ลบ Agent สำเร็จ");
+          toast.success("ลบ Agent สำเร็จ");
         }
         fetchAgents();
       } else {
         const error = await res.json();
-        alert(error.error || "ไม่สามารถลบ Agent ได้");
+        toast.error(error.error || "ไม่สามารถลบ Agent ได้");
       }
     } catch (error) {
       console.error("Delete agent error:", error);
-      alert("เกิดข้อผิดพลาดในการลบ");
+      toast.error("เกิดข้อผิดพลาดในการลบ");
     }
   };
 
