@@ -4,16 +4,7 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -27,12 +18,11 @@ import {
   Shield,
   TrendingUp,
   Ban,
-  Settings,
   RefreshCw,
   Loader2,
 } from "lucide-react";
-import { formatNumber, formatCurrency, getRiskLevelColor } from "@/lib/utils";
-import { LOTTERY_TYPES, BET_TYPES, RISK_MODES } from "@/lib/constants";
+import { formatNumber } from "@/lib/utils";
+import { LOTTERY_TYPES, BET_TYPES } from "@/lib/constants";
 
 interface RiskNumber {
   number: string;
@@ -47,13 +37,29 @@ export default function RiskPage() {
   const [riskNumbers, setRiskNumbers] = useState<RiskNumber[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLottery, setSelectedLottery] = useState("THAI");
-  const [capital, setCapital] = useState(1000000);
-  const [riskMode, setRiskMode] = useState("BALANCED");
-  const [customPercentage, setCustomPercentage] = useState(75);
+  const [usableCapital, setUsableCapital] = useState(0);
+
+  useEffect(() => {
+    fetchCapitalSettings();
+  }, []);
 
   useEffect(() => {
     fetchRiskData();
   }, [selectedLottery]);
+
+  const fetchCapitalSettings = async () => {
+    try {
+      const res = await fetch("/api/settings");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.capitalSettings) {
+          setUsableCapital(data.capitalSettings.usableCapital || 0);
+        }
+      }
+    } catch (error) {
+      console.error("Fetch capital error:", error);
+    }
+  };
 
   const fetchRiskData = async () => {
     try {
@@ -69,11 +75,7 @@ export default function RiskPage() {
     }
   };
 
-  const riskPercentage = riskMode === "CUSTOM" 
-    ? customPercentage 
-    : RISK_MODES[riskMode as keyof typeof RISK_MODES]?.percentage || 75;
-  
-  const usableCapital = capital * (riskPercentage / 100);
+  // usableCapital is now fetched from API
 
   // Calculate risk for each number  
   const getLimit = (betType: string) => {
@@ -138,63 +140,16 @@ export default function RiskPage() {
       <Header title="บริหารความเสี่ยง" subtitle="ติดตามและจัดการความเสี่ยงแบบ Real-time" />
 
       <div className="p-6 space-y-6">
-        {/* Capital Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-amber-400" />
-              ตั้งค่าทุน
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label>ทุนทั้งหมด</Label>
-                <Input
-                  type="number"
-                  value={capital}
-                  onChange={(e) => setCapital(parseInt(e.target.value) || 0)}
-                  className="text-lg font-mono"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>โหมดความเสี่ยง</Label>
-                <Select value={riskMode} onValueChange={setRiskMode}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(RISK_MODES).map(([key, mode]) => (
-                      <SelectItem key={key} value={key}>
-                        {mode.name} ({mode.percentage}%)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {riskMode === "CUSTOM" && (
-                <div className="space-y-2">
-                  <Label>% ที่ใช้</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={customPercentage}
-                    onChange={(e) => setCustomPercentage(parseInt(e.target.value) || 0)}
-                  />
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label>ทุนที่ใช้ได้</Label>
-                <div className="h-11 flex items-center px-4 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
-                  <span className="text-lg font-bold text-emerald-400">
-                    ฿{formatNumber(usableCapital)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Usable Capital Display */}
+        <div className="flex items-center justify-between p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+          <div className="flex items-center gap-3">
+            <Shield className="w-6 h-6 text-emerald-400" />
+            <span className="text-slate-300">ทุนที่ใช้ได้ (จากหน้าตั้งค่า)</span>
+          </div>
+          <span className="text-2xl font-bold text-emerald-400">
+            ฿{formatNumber(usableCapital)}
+          </span>
+        </div>
 
         {/* Risk Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
