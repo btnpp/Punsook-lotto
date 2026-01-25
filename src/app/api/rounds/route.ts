@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         lotteryType: true,
+        restrictions: true,
         _count: {
           select: { bets: true },
         },

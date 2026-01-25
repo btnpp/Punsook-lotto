@@ -240,7 +240,7 @@ export default function RoundsPage() {
         r.id === roundId
           ? {
               ...r,
-              restrictions: r.restrictions.filter(
+              restrictions: (r.restrictions || []).filter(
                 (res) => !(res.number === number && res.betType === betType)
               ),
             }
@@ -499,7 +499,7 @@ export default function RoundsPage() {
                               <Plus className="w-4 h-4 mr-1" />
                               เพิ่มเลขอั้น
                             </Button>
-                            {round.restrictions.length > 0 && (
+                            {(round.restrictions?.length || 0) > 0 && (
                               <Button
                                 size="sm"
                                 variant="destructive"
