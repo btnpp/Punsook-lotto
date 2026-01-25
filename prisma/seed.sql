@@ -3,13 +3,13 @@
 -- Run this in Supabase SQL Editor
 -- =============================================
 
--- 1. Create Roles
+-- 1. Create Roles (with new permission format)
 INSERT INTO "Role" (id, code, name, description, permissions, "isSystem", "createdAt", "updatedAt")
 VALUES 
-  ('role_master', 'MASTER', 'Master', 'เจ้าของระบบ - สิทธิ์เต็ม', '["VIEW_DASHBOARD","MANAGE_USERS","MANAGE_ROLES","MANAGE_AGENTS","MANAGE_BETS","MANAGE_RESULTS","MANAGE_LAYOFF","MANAGE_SETTINGS","VIEW_REPORTS"]', true, NOW(), NOW()),
-  ('role_admin', 'ADMIN', 'Admin', 'ผู้ดูแลระบบ', '["VIEW_DASHBOARD","MANAGE_AGENTS","MANAGE_BETS","MANAGE_RESULTS","MANAGE_LAYOFF","VIEW_REPORTS"]', true, NOW(), NOW()),
-  ('role_operator', 'OPERATOR', 'Operator', 'พนักงานคีย์หวย', '["VIEW_DASHBOARD","MANAGE_BETS","VIEW_REPORTS"]', true, NOW(), NOW()),
-  ('role_viewer', 'VIEWER', 'Viewer', 'ดูข้อมูลอย่างเดียว', '["VIEW_DASHBOARD","VIEW_REPORTS"]', true, NOW(), NOW())
+  ('role_master', 'MASTER', 'Master', 'เจ้าของระบบ - สิทธิ์เต็ม', '["dashboard:view","agent:view","agent:create","agent:edit","agent:delete","bet:view","bet:create","bet:cancel","risk:view","risk:manage","layoff:view","layoff:manage","round:view","round:manage","result:view","result:submit","history:view","report:view","report:export","settings:view","settings:manage","user:view","user:create","user:edit","user:delete"]', true, NOW(), NOW()),
+  ('role_admin', 'ADMIN', 'Admin', 'ผู้ดูแลระบบ', '["dashboard:view","agent:view","agent:create","agent:edit","agent:delete","bet:view","bet:create","bet:cancel","risk:view","risk:manage","layoff:view","layoff:manage","round:view","round:manage","result:view","result:submit","history:view","report:view","report:export","settings:view","settings:manage"]', true, NOW(), NOW()),
+  ('role_operator', 'OPERATOR', 'Operator', 'พนักงานคีย์หวย', '["dashboard:view","bet:view","bet:create","history:view","report:view"]', true, NOW(), NOW()),
+  ('role_viewer', 'VIEWER', 'Viewer', 'ดูข้อมูลอย่างเดียว', '["dashboard:view","history:view","report:view"]', true, NOW(), NOW())
 ON CONFLICT (code) DO NOTHING;
 
 -- 2. Create Admin User (password: admin)

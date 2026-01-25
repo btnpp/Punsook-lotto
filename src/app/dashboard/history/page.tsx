@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Download, ChevronRight, FileText, X } from "lucide-react";
+import { Search, Download, ChevronRight, FileText, X, Loader2 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES } from "@/lib/constants";
 
@@ -200,18 +200,61 @@ function getSlipStatusBadge(status: string, items: BetItem[]) {
 }
 
 export default function HistoryPage() {
+  const [slips, setSlips] = useState<Slip[]>([]);
+  const [rounds, setRounds] = useState<Array<{ id: string; date: Date; lottery: string; name: string }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLottery, setFilterLottery] = useState("ALL");
   const [filterRound, setFilterRound] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [selectedSlip, setSelectedSlip] = useState<Slip | null>(null);
 
+  useEffect(() => {
+    fetchHistory();
+    fetchRounds();
+  }, []);
+
+  const fetchHistory = async () => {
+    try {
+      const res = await fetch("/api/history");
+      if (res.ok) {
+        const data = await res.json();
+        setSlips(data.slips.map((s: Slip & { date: string; roundDate: string }) => ({
+          ...s,
+          date: new Date(s.date),
+          roundDate: new Date(s.roundDate),
+        })));
+      }
+    } catch (error) {
+      console.error("Fetch history error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchRounds = async () => {
+    try {
+      const res = await fetch("/api/rounds");
+      if (res.ok) {
+        const data = await res.json();
+        setRounds(data.rounds.map((r: { id: string; roundDate: string; lotteryType: { code: string; name: string } }) => ({
+          id: r.id,
+          date: new Date(r.roundDate),
+          lottery: r.lotteryType.code,
+          name: `${r.lotteryType.name} ${new Date(r.roundDate).toLocaleDateString("th-TH")}`,
+        })));
+      }
+    } catch (error) {
+      console.error("Fetch rounds error:", error);
+    }
+  };
+
   // Get available rounds based on selected lottery
   const availableRounds = filterLottery === "ALL" 
-    ? demoRounds 
-    : demoRounds.filter((r) => r.lottery === filterLottery);
+    ? rounds 
+    : rounds.filter((r) => r.lottery === filterLottery);
 
-  const filteredSlips = demoSlips.filter((slip) => {
+  const filteredSlips = slips.filter((slip) => {
     const matchSearch =
       slip.items.some((i) => i.number.includes(searchTerm)) ||
       slip.agent.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -228,6 +271,14 @@ export default function HistoryPage() {
   const totalAmount = filteredSlips.reduce((sum, slip) => sum + slip.totalAmount, 0);
   const totalNetAmount = filteredSlips.reduce((sum, slip) => sum + slip.totalNetAmount, 0);
   const totalItems = filteredSlips.reduce((sum, slip) => sum + slip.items.length, 0);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
