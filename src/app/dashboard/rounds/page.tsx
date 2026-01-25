@@ -99,6 +99,7 @@ function parseNumbers(input: string): string[] {
 export default function RoundsPage() {
   const toast = useToast();
   const [rounds, setRounds] = useState<Round[]>([]);
+  const [lotteryTypes, setLotteryTypes] = useState<{ id: string; code: string; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lotterySettings, setLotterySettings] = useState(defaultLotterySettings);
   const [selectedRound, setSelectedRound] = useState<Round | null>(null);
@@ -119,10 +120,25 @@ export default function RoundsPage() {
 
   const fetchRounds = async () => {
     try {
-      const res = await fetch("/api/rounds");
-      if (res.ok) {
-        const data = await res.json();
-        setRounds(data.rounds);
+      const [roundsRes, settingsRes] = await Promise.all([
+        fetch("/api/rounds"),
+        fetch("/api/settings"),
+      ]);
+      
+      if (roundsRes.ok) {
+        const data = await roundsRes.json();
+        setRounds(data.rounds || []);
+      }
+      
+      if (settingsRes.ok) {
+        const data = await settingsRes.json();
+        if (data.lotteryTypes) {
+          setLotteryTypes(data.lotteryTypes.map((lt: { id: string; code: string; name: string }) => ({
+            id: lt.id,
+            code: lt.code,
+            name: lt.name,
+          })));
+        }
       }
     } catch (error) {
       console.error("Fetch rounds error:", error);
@@ -303,13 +319,18 @@ export default function RoundsPage() {
         }),
       });
       if (res.ok) {
+        toast.success("สร้างงวดหวยสำเร็จ!");
         fetchRounds();
         setIsCreateDialogOpen(false);
         setNewRoundLotteryType("");
         setNewRoundDate("");
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "ไม่สามารถสร้างงวดได้");
       }
     } catch (error) {
       console.error("Create round error:", error);
+      toast.error("เกิดข้อผิดพลาดในการสร้างงวด");
     }
   };
 
@@ -372,7 +393,7 @@ export default function RoundsPage() {
                           <Badge variant="secondary">ปิด</Badge>
                         )}
                       </div>
-                      {round && (
+                      {round ? (
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-slate-400">งวด</span>
@@ -386,6 +407,23 @@ export default function RoundsPage() {
                             <span className="text-slate-400">เลขอั้น</span>
                             <span className="text-red-400">{round.restrictions?.length || 0} เลข</span>
                           </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <p className="text-sm text-slate-400 mb-3">ยังไม่มีงวดที่เปิดรับ</p>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              const lt = lotteryTypes.find(l => l.code === key);
+                              if (lt) {
+                                setNewRoundLotteryType(lt.id);
+                                setIsCreateDialogOpen(true);
+                              }
+                            }}
+                          >
+                            <Plus className="w-4 h-4 mr-1" />
+                            สร้างงวดใหม่
+                          </Button>
                         </div>
                       )}
                     </CardContent>
@@ -964,6 +1002,57 @@ export default function RoundsPage() {
             </Button>
             <Button onClick={handleSaveRoundChanges}>
               บันทึกการเปลี่ยนแปลง
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Round Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5 text-emerald-400" />
+              สร้างงวดหวยใหม่
+            </DialogTitle>
+            <DialogDescription>
+              เลือกประเภทหวยและวันที่ออกผล
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>ประเภทหวย</Label>
+              <Select value={newRoundLotteryType} onValueChange={setNewRoundLotteryType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="เลือกประเภทหวย" />
+                </SelectTrigger>
+                <SelectContent>
+                  {lotteryTypes.map((lt) => (
+                    <SelectItem key={lt.id} value={lt.id}>
+                      {LOTTERY_TYPES[lt.code as keyof typeof LOTTERY_TYPES]?.flag} {lt.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>วันที่ออกผล</Label>
+              <Input
+                type="date"
+                value={newRoundDate}
+                onChange={(e) => setNewRoundDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button onClick={handleCreateRound} disabled={!newRoundLotteryType || !newRoundDate}>
+              สร้างงวด
             </Button>
           </DialogFooter>
         </DialogContent>
