@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,67 +11,146 @@ import {
   TrendingUp,
   AlertTriangle,
   ArrowUpRight,
-  ArrowDownRight,
   Plus,
   Eye,
+  Loader2,
+  Calendar,
 } from "lucide-react";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import Link from "next/link";
 
-// Demo data
-const stats = [
-  {
-    title: "Agent ทั้งหมด",
-    value: 12,
-    change: "+2",
-    changeType: "positive",
-    icon: Users,
-    color: "from-blue-500 to-cyan-500",
-  },
-  {
-    title: "ยอดแทงวันนี้",
-    value: 458000,
-    change: "+15.3%",
-    changeType: "positive",
-    icon: Ticket,
-    color: "from-amber-500 to-orange-500",
-    isCurrency: true,
-  },
-  {
-    title: "กำไรวันนี้",
-    value: 45200,
-    change: "+8.2%",
-    changeType: "positive",
-    icon: TrendingUp,
-    color: "from-emerald-500 to-green-500",
-    isCurrency: true,
-  },
-  {
-    title: "เลขเกิน Limit",
-    value: 5,
-    change: "ต้องตีออก",
-    changeType: "warning",
-    icon: AlertTriangle,
-    color: "from-red-500 to-rose-500",
-  },
-];
-
-const recentBets = [
-  { agent: "A001", name: "นายสมชาย", lottery: "หวยไทย", amount: 15000, time: "10:30" },
-  { agent: "A002", name: "นายวิชัย", lottery: "หวยลาว", amount: 8500, time: "10:25" },
-  { agent: "A003", name: "นายประสิทธิ์", lottery: "หวยฮานอย", amount: 12000, time: "10:20" },
-  { agent: "A001", name: "นายสมชาย", lottery: "หวยไทย", amount: 5500, time: "10:15" },
-  { agent: "A004", name: "นายสุรศักดิ์", lottery: "หวยลาว", amount: 9200, time: "10:10" },
-];
-
-const topRiskNumbers = [
-  { number: "25", type: "2ตัวบน", amount: 4800, limit: 5000, percentage: 96 },
-  { number: "36", type: "2ตัวบน", amount: 4200, limit: 5000, percentage: 84 },
-  { number: "123", type: "3ตัวบน", amount: 150, limit: 200, percentage: 75 },
-  { number: "19", type: "2ตัวล่าง", amount: 3250, limit: 5000, percentage: 65 },
-];
+interface DashboardData {
+  stats: {
+    agentCount: number;
+    activeRounds: number;
+    todayBetCount: number;
+    todayAmount: number;
+  };
+  recentBets: Array<{
+    id: string;
+    number: string;
+    betType: string;
+    netAmount: number;
+    createdAt: string;
+    agent: { code: string; name: string };
+    round: { lotteryType: { name: string } };
+  }>;
+  openRounds: Array<{
+    id: string;
+    roundDate: string;
+    status: string;
+    lotteryType: { code: string; name: string };
+    _count: { bets: number };
+  }>;
+  riskData: Array<{
+    number: string;
+    betType: string;
+    _sum: { netAmount: number };
+  }>;
+}
 
 export default function DashboardPage() {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
+
+  const fetchDashboard = async () => {
+    try {
+      const res = await fetch("/api/dashboard");
+      if (res.ok) {
+        const json = await res.json();
+        setData(json);
+      } else {
+        setError("ไม่สามารถโหลดข้อมูลได้");
+      }
+    } catch (err) {
+      console.error("Dashboard fetch error:", err);
+      setError("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 mb-4">{error}</p>
+          <Button onClick={fetchDashboard}>ลองใหม่</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const stats = [
+    {
+      title: "Agent ทั้งหมด",
+      value: data?.stats.agentCount || 0,
+      change: `${data?.stats.activeRounds || 0} งวดเปิด`,
+      changeType: "positive",
+      icon: Users,
+      color: "from-blue-500 to-cyan-500",
+    },
+    {
+      title: "ยอดแทงวันนี้",
+      value: data?.stats.todayAmount || 0,
+      change: `${data?.stats.todayBetCount || 0} รายการ`,
+      changeType: "positive",
+      icon: Ticket,
+      color: "from-amber-500 to-orange-500",
+      isCurrency: true,
+    },
+    {
+      title: "งวดที่เปิดรับ",
+      value: data?.stats.activeRounds || 0,
+      change: "งวด",
+      changeType: "positive",
+      icon: Calendar,
+      color: "from-emerald-500 to-green-500",
+    },
+    {
+      title: "เลขเสี่ยง",
+      value: data?.riskData?.length || 0,
+      change: "ต้องดูแล",
+      changeType: "warning",
+      icon: AlertTriangle,
+      color: "from-red-500 to-rose-500",
+    },
+  ];
+
+  const getLotteryFlag = (code: string) => {
+    switch (code) {
+      case "THAI": return "🇹🇭";
+      case "LAO": return "🇱🇦";
+      case "HANOI": return "🇻🇳";
+      default: return "🎰";
+    }
+  };
+
+  const getBetTypeName = (type: string) => {
+    const types: Record<string, string> = {
+      THREE_TOP: "3ตัวบน",
+      THREE_TOD: "3ตัวโต๊ด",
+      TWO_TOP: "2ตัวบน",
+      TWO_BOTTOM: "2ตัวล่าง",
+      RUN_TOP: "วิ่งบน",
+      RUN_BOTTOM: "วิ่งล่าง",
+    };
+    return types[type] || type;
+  };
+
   return (
     <div className="min-h-screen">
       <Header title="Dashboard" subtitle="ภาพรวมระบบคีย์หวย" />
@@ -115,16 +195,13 @@ export default function DashboardPage() {
                       {stat.changeType === "positive" && (
                         <ArrowUpRight className="w-4 h-4 text-emerald-400" />
                       )}
-                      {stat.changeType === "negative" && (
-                        <ArrowDownRight className="w-4 h-4 text-red-400" />
-                      )}
                       <span
                         className={
                           stat.changeType === "positive"
                             ? "text-emerald-400 text-sm"
-                            : stat.changeType === "negative"
-                            ? "text-red-400 text-sm"
-                            : "text-yellow-400 text-sm"
+                            : stat.changeType === "warning"
+                            ? "text-yellow-400 text-sm"
+                            : "text-slate-400 text-sm"
                         }
                       >
                         {stat.change}
@@ -155,32 +232,40 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {recentBets.map((bet, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 rounded-xl bg-slate-800/30 hover:bg-slate-800/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center border border-amber-500/30">
-                        <span className="text-amber-400 text-sm font-bold">
-                          {bet.agent}
-                        </span>
+                {data?.recentBets && data.recentBets.length > 0 ? (
+                  data.recentBets.slice(0, 5).map((bet) => (
+                    <div
+                      key={bet.id}
+                      className="flex items-center justify-between p-3 rounded-xl bg-slate-800/30 hover:bg-slate-800/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center border border-amber-500/30">
+                          <span className="text-amber-400 text-sm font-bold">
+                            {bet.agent.code}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-100">
+                            {bet.agent.name}
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {bet.round.lotteryType.name} - {bet.number} ({getBetTypeName(bet.betType)})
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-100">
-                          {bet.name}
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-amber-400">
+                          {formatCurrency(bet.netAmount)}
                         </p>
-                        <p className="text-xs text-slate-400">{bet.lottery}</p>
+                        <p className="text-xs text-slate-500">
+                          {new Date(bet.createdAt).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}
+                        </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-amber-400">
-                        {formatCurrency(bet.amount)}
-                      </p>
-                      <p className="text-xs text-slate-500">{bet.time}</p>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-center text-slate-500 py-8">ยังไม่มีรายการแทง</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -197,50 +282,33 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {topRiskNumbers.map((item, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl font-mono font-bold text-amber-400">
-                          {item.number}
-                        </span>
-                        <Badge variant="secondary">{item.type}</Badge>
+                {data?.riskData && data.riskData.length > 0 ? (
+                  data.riskData.slice(0, 4).map((item, index) => (
+                    <div key={index} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl font-mono font-bold text-amber-400">
+                            {item.number}
+                          </span>
+                          <Badge variant="secondary">{getBetTypeName(item.betType)}</Badge>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm text-slate-100">
+                            {formatCurrency(item._sum.netAmount || 0)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-sm text-slate-100">
-                          {formatNumber(item.amount)}
-                        </span>
-                        <span className="text-slate-500"> / </span>
-                        <span className="text-sm text-slate-400">
-                          {formatNumber(item.limit)}
-                        </span>
+                      <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500"
+                          style={{ width: "60%" }}
+                        />
                       </div>
                     </div>
-                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          item.percentage >= 95
-                            ? "bg-gradient-to-r from-red-500 to-rose-500"
-                            : item.percentage >= 80
-                            ? "bg-gradient-to-r from-orange-500 to-amber-500"
-                            : item.percentage >= 60
-                            ? "bg-gradient-to-r from-yellow-500 to-amber-500"
-                            : "bg-gradient-to-r from-emerald-500 to-green-500"
-                        }`}
-                        style={{ width: `${item.percentage}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-500">ใช้ไป {item.percentage}%</span>
-                      {item.percentage >= 80 && (
-                        <span className="text-red-400 flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" />
-                          ใกล้ถึง Limit
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-center text-slate-500 py-8">ยังไม่มีข้อมูลความเสี่ยง</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -253,77 +321,40 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Thai Lottery */}
-              <div className="p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/30">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-2xl">🇹🇭</span>
-                  <div>
-                    <h3 className="font-semibold text-slate-100">หวยไทย</h3>
-                    <p className="text-xs text-slate-400">งวด 16/01/2569</p>
+              {data?.openRounds && data.openRounds.length > 0 ? (
+                data.openRounds.map((round) => (
+                  <div
+                    key={round.id}
+                    className="p-4 rounded-xl bg-gradient-to-br from-slate-800/50 to-slate-800/30 border border-slate-700"
+                  >
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-2xl">{getLotteryFlag(round.lotteryType.code)}</span>
+                      <div>
+                        <h3 className="font-semibold text-slate-100">{round.lotteryType.name}</h3>
+                        <p className="text-xs text-slate-400">
+                          งวด {new Date(round.roundDate).toLocaleDateString("th-TH")}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-400">จำนวนโพย</span>
+                        <span className="text-slate-100">{round._count.bets} รายการ</span>
+                      </div>
+                      <Badge variant="success" className="w-full justify-center mt-2">
+                        {round.status === "OPEN" ? "เปิดรับ" : round.status}
+                      </Badge>
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="col-span-3 text-center text-slate-500 py-8">
+                  ยังไม่มีงวดที่เปิดรับ
+                  <Link href="/dashboard/rounds" className="block mt-2">
+                    <Button variant="outline" size="sm">สร้างงวดใหม่</Button>
+                  </Link>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">ยอดรวม</span>
-                    <span className="text-slate-100 font-semibold">฿285,000</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">จำนวนโพย</span>
-                    <span className="text-slate-100">156 รายการ</span>
-                  </div>
-                  <Badge variant="success" className="w-full justify-center mt-2">
-                    เปิดรับ
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Lao Lottery */}
-              <div className="p-4 rounded-xl bg-gradient-to-br from-red-500/10 to-rose-500/10 border border-red-500/30">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-2xl">🇱🇦</span>
-                  <div>
-                    <h3 className="font-semibold text-slate-100">หวยลาว</h3>
-                    <p className="text-xs text-slate-400">งวด 06/01/2569</p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">ยอดรวม</span>
-                    <span className="text-slate-100 font-semibold">฿98,500</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">จำนวนโพย</span>
-                    <span className="text-slate-100">78 รายการ</span>
-                  </div>
-                  <Badge variant="success" className="w-full justify-center mt-2">
-                    เปิดรับ
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Hanoi Lottery */}
-              <div className="p-4 rounded-xl bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border border-yellow-500/30">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-2xl">🇻🇳</span>
-                  <div>
-                    <h3 className="font-semibold text-slate-100">หวยฮานอย</h3>
-                    <p className="text-xs text-slate-400">งวด 04/01/2569</p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">ยอดรวม</span>
-                    <span className="text-slate-100 font-semibold">฿74,500</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">จำนวนโพย</span>
-                    <span className="text-slate-100">45 รายการ</span>
-                  </div>
-                  <Badge variant="success" className="w-full justify-center mt-2">
-                    เปิดรับ
-                  </Badge>
-                </div>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -331,4 +362,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,66 +25,28 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Edit, Settings, Eye, DollarSign, Percent } from "lucide-react";
+import { Plus, Search, Edit, Settings, Eye, DollarSign, Percent, Loader2 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES, DEFAULT_PAY_RATES } from "@/lib/constants";
 
-// Demo data
-const demoAgents = [
-  {
-    id: "1",
-    code: "A001",
-    name: "นายสมชาย ใจดี",
-    phone: "081-234-5678",
-    isActive: true,
-    discounts: { THAI: 15, LAO: 12, HANOI: 10 },
-    // null = ใช้อัตราจ่ายกลาง
-    customPayRates: null as Record<string, Record<string, number>> | null,
-    totalBets: 285000,
-    balance: 42500,
-  },
-  {
-    id: "2",
-    code: "A002",
-    name: "นายวิชัย รวยมาก",
-    phone: "089-876-5432",
-    isActive: true,
-    discounts: { THAI: 20, LAO: 15, HANOI: 12 },
-    // อัตราจ่ายเฉพาะ
-    customPayRates: {
-      THAI: { THREE_TOP: 950, TWO_TOP: 95 },
-    },
-    totalBets: 458000,
-    balance: -15000,
-  },
-  {
-    id: "3",
-    code: "A003",
-    name: "นายประสิทธิ์ ดีเลิศ",
-    phone: "062-345-6789",
-    isActive: true,
-    discounts: { THAI: 18, LAO: 14, HANOI: 11 },
-    customPayRates: null,
-    totalBets: 125000,
-    balance: 28000,
-  },
-  {
-    id: "4",
-    code: "A004",
-    name: "นายสุรศักดิ์ มั่งมี",
-    phone: "095-111-2222",
-    isActive: false,
-    discounts: { THAI: 12, LAO: 10, HANOI: 8 },
-    customPayRates: {
-      THAI: { THREE_TOP: 880, THREE_TOD: 140, TWO_TOP: 88, TWO_BOTTOM: 88 },
-      LAO: { TWO_TOP: 90 },
-    },
-    totalBets: 0,
-    balance: 5000,
-  },
-];
+interface AgentDiscount {
+  id: string;
+  lotteryType: string;
+  discount: number;
+}
 
-type Agent = typeof demoAgents[0];
+interface Agent {
+  id: string;
+  code: string;
+  name: string;
+  phone: string | null;
+  note: string | null;
+  isActive: boolean;
+  discounts: AgentDiscount[];
+  customPayRates: Record<string, Record<string, number>> | null;
+  totalBets?: number;
+  balance?: number;
+}
 
 // สร้าง default pay rates object เปล่า
 const createEmptyPayRates = () => {
@@ -99,10 +61,12 @@ const createEmptyPayRates = () => {
 };
 
 export default function AgentsPage() {
-  const [agents, setAgents] = useState(demoAgents);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -118,6 +82,38 @@ export default function AgentsPage() {
     createEmptyPayRates()
   );
   const [selectedLottery, setSelectedLottery] = useState("THAI");
+
+  // Fetch agents on mount
+  useEffect(() => {
+    fetchAgents();
+  }, []);
+
+  const fetchAgents = async () => {
+    try {
+      const res = await fetch("/api/agents");
+      if (res.ok) {
+        const data = await res.json();
+        setAgents(data.agents);
+      }
+    } catch (error) {
+      console.error("Fetch agents error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Helper to get discount value from agent
+  const getAgentDiscounts = (agent: Agent): { THAI: number; LAO: number; HANOI: number } => {
+    const discounts = { THAI: 0, LAO: 0, HANOI: 0 };
+    if (agent.discounts) {
+      for (const d of agent.discounts) {
+        if (d.lotteryType === "THAI") discounts.THAI = d.discount;
+        if (d.lotteryType === "LAO") discounts.LAO = d.discount;
+        if (d.lotteryType === "HANOI") discounts.HANOI = d.discount;
+      }
+    }
+    return discounts;
+  };
 
   const filteredAgents = agents.filter(
     (agent) =>
@@ -135,15 +131,15 @@ export default function AgentsPage() {
     setSelectedAgent(agent);
     setFormData({
       name: agent.name,
-      phone: agent.phone,
-      note: "",
+      phone: agent.phone || "",
+      note: agent.note || "",
     });
     setIsDialogOpen(true);
   };
 
   const handleOpenSettings = (agent: Agent) => {
     setSelectedAgent(agent);
-    setDiscountData(agent.discounts);
+    setDiscountData(getAgentDiscounts(agent));
     
     // โหลด pay rate data
     const rates = createEmptyPayRates();
@@ -158,71 +154,98 @@ export default function AgentsPage() {
     setIsSettingsDialogOpen(true);
   };
 
-  const handleSaveAgent = () => {
-    if (selectedAgent) {
-      setAgents(
-        agents.map((a) =>
-          a.id === selectedAgent.id
-            ? { ...a, name: formData.name, phone: formData.phone }
-            : a
-        )
-      );
-    } else {
-      const newCode = `A${String(agents.length + 1).padStart(3, "0")}`;
-      setAgents([
-        ...agents,
-        {
-          id: String(agents.length + 1),
-          code: newCode,
-          name: formData.name,
-          phone: formData.phone,
-          isActive: true,
-          discounts: { THAI: 15, LAO: 12, HANOI: 10 },
-          customPayRates: null,
-          totalBets: 0,
-          balance: 0,
-        },
-      ]);
+  const handleSaveAgent = async () => {
+    setIsSaving(true);
+    try {
+      if (selectedAgent) {
+        // Update existing agent
+        const res = await fetch(`/api/agents/${selectedAgent.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: formData.name,
+            phone: formData.phone,
+            note: formData.note,
+          }),
+        });
+        if (res.ok) {
+          fetchAgents();
+        }
+      } else {
+        // Create new agent
+        const newCode = `A${String(agents.length + 1).padStart(3, "0")}`;
+        const res = await fetch("/api/agents", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code: newCode,
+            name: formData.name,
+            phone: formData.phone,
+            note: formData.note,
+            discounts: [
+              { lotteryType: "THAI", discount: 15 },
+              { lotteryType: "LAO", discount: 12 },
+              { lotteryType: "HANOI", discount: 10 },
+            ],
+          }),
+        });
+        if (res.ok) {
+          fetchAgents();
+        }
+      }
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Save agent error:", error);
+    } finally {
+      setIsSaving(false);
     }
-    setIsDialogOpen(false);
   };
 
-  const handleSaveSettings = () => {
-    if (selectedAgent) {
-      // รวบรวม custom pay rates ที่ไม่ใช่ null
-      const customRates: Record<string, Record<string, number>> = {};
-      Object.entries(payRateData).forEach(([lotteryKey, betRates]) => {
-        Object.entries(betRates).forEach(([betKey, rate]) => {
-          if (rate !== null && rate > 0) {
-            if (!customRates[lotteryKey]) {
-              customRates[lotteryKey] = {};
-            }
-            customRates[lotteryKey][betKey] = rate;
-          }
-        });
+  const handleSaveSettings = async () => {
+    if (!selectedAgent) return;
+    
+    setIsSaving(true);
+    try {
+      // Convert discountData to array format
+      const discounts = Object.entries(discountData).map(([lotteryType, discount]) => ({
+        lotteryType,
+        discount,
+      }));
+
+      const res = await fetch(`/api/agents/${selectedAgent.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ discounts }),
       });
 
-      setAgents(
-        agents.map((a) =>
-          a.id === selectedAgent.id
-            ? {
-                ...a,
-                discounts: discountData,
-                customPayRates: Object.keys(customRates).length > 0 ? customRates : null,
-              }
-            : a
-        )
-      );
+      if (res.ok) {
+        fetchAgents();
+      }
+      setIsSettingsDialogOpen(false);
+    } catch (error) {
+      console.error("Save settings error:", error);
+    } finally {
+      setIsSaving(false);
     }
-    setIsSettingsDialogOpen(false);
   };
 
-  const handleToggleActive = (agentId: string) => {
-    setAgents(
-      agents.map((a) =>
-        a.id === agentId ? { ...a, isActive: !a.isActive } : a
-      )
-    );
+  const handleToggleActive = async (agentId: string) => {
+    const agent = agents.find(a => a.id === agentId);
+    if (!agent) return;
+
+    try {
+      const res = await fetch(`/api/agents/${agentId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !agent.isActive }),
+      });
+
+      if (res.ok) {
+        fetchAgents();
+      }
+    } catch (error) {
+      console.error("Toggle active error:", error);
+    }
   };
 
   // ดึงอัตราจ่ายจริงของ Agent (ใช้ค่าเฉพาะหรือค่ากลาง)
@@ -237,8 +260,16 @@ export default function AgentsPage() {
 
   // ตรวจสอบว่า Agent มีอัตราจ่ายเฉพาะหรือไม่
   const hasCustomPayRates = (agent: Agent): boolean => {
-    return agent.customPayRates !== null && Object.keys(agent.customPayRates).length > 0;
+    return agent.customPayRates !== null && Object.keys(agent.customPayRates || {}).length > 0;
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -280,7 +311,7 @@ export default function AgentsPage() {
                 <div>
                   <p className="text-sm text-slate-400">ยอดแทงรวม</p>
                   <p className="text-2xl font-bold text-amber-400">
-                    ฿{formatNumber(agents.reduce((sum, a) => sum + a.totalBets, 0))}
+                    ฿{formatNumber(agents.reduce((sum, a) => sum + (a.totalBets || 0), 0))}
                   </p>
                 </div>
               </div>
@@ -292,7 +323,7 @@ export default function AgentsPage() {
                 <div>
                   <p className="text-sm text-slate-400">ยอดคงค้าง</p>
                   <p className="text-2xl font-bold text-emerald-400">
-                    ฿{formatNumber(agents.reduce((sum, a) => sum + a.balance, 0))}
+                    ฿{formatNumber(agents.reduce((sum, a) => sum + (a.balance || 0), 0))}
                   </p>
                 </div>
               </div>
@@ -333,13 +364,13 @@ export default function AgentsPage() {
                     <TableCell>
                       <div className="flex gap-1">
                         <Badge variant="secondary" className="text-xs">
-                          🇹🇭 {agent.discounts.THAI}%
+                          🇹🇭 {getAgentDiscounts(agent).THAI}%
                         </Badge>
                         <Badge variant="secondary" className="text-xs">
-                          🇱🇦 {agent.discounts.LAO}%
+                          🇱🇦 {getAgentDiscounts(agent).LAO}%
                         </Badge>
                         <Badge variant="secondary" className="text-xs">
-                          🇻🇳 {agent.discounts.HANOI}%
+                          🇻🇳 {getAgentDiscounts(agent).HANOI}%
                         </Badge>
                       </div>
                     </TableCell>
@@ -356,14 +387,14 @@ export default function AgentsPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      ฿{formatNumber(agent.totalBets)}
+                      ฿{formatNumber(agent.totalBets || 0)}
                     </TableCell>
                     <TableCell
                       className={`text-right font-medium ${
-                        agent.balance >= 0 ? "text-emerald-400" : "text-red-400"
+                        (agent.balance || 0) >= 0 ? "text-emerald-400" : "text-red-400"
                       }`}
                     >
-                      ฿{formatNumber(agent.balance)}
+                      ฿{formatNumber(agent.balance || 0)}
                     </TableCell>
                     <TableCell>
                       <Switch
