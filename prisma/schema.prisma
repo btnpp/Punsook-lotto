@@ -28,17 +28,18 @@ model Role {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  username  String   @unique
-  password  String
-  name      String
-  email     String?
-  phone     String?
-  roleId    String
-  isActive  Boolean  @default(true)
-  lastLogin DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String   @id @default(cuid())
+  username          String   @unique
+  password          String
+  name              String
+  email             String?
+  phone             String?
+  roleId            String
+  customPermissions Json?    // สิทธิ์กำหนดเอง (แทนที่ Role permissions)
+  isActive          Boolean  @default(true)
+  lastLogin         DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
   role       Role          @relation(fields: [roleId], references: [id])

@@ -10,14 +10,16 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, email, phone, roleCode, isActive, password } = body;
+    const { name, email, phone, roleCode, isActive, password, customPermissions } = body;
 
-    const updateData: Record<string, unknown> = {
-      name,
-      email,
-      phone,
-      isActive,
-    };
+    const updateData: Record<string, unknown> = {};
+
+    // Only update fields that are provided
+    if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email;
+    if (phone !== undefined) updateData.phone = phone;
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (customPermissions !== undefined) updateData.customPermissions = customPermissions;
 
     // Update role if provided
     if (roleCode) {

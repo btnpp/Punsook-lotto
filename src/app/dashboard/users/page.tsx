@@ -433,21 +433,41 @@ export default function UsersPage() {
     setIsEditPermissionsDialogOpen(true);
   };
 
-  const handleSavePermissions = () => {
+  const handleSavePermissions = async () => {
     if (!selectedUser) return;
     
-    setUsers(
-      users.map((u) =>
-        u.id === selectedUser.id
-          ? { 
-              ...u, 
-              customPermissions: useCustomPermissions ? editingPermissions : null 
-            }
-          : u
-      )
-    );
-    setIsEditPermissionsDialogOpen(false);
-    setSelectedUser(null);
+    setIsSaving(true);
+    try {
+      const customPermissions = useCustomPermissions ? editingPermissions : null;
+      
+      const res = await fetch(`/api/users/${selectedUser.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customPermissions }),
+      });
+
+      if (res.ok) {
+        // Update local state
+        setUsers(
+          users.map((u) =>
+            u.id === selectedUser.id
+              ? { ...u, customPermissions }
+              : u
+          )
+        );
+        setIsEditPermissionsDialogOpen(false);
+        setSelectedUser(null);
+        alert("บันทึกสิทธิ์สำเร็จ");
+      } else {
+        const error = await res.json();
+        alert(error.error || "ไม่สามารถบันทึกสิทธิ์ได้");
+      }
+    } catch (error) {
+      console.error("Save permissions error:", error);
+      alert("เกิดข้อผิดพลาดในการบันทึก");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const togglePermission = (perm: string) => {
