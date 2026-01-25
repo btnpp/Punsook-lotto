@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,8 @@ import {
   Wallet,
   Receipt,
   History,
-  Eye
+  Eye,
+  Loader2
 } from "lucide-react";
 import { formatNumber, formatCurrency } from "@/lib/utils";
 import { LOTTERY_TYPES } from "@/lib/constants";
@@ -284,10 +285,43 @@ const roundSummary = [
   },
 ];
 
+interface ReportSummary {
+  totalBets: number;
+  totalAmount?: number;
+  totalDiscount?: number;
+  totalNetAmount?: number;
+  totalWinAmount?: number;
+  totalProfit?: number;
+  discount?: number;
+  netAmount?: number;
+  totalPayout?: number;
+  profit?: number;
+  profitPct?: number;
+}
+
+interface AgentReport {
+  agentId: string;
+  agentCode: string;
+  agentName: string;
+  totalBets: number;
+  totalAmount: number;
+  totalDiscount: number;
+  totalNetAmount: number;
+  totalWinAmount: number;
+  profit: number;
+}
+
 export default function ReportsPage() {
+  const [isLoading, setIsLoading] = useState(true);
   const [period, setPeriod] = useState("thisMonth");
   const [selectedLottery, setSelectedLottery] = useState("ALL");
-  const [agents, setAgents] = useState(agentSummary);
+  const [reportData, setReportData] = useState<{
+    summary: ReportSummary;
+    byAgent: AgentReport[];
+    byLottery: Array<{ lotteryCode: string; lotteryName: string; totalBets: number; totalAmount: number; totalNetAmount: number; totalWinAmount: number; profit: number }>;
+    byDate: Array<{ date: string; totalBets: number; totalAmount: number; totalNetAmount: number; totalWinAmount: number; profit: number }>;
+  } | null>(null);
+  const [agents, setAgents] = useState<typeof agentSummary>([]);
   const [payments, setPayments] = useState(demoPayments);
   const [selectedAgent, setSelectedAgent] = useState<typeof agentSummary[0] | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
@@ -297,6 +331,53 @@ export default function ReportsPage() {
     amount: 0,
     note: "",
   });
+
+  useEffect(() => {
+    fetchReports();
+  }, [period]);
+
+  const fetchReports = async () => {
+    try {
+      // Calculate date range based on period
+      const now = new Date();
+      let startDate: Date;
+      
+      switch (period) {
+        case "today":
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          break;
+        case "thisWeek":
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+          break;
+        case "thisMonth":
+        default:
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+      }
+
+      const res = await fetch(`/api/reports?startDate=${startDate.toISOString()}&endDate=${now.toISOString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        setReportData(data);
+        // Update agents with report data
+        if (data.byAgent) {
+          setAgents(data.byAgent.map((a: AgentReport) => ({
+            code: a.agentCode,
+            name: a.agentName,
+            totalBets: a.totalAmount,
+            discount: a.totalDiscount,
+            netAmount: a.totalNetAmount,
+            payout: a.totalWinAmount,
+            balance: a.profit,
+          })));
+        }
+      }
+    } catch (error) {
+      console.error("Fetch reports error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // เปิด Payment Dialog
   const handleOpenPaymentDialog = (agent: typeof agentSummary[0]) => {
@@ -352,7 +433,27 @@ export default function ReportsPage() {
   // คำนวณยอดคงค้างรวม
   const totalBalance = agents.reduce((sum, a) => sum + a.balance, 0);
 
-  const currentSummary = financialSummary[period as keyof typeof financialSummary];
+  const fallbackSummary = financialSummary[period as keyof typeof financialSummary];
+  const apiSummary = reportData?.summary;
+  
+  const currentSummary = {
+    totalBets: apiSummary?.totalAmount || fallbackSummary.totalBets,
+    discount: apiSummary?.totalDiscount || fallbackSummary.discount,
+    netAmount: apiSummary?.totalNetAmount || fallbackSummary.netAmount,
+    totalPayout: apiSummary?.totalWinAmount || fallbackSummary.totalPayout,
+    profit: apiSummary?.totalProfit || fallbackSummary.profit,
+    profitPct: apiSummary?.totalProfit && apiSummary?.totalNetAmount 
+      ? Math.round((apiSummary.totalProfit / apiSummary.totalNetAmount) * 1000) / 10 
+      : fallbackSummary.profitPct,
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">

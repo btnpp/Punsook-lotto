@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,35 +29,45 @@ import {
   Ban,
   Settings,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { formatNumber, formatCurrency, getRiskLevelColor } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES, RISK_MODES } from "@/lib/constants";
 
-// Demo risk data
-const demoRiskNumbers = [
-  { number: "25", betType: "TWO_TOP", totalAmount: 4800, limit: 5000, agents: { A001: 2000, A002: 1500, A003: 1300 } },
-  { number: "36", betType: "TWO_TOP", totalAmount: 4200, limit: 5000, agents: { A001: 1800, A002: 2400 } },
-  { number: "123", betType: "THREE_TOP", totalAmount: 180, limit: 200, agents: { A001: 100, A003: 80 } },
-  { number: "19", betType: "TWO_BOTTOM", totalAmount: 3250, limit: 5000, agents: { A002: 2000, A003: 1250 } },
-  { number: "99", betType: "RUN_TOP", totalAmount: 6500, limit: 10000, agents: { A001: 3000, A002: 2000, A003: 1500 } },
-  { number: "456", betType: "THREE_TOD", totalAmount: 320, limit: 500, agents: { A001: 200, A002: 120 } },
-  { number: "78", betType: "TWO_TOP", totalAmount: 2800, limit: 5000, agents: { A003: 2800 } },
-  { number: "00", betType: "TWO_BOTTOM", totalAmount: 4100, limit: 5000, agents: { A001: 2100, A002: 2000 } },
-];
-
-// Capital settings
-const capitalSettings = {
-  totalCapital: 1000000,
-  riskMode: "BALANCED",
-  riskPercentage: 75,
-  usableCapital: 750000,
-};
+interface RiskNumber {
+  number: string;
+  betType: string;
+  lottery: string;
+  totalAmount: number;
+  betCount: number;
+  potentialPayout: number;
+}
 
 export default function RiskPage() {
+  const [riskNumbers, setRiskNumbers] = useState<RiskNumber[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedLottery, setSelectedLottery] = useState("THAI");
-  const [capital, setCapital] = useState(capitalSettings.totalCapital);
-  const [riskMode, setRiskMode] = useState(capitalSettings.riskMode);
+  const [capital, setCapital] = useState(1000000);
+  const [riskMode, setRiskMode] = useState("BALANCED");
   const [customPercentage, setCustomPercentage] = useState(75);
+
+  useEffect(() => {
+    fetchRiskData();
+  }, [selectedLottery]);
+
+  const fetchRiskData = async () => {
+    try {
+      const res = await fetch(`/api/risk?lotteryType=${selectedLottery}`);
+      if (res.ok) {
+        const data = await res.json();
+        setRiskNumbers(data.riskNumbers || []);
+      }
+    } catch (error) {
+      console.error("Fetch risk error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const riskPercentage = riskMode === "CUSTOM" 
     ? customPercentage 
@@ -65,16 +75,42 @@ export default function RiskPage() {
   
   const usableCapital = capital * (riskPercentage / 100);
 
-  // Calculate risk for each number
-  const riskData = demoRiskNumbers.map((item) => {
-    const percentage = Math.round((item.totalAmount / item.limit) * 100);
-    const payRate = 90; // Simplified for demo
-    const potentialPayout = item.totalAmount * payRate;
+  // Calculate risk for each number  
+  const getLimit = (betType: string) => {
+    switch (betType) {
+      case "THREE_TOP": return 200;
+      case "THREE_TOD": return 500;
+      case "TWO_TOP": return 5000;
+      case "TWO_BOTTOM": return 5000;
+      case "RUN_TOP": return 10000;
+      case "RUN_BOTTOM": return 10000;
+      default: return 5000;
+    }
+  };
+
+  const getPayRate = (betType: string) => {
+    switch (betType) {
+      case "THREE_TOP": return 900;
+      case "THREE_TOD": return 150;
+      case "TWO_TOP": return 90;
+      case "TWO_BOTTOM": return 90;
+      case "RUN_TOP": return 3.2;
+      case "RUN_BOTTOM": return 4.2;
+      default: return 90;
+    }
+  };
+
+  const riskData = riskNumbers.map((item) => {
+    const limit = getLimit(item.betType);
+    const percentage = Math.round((item.totalAmount / limit) * 100);
+    const payRate = getPayRate(item.betType);
+    const potentialPayout = item.potentialPayout || item.totalAmount * payRate;
     const isOverCapital = potentialPayout > usableCapital;
     const excessAmount = isOverCapital ? item.totalAmount - Math.floor(usableCapital / payRate) : 0;
     
     return {
       ...item,
+      limit,
       percentage,
       potentialPayout,
       isOverCapital,
@@ -87,7 +123,15 @@ export default function RiskPage() {
   const highRiskCount = riskData.filter((r) => r.percentage >= 80 && r.percentage < 100).length;
   const overCapitalCount = riskData.filter((r) => r.isOverCapital).length;
   const totalBetAmount = riskData.reduce((sum, r) => sum + r.totalAmount, 0);
-  const worstCasePayout = Math.max(...riskData.map((r) => r.potentialPayout));
+  const worstCasePayout = riskData.length > 0 ? Math.max(...riskData.map((r) => r.potentialPayout)) : 0;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">

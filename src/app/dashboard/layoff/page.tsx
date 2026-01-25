@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ import {
   Send,
   Trash2,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { formatNumber, formatCurrency } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES } from "@/lib/constants";
@@ -111,13 +112,73 @@ const demoLayoffItems = [
   },
 ];
 
+interface LayoffItem {
+  id: string;
+  number: string;
+  betType: string;
+  totalAmount: number;
+  limitAmount: number;
+  excessAmount: number;
+  layoffAmount: number;
+  keepAmount: number;
+  payRate: number;
+  potentialPayout: number;
+  status: string;
+}
+
 export default function LayoffPage() {
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedLottery, setSelectedLottery] = useState("THAI");
-  const [layoffItems, setLayoffItems] = useState(demoLayoffItems);
+  const [layoffItems, setLayoffItems] = useState<LayoffItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [sentTo, setSentTo] = useState("");
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    fetchLayoffData();
+  }, [selectedLottery]);
+
+  const fetchLayoffData = async () => {
+    try {
+      const res = await fetch("/api/layoff");
+      if (res.ok) {
+        const data = await res.json();
+        // Merge API data with default values
+        const items = (data.layoffNumbers || []).map((item: { number: string; betType: string; totalAmount: number; limit: number; overLimit: number; layoffAmount: number; potentialPayout: number }, idx: number) => ({
+          id: `${idx + 1}`,
+          number: item.number,
+          betType: item.betType,
+          totalAmount: item.totalAmount,
+          limitAmount: item.limit || 11111,
+          excessAmount: item.overLimit || 0,
+          layoffAmount: item.layoffAmount || item.overLimit || 0,
+          keepAmount: item.totalAmount - (item.layoffAmount || item.overLimit || 0),
+          payRate: getPayRate(item.betType),
+          potentialPayout: item.potentialPayout,
+          status: "PENDING",
+        }));
+        setLayoffItems(items.length > 0 ? items : demoLayoffItems);
+      }
+    } catch (error) {
+      console.error("Fetch layoff error:", error);
+      setLayoffItems(demoLayoffItems);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getPayRate = (betType: string) => {
+    switch (betType) {
+      case "THREE_TOP": return 900;
+      case "THREE_TOD": return 150;
+      case "TWO_TOP": return 90;
+      case "TWO_BOTTOM": return 90;
+      case "RUN_TOP": return 3.2;
+      case "RUN_BOTTOM": return 4.2;
+      default: return 90;
+    }
+  };
 
   const totalLayoffAmount = layoffItems
     .filter((item) => item.status === "PENDING")
@@ -126,6 +187,14 @@ export default function LayoffPage() {
   const totalPotentialPayout = layoffItems
     .filter((item) => item.status === "PENDING")
     .reduce((sum, item) => sum + item.potentialPayout, 0);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      </div>
+    );
+  }
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {

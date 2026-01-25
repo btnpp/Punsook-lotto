@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Check, Calendar, Trophy, Calculator, Plus, ArrowRight, Eye, Users } from "lucide-react";
+import { Check, Calendar, Trophy, Calculator, Plus, ArrowRight, Eye, Users, Loader2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -167,9 +167,37 @@ const demoRounds = [
   },
 ];
 
+interface Round {
+  id: string;
+  lotteryType: { code: string; name: string };
+  roundDate: Date;
+  status: string;
+  result3Top?: string;
+  result2Top?: string;
+  result2Bottom?: string;
+  lotteryCode?: string;
+  lotteryName?: string;
+  totalBets?: number;
+  betCount?: number;
+  winAmount?: number;
+  profit?: number;
+}
+
+interface Winner {
+  id: string;
+  agent: { code: string; name: string };
+  number: string;
+  betType: string;
+  amount: number;
+  payRate: number;
+  winAmount: number;
+}
+
 export default function ResultsPage() {
-  const [rounds, setRounds] = useState(demoRounds);
-  const [selectedRound, setSelectedRound] = useState<typeof demoRounds[0] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [rounds, setRounds] = useState<Round[]>([]);
+  const [winners, setWinners] = useState<Winner[]>([]);
+  const [selectedRound, setSelectedRound] = useState<Round | null>(null);
   const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [isWinnersDialogOpen, setIsWinnersDialogOpen] = useState(false);
@@ -185,20 +213,64 @@ export default function ResultsPage() {
     result2Bottom: "",
   });
 
-  const openRounds = rounds.filter((r) => r.status === "OPEN");
-  const resultedRounds = rounds.filter((r) => r.status === "RESULTED");
+  useEffect(() => {
+    fetchRounds();
+  }, []);
 
-  // Get winners for selected round
-  const getWinners = (roundId: string) => {
-    return demoWinners[roundId] || [];
+  const fetchRounds = async () => {
+    try {
+      const res = await fetch("/api/results");
+      if (res.ok) {
+        const data = await res.json();
+        setRounds(data.rounds.map((r: Round & { roundDate: string }) => ({
+          ...r,
+          roundDate: new Date(r.roundDate),
+          lotteryCode: r.lotteryType.code,
+          lotteryName: r.lotteryType.name,
+        })));
+      }
+    } catch (error) {
+      console.error("Fetch rounds error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleOpenWinnersDialog = (round: typeof demoRounds[0]) => {
+  const fetchWinners = async (roundId: string) => {
+    try {
+      const res = await fetch(`/api/results/winners?roundId=${roundId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setWinners(data.winners || []);
+      }
+    } catch (error) {
+      console.error("Fetch winners error:", error);
+    }
+  };
+
+  const openRounds = rounds.filter((r) => r.status === "OPEN");
+  const resultedRounds = rounds.filter((r) => r.status === "CLOSED" || r.status === "RESULTED");
+
+  // Get winners for selected round
+  const getWinners = () => {
+    return winners;
+  };
+
+  const handleOpenWinnersDialog = async (round: Round) => {
     setSelectedRound(round);
+    await fetchWinners(round.id);
     setIsWinnersDialogOpen(true);
   };
 
-  const handleOpenResultDialog = (round: typeof demoRounds[0]) => {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      </div>
+    );
+  }
+
+  const handleOpenResultDialog = (round: Round) => {
     setSelectedRound(round);
     setResultInput({
       result3Top: "",
@@ -208,63 +280,36 @@ export default function ResultsPage() {
     setIsResultDialogOpen(true);
   };
 
-  const handleSubmitResult = () => {
+  const handleSubmitResult = async () => {
     if (!selectedRound) return;
 
-    // Calculate fake win amount and profit for demo
-    const fakeWinAmount = Math.floor(Math.random() * selectedRound.totalBets * 0.4);
-    const fakeProfit = selectedRound.totalBets - fakeWinAmount;
+    try {
+      // Submit result to API
+      const res = await fetch("/api/results", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roundId: selectedRound.id,
+          threeTop: resultInput.result3Top,
+          twoTop: resultInput.result2Top,
+          twoBottom: resultInput.result2Bottom,
+        }),
+      });
 
-    // Update the current round to RESULTED
-    let updatedRounds = rounds.map((r) =>
-      r.id === selectedRound.id
-        ? {
-            ...r,
-            status: "RESULTED" as const,
-            result3Top: resultInput.result3Top,
-            result2Top: resultInput.result2Top,
-            result2Bottom: resultInput.result2Bottom,
-            winAmount: fakeWinAmount,
-            profit: fakeProfit,
-          }
-        : r
-    );
-
-    // Auto-create next round if enabled
-    if (autoCreateNextRound) {
-      const nextDate = getNextDrawDate(selectedRound.lotteryType, selectedRound.roundDate);
-      const closeTime = getDefaultCloseTime(selectedRound.lotteryType);
-      
-      // Check if round already exists for this date
-      const roundExists = updatedRounds.some(
-        (r) =>
-          r.lotteryType === selectedRound.lotteryType &&
-          r.roundDate.toDateString() === nextDate.toDateString()
-      );
-
-      if (!roundExists) {
-        const newRound = {
-          id: `auto-${Date.now()}`,
-          lotteryType: selectedRound.lotteryType,
-          roundDate: nextDate,
-          status: "OPEN" as const,
-          closeTime,
-          totalBets: 0,
-          betCount: 0,
-        };
-        updatedRounds = [...updatedRounds, newRound];
-        
-        setLastCreatedRound({
-          lotteryType: selectedRound.lotteryType,
-          date: nextDate,
-          closeTime,
-        });
+      if (!res.ok) {
+        const error = await res.json();
+        alert(error.error || "เกิดข้อผิดพลาด");
+        return;
       }
-    }
 
-    setRounds(updatedRounds);
-    setIsResultDialogOpen(false);
-    setIsSuccessDialogOpen(true);
+      // Refresh rounds
+      await fetchRounds();
+      setIsResultDialogOpen(false);
+      setIsSuccessDialogOpen(true);
+    } catch (error) {
+      console.error("Submit result error:", error);
+      alert("เกิดข้อผิดพลาดในการบันทึกผล");
+    }
   };
 
   return (
@@ -278,7 +323,7 @@ export default function ResultsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {openRounds.map((round) => {
               const lottery =
-                LOTTERY_TYPES[round.lotteryType as keyof typeof LOTTERY_TYPES];
+                LOTTERY_TYPES[(round.lotteryCode || round.lotteryType?.code || "THAI") as keyof typeof LOTTERY_TYPES];
               return (
                 <Card key={round.id}>
                   <CardContent className="p-6">
@@ -296,12 +341,12 @@ export default function ResultsPage() {
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-400">ยอดรวม</span>
                         <span className="font-bold text-amber-400">
-                          ฿{formatNumber(round.totalBets)}
+                          ฿{formatNumber(round.totalBets || 0)}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-400">จำนวนโพย</span>
-                        <span className="text-slate-100">{round.betCount} รายการ</span>
+                        <span className="text-slate-100">{round.betCount || 0} รายการ</span>
                       </div>
                     </div>
 
@@ -331,7 +376,7 @@ export default function ResultsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {resultedRounds.map((round) => {
               const lottery =
-                LOTTERY_TYPES[round.lotteryType as keyof typeof LOTTERY_TYPES];
+                LOTTERY_TYPES[(round.lotteryCode || round.lotteryType?.code || "THAI") as keyof typeof LOTTERY_TYPES];
               return (
                 <Card key={round.id}>
                   <CardContent className="p-6">
@@ -375,7 +420,7 @@ export default function ResultsPage() {
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-400">ยอดรับ</span>
                         <span className="text-slate-100">
-                          ฿{formatNumber(round.totalBets)}
+                          ฿{formatNumber(round.totalBets || 0)}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
@@ -400,14 +445,14 @@ export default function ResultsPage() {
                     </div>
 
                     {/* View Winners Button */}
-                    {getWinners(round.id).length > 0 && (
+                    {round.status === "CLOSED" && (
                       <Button
                         variant="outline"
                         className="w-full mt-4 gap-2"
                         onClick={() => handleOpenWinnersDialog(round)}
                       >
                         <Users className="w-4 h-4" />
-                        ดูผู้ถูกรางวัล ({getWinners(round.id).length} รายการ)
+                        ดูผู้ถูกรางวัล
                       </Button>
                     )}
                   </CardContent>
@@ -433,7 +478,7 @@ export default function ResultsPage() {
               <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50">
                 <span className="text-3xl">
                   {
-                    LOTTERY_TYPES[selectedRound.lotteryType as keyof typeof LOTTERY_TYPES]
+                    LOTTERY_TYPES[(selectedRound.lotteryCode || selectedRound.lotteryType?.code || "THAI") as keyof typeof LOTTERY_TYPES]
                       ?.flag
                   }
                 </span>
@@ -441,7 +486,7 @@ export default function ResultsPage() {
                   <h3 className="font-bold text-slate-100">
                     {
                       LOTTERY_TYPES[
-                        selectedRound.lotteryType as keyof typeof LOTTERY_TYPES
+                        (selectedRound.lotteryCode || selectedRound.lotteryType?.code || "THAI") as keyof typeof LOTTERY_TYPES
                       ]?.name
                     }
                   </h3>
@@ -509,11 +554,11 @@ export default function ResultsPage() {
                 <p className="text-sm text-slate-300">
                   ยอดรับงวดนี้:{" "}
                   <span className="font-bold text-amber-400">
-                    ฿{formatNumber(selectedRound.totalBets)}
+                    ฿{formatNumber(selectedRound.totalBets || 0)}
                   </span>
                 </p>
                 <p className="text-xs text-slate-400 mt-1">
-                  จำนวน {selectedRound.betCount} รายการ
+                  จำนวน {selectedRound.betCount || 0} รายการ
                 </p>
               </div>
 
@@ -533,9 +578,9 @@ export default function ResultsPage() {
                     <p className="text-xs text-slate-400 mt-1">
                       งวดถัดไป:{" "}
                       <span className="text-emerald-400 font-medium">
-                        {getNextDrawDate(selectedRound.lotteryType, selectedRound.roundDate).toLocaleDateString("th-TH")}
+                        {getNextDrawDate(selectedRound.lotteryCode || selectedRound.lotteryType?.code || "THAI", selectedRound.roundDate).toLocaleDateString("th-TH")}
                       </span>
-                      {" "}ปิดรับ {getDefaultCloseTime(selectedRound.lotteryType)} น.
+                      {" "}ปิดรับ {getDefaultCloseTime(selectedRound.lotteryCode || selectedRound.lotteryType?.code || "THAI")} น.
                     </p>
                   </div>
                 </div>
@@ -659,9 +704,9 @@ export default function ResultsPage() {
               {selectedRound && (
                 <span className="flex items-center gap-2">
                   <span className="text-lg">
-                    {LOTTERY_TYPES[selectedRound.lotteryType as keyof typeof LOTTERY_TYPES]?.flag}
+                    {LOTTERY_TYPES[(selectedRound.lotteryCode || selectedRound.lotteryType?.code || "THAI") as keyof typeof LOTTERY_TYPES]?.flag}
                   </span>
-                  {LOTTERY_TYPES[selectedRound.lotteryType as keyof typeof LOTTERY_TYPES]?.name}
+                  {LOTTERY_TYPES[(selectedRound.lotteryCode || selectedRound.lotteryType?.code || "THAI") as keyof typeof LOTTERY_TYPES]?.name}
                   {" - งวด "}
                   {selectedRound.roundDate.toLocaleDateString("th-TH")}
                 </span>
@@ -701,7 +746,7 @@ export default function ResultsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {getWinners(selectedRound.id).map((winner) => (
+                    {getWinners().map((winner) => (
                       <TableRow key={winner.id}>
                         <TableCell>
                           <div>
@@ -739,13 +784,13 @@ export default function ResultsPage() {
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-emerald-400" />
                   <span className="text-slate-300">
-                    รวม {getWinners(selectedRound.id).length} รายการ
+                    รวม {getWinners().length} รายการ
                   </span>
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-slate-400">รวมจ่ายรางวัล</p>
                   <p className="text-2xl font-bold text-emerald-400">
-                    ฿{formatNumber(getWinners(selectedRound.id).reduce((sum, w) => sum + w.winAmount, 0))}
+                    ฿{formatNumber(getWinners().reduce((sum, w) => sum + w.winAmount, 0))}
                   </p>
                 </div>
               </div>
