@@ -1,10 +1,14 @@
-import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+// @ts-nocheck
+// This file is for local seeding only, not used in production build
+// Use prisma/seed.sql for production seeding via Supabase SQL Editor
 
-const prisma = new PrismaClient({
-  log: ["query", "error", "warn"],
-});
+import "dotenv/config";
+
+// Dynamic import to avoid build issues with Prisma 7
+const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcryptjs");
+
+const prisma = new PrismaClient();
 
 async function main() {
   console.log("🌱 Seeding database...");
