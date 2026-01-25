@@ -126,6 +126,7 @@ model LotteryType {
   name         String   // หวยไทย, หวยลาว, หวยฮานอย
   description  String?
   drawDays     String?  // วันออกผล เช่น "1,16" หรือ "MON,WED,FRI"
+  openTime     String?  // เวลาเปิดรับ เช่น "00:00"
   closeTime    String?  // เวลาปิดรับ เช่น "14:30"
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
