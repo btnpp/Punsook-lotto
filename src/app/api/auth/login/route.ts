@@ -88,8 +88,10 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     console.error("Login error:", error);
+    // Return detailed error in development/for debugging
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "เกิดข้อผิดพลาดในการเข้าสู่ระบบ" },
+      { error: "เกิดข้อผิดพลาดในการเข้าสู่ระบบ", details: errorMessage },
       { status: 500 }
     );
   }
