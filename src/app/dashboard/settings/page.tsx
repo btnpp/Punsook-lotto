@@ -50,11 +50,11 @@ export default function SettingsPage() {
       const res = await fetch("/api/settings");
       if (res.ok) {
         const data = await res.json();
-        if (data.capitalSetting) {
+        if (data.capitalSettings) {
           setCapitalSettings({
-            totalCapital: data.capitalSetting.totalCapital,
-            riskMode: data.capitalSetting.riskMode,
-            customPercentage: data.capitalSetting.riskPercentage,
+            totalCapital: data.capitalSettings.totalCapital || 1000000,
+            riskMode: data.capitalSettings.riskMode || "BALANCED",
+            customPercentage: data.capitalSettings.riskPercentage || 75,
           });
         }
         // Update pay rates and limits from API if available
