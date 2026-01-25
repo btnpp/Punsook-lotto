@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,11 +15,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Save, RefreshCw, Shield, DollarSign, Clock, Bell } from "lucide-react";
+import { Save, RefreshCw, Shield, DollarSign, Clock, Bell, Loader2 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES, DEFAULT_PAY_RATES, DEFAULT_GLOBAL_LIMITS, RISK_MODES } from "@/lib/constants";
 
 export default function SettingsPage() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [payRates, setPayRates] = useState(DEFAULT_PAY_RATES);
   const [globalLimits, setGlobalLimits] = useState(DEFAULT_GLOBAL_LIMITS);
   const [capitalSettings, setCapitalSettings] = useState({
@@ -37,21 +39,116 @@ export default function SettingsPage() {
     lineToken: "",
   });
 
-  const handleSavePayRates = () => {
-    alert("บันทึกอัตราจ่ายสำเร็จ!");
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch("/api/settings");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.capitalSetting) {
+          setCapitalSettings({
+            totalCapital: data.capitalSetting.totalCapital,
+            riskMode: data.capitalSetting.riskMode,
+            customPercentage: data.capitalSetting.riskPercentage,
+          });
+        }
+        // Update pay rates and limits from API if available
+        if (data.payRates) {
+          const rates = JSON.parse(JSON.stringify(DEFAULT_PAY_RATES));
+          for (const rate of data.payRates) {
+            const lotteryCode = rate.lotteryType?.code;
+            if (lotteryCode && rates[lotteryCode]) {
+              rates[lotteryCode][rate.betType] = rate.payRate;
+            }
+          }
+          setPayRates(rates);
+        }
+        if (data.globalLimits) {
+          const limits = JSON.parse(JSON.stringify(DEFAULT_GLOBAL_LIMITS));
+          for (const limit of data.globalLimits) {
+            const lotteryCode = limit.lotteryType?.code;
+            if (lotteryCode && limits[lotteryCode]) {
+              limits[lotteryCode][limit.betType] = limit.limitAmount;
+            }
+          }
+          setGlobalLimits(limits);
+        }
+      }
+    } catch (error) {
+      console.error("Fetch settings error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSaveLimits = () => {
-    alert("บันทึก Limit สำเร็จ!");
+  const handleSavePayRates = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payRates }),
+      });
+      if (res.ok) {
+        alert("บันทึกอัตราจ่ายสำเร็จ!");
+      }
+    } catch (error) {
+      console.error("Save pay rates error:", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleSaveCapital = () => {
-    alert("บันทึกการตั้งค่าทุนสำเร็จ!");
+  const handleSaveLimits = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ globalLimits }),
+      });
+      if (res.ok) {
+        alert("บันทึก Limit สำเร็จ!");
+      }
+    } catch (error) {
+      console.error("Save limits error:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveCapital = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ capitalSettings }),
+      });
+      if (res.ok) {
+        alert("บันทึกการตั้งค่าทุนสำเร็จ!");
+      }
+    } catch (error) {
+      console.error("Save capital error:", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSaveNotifications = () => {
     alert("บันทึกการแจ้งเตือนสำเร็จ!");
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">

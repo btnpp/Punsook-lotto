@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,7 @@ import {
   EyeOff,
   Users,
   Key,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROLE_DEFINITIONS, ROLE_COLORS, PERMISSIONS, RoleCode } from "@/lib/permissions";
@@ -232,7 +233,10 @@ const initialUsers: UserData[] = [
 
 export default function UsersPage() {
   const { user: currentUser, isMaster } = useAuth();
-  const [users, setUsers] = useState(initialUsers);
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [roles, setRoles] = useState<Array<{ code: string; name: string }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
@@ -258,6 +262,39 @@ export default function UsersPage() {
     role: "OPERATOR",
   });
 
+  // Fetch users and roles on mount
+  useEffect(() => {
+    Promise.all([fetchUsers(), fetchRoles()]).finally(() => setIsLoading(false));
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch("/api/users");
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data.users.map((u: UserData & { createdAt: string; lastLogin: string | null }) => ({
+          ...u,
+          createdAt: new Date(u.createdAt),
+          lastLogin: u.lastLogin ? new Date(u.lastLogin) : null,
+        })));
+      }
+    } catch (error) {
+      console.error("Fetch users error:", error);
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      const res = await fetch("/api/roles");
+      if (res.ok) {
+        const data = await res.json();
+        setRoles(data.roles);
+      }
+    } catch (error) {
+      console.error("Fetch roles error:", error);
+    }
+  };
+
   // Filter users
   const filteredUsers = users.filter((user) => {
     const matchSearch =
@@ -274,50 +311,98 @@ export default function UsersPage() {
   });
 
   // Handlers
-  const handleCreateUser = () => {
-    const newUser: UserData = {
-      id: String(users.length + 1),
-      username: formData.username,
-      name: formData.name,
-      email: formData.email || null,
-      phone: formData.phone || null,
-      role: formData.role,
-      customPermissions: null,
-      isActive: true,
-      lastLogin: null,
-      createdAt: new Date(),
-    };
-    setUsers([...users, newUser]);
-    setIsCreateDialogOpen(false);
-    resetForm();
+  const handleCreateUser = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password,
+          name: formData.name,
+          email: formData.email || null,
+          phone: formData.phone || null,
+          roleCode: formData.role,
+        }),
+      });
+      if (res.ok) {
+        fetchUsers();
+        setIsCreateDialogOpen(false);
+        resetForm();
+      } else {
+        const data = await res.json();
+        alert(data.error || "เกิดข้อผิดพลาด");
+      }
+    } catch (error) {
+      console.error("Create user error:", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleEditUser = () => {
+  const handleEditUser = async () => {
     if (!selectedUser) return;
-    setUsers(
-      users.map((u) =>
-        u.id === selectedUser.id
-          ? { ...u, ...formData }
-          : u
-      )
-    );
-    setIsEditDialogOpen(false);
-    resetForm();
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/users/${selectedUser.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email || null,
+          phone: formData.phone || null,
+          roleCode: formData.role,
+          password: formData.password || undefined,
+        }),
+      });
+      if (res.ok) {
+        fetchUsers();
+        setIsEditDialogOpen(false);
+        resetForm();
+      }
+    } catch (error) {
+      console.error("Edit user error:", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleDeleteUser = () => {
+  const handleDeleteUser = async () => {
     if (!selectedUser) return;
-    setUsers(users.filter((u) => u.id !== selectedUser.id));
-    setIsDeleteDialogOpen(false);
-    setSelectedUser(null);
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/users/${selectedUser.id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        fetchUsers();
+        setIsDeleteDialogOpen(false);
+        setSelectedUser(null);
+      }
+    } catch (error) {
+      console.error("Delete user error:", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleToggleActive = (userId: string) => {
-    setUsers(
-      users.map((u) =>
-        u.id === userId ? { ...u, isActive: !u.isActive } : u
-      )
-    );
+  const handleToggleActive = async (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+    
+    try {
+      const res = await fetch(`/api/users/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !user.isActive }),
+      });
+      if (res.ok) {
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error("Toggle active error:", error);
+    }
   };
 
   const openEditDialog = (user: typeof initialUsers[0]) => {
@@ -419,6 +504,15 @@ export default function UsersPage() {
     role,
     count: users.filter((u) => u.role === role).length,
   }));
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      </div>
+    );
+  }
 
   // Check if current user is master
   if (!isMaster()) {
