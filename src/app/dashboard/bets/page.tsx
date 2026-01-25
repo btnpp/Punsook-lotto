@@ -276,27 +276,29 @@ export default function BetsPage() {
 
     setIsSubmitting(true);
     try {
-      // Submit each bet item
-      let successCount = 0;
-      for (const bet of betItems) {
-        const res = await fetch("/api/bets", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            roundId: selectedRoundId,
-            agentId: selectedAgent,
+      // Submit all bets at once
+      const res = await fetch("/api/bets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roundId: selectedRoundId,
+          agentId: selectedAgent,
+          bets: betItems.map(bet => ({
             number: bet.number,
             betType: bet.betType,
             amount: bet.amount,
-          }),
-        });
-        if (res.ok) {
-          successCount++;
-        }
-      }
+          })),
+        }),
+      });
       
-      toast.success(`ส่งโพยสำเร็จ! จำนวน ${successCount} รายการ ยอดรวม ${formatCurrency(totalNetAmount)}`);
-      setBetItems([]);
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`ส่งโพยสำเร็จ! จำนวน ${data.count} รายการ ยอดรวม ${formatCurrency(totalNetAmount)}`);
+        setBetItems([]);
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "ไม่สามารถส่งโพยได้");
+      }
     } catch (error) {
       console.error("Submit error:", error);
       toast.error("เกิดข้อผิดพลาดในการส่งโพย");
