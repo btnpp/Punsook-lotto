@@ -1,10 +1,84 @@
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  log: ["query", "error", "warn"],
+});
 
 async function main() {
   console.log("🌱 Seeding database...");
+
+  // Create roles
+  const roles = [
+    {
+      code: "MASTER",
+      name: "Master",
+      description: "เจ้าของระบบ - สิทธิ์เต็ม",
+      permissions: JSON.stringify([
+        "VIEW_DASHBOARD",
+        "MANAGE_USERS",
+        "MANAGE_ROLES",
+        "MANAGE_AGENTS",
+        "MANAGE_BETS",
+        "MANAGE_RESULTS",
+        "MANAGE_LAYOFF",
+        "MANAGE_SETTINGS",
+        "VIEW_REPORTS",
+      ]),
+      isSystem: true,
+    },
+    {
+      code: "ADMIN",
+      name: "Admin",
+      description: "ผู้ดูแลระบบ",
+      permissions: JSON.stringify([
+        "VIEW_DASHBOARD",
+        "MANAGE_AGENTS",
+        "MANAGE_BETS",
+        "MANAGE_RESULTS",
+        "MANAGE_LAYOFF",
+        "VIEW_REPORTS",
+      ]),
+      isSystem: true,
+    },
+    {
+      code: "OPERATOR",
+      name: "Operator",
+      description: "พนักงานคีย์หวย",
+      permissions: JSON.stringify([
+        "VIEW_DASHBOARD",
+        "MANAGE_BETS",
+        "VIEW_REPORTS",
+      ]),
+      isSystem: true,
+    },
+    {
+      code: "VIEWER",
+      name: "Viewer",
+      description: "ดูข้อมูลอย่างเดียว",
+      permissions: JSON.stringify(["VIEW_DASHBOARD", "VIEW_REPORTS"]),
+      isSystem: true,
+    },
+  ];
+
+  for (const roleData of roles) {
+    await prisma.role.upsert({
+      where: { code: roleData.code },
+      update: roleData,
+      create: roleData,
+    });
+  }
+  console.log("✅ Created roles");
+
+  // Get admin role
+  const adminRole = await prisma.role.findUnique({
+    where: { code: "ADMIN" },
+  });
+
+  if (!adminRole) {
+    throw new Error("Admin role not found");
+  }
 
   // Create admin user
   const hashedPassword = await bcrypt.hash("admin", 10);
@@ -15,7 +89,7 @@ async function main() {
       username: "admin",
       password: hashedPassword,
       name: "Administrator",
-      role: "ADMIN",
+      roleId: adminRole.id,
     },
   });
   console.log("✅ Created admin user:", admin.username);
