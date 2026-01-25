@@ -44,74 +44,6 @@ import { formatNumber, formatCurrency } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES } from "@/lib/constants";
 import { useToast } from "@/components/ui/toast";
 
-// Demo layoff data
-const demoLayoffItems = [
-  {
-    id: "1",
-    number: "25",
-    betType: "TWO_TOP",
-    totalAmount: 15000,
-    limitAmount: 11111,
-    excessAmount: 3889,
-    layoffAmount: 3889,
-    keepAmount: 11111,
-    payRate: 90,
-    potentialPayout: 350010,
-    status: "PENDING",
-  },
-  {
-    id: "2",
-    number: "36",
-    betType: "TWO_TOP",
-    totalAmount: 14500,
-    limitAmount: 11111,
-    excessAmount: 3389,
-    layoffAmount: 3389,
-    keepAmount: 11111,
-    payRate: 90,
-    potentialPayout: 305010,
-    status: "PENDING",
-  },
-  {
-    id: "3",
-    number: "123",
-    betType: "THREE_TOP",
-    totalAmount: 1500,
-    limitAmount: 1111,
-    excessAmount: 389,
-    layoffAmount: 389,
-    keepAmount: 1111,
-    payRate: 900,
-    potentialPayout: 350100,
-    status: "PENDING",
-  },
-  {
-    id: "4",
-    number: "19",
-    betType: "TWO_BOTTOM",
-    totalAmount: 13200,
-    limitAmount: 11111,
-    excessAmount: 2089,
-    layoffAmount: 2089,
-    keepAmount: 11111,
-    payRate: 90,
-    potentialPayout: 188010,
-    status: "PENDING",
-  },
-  {
-    id: "5",
-    number: "456",
-    betType: "THREE_TOD",
-    totalAmount: 8000,
-    limitAmount: 6666,
-    excessAmount: 1334,
-    layoffAmount: 1334,
-    keepAmount: 6666,
-    payRate: 150,
-    potentialPayout: 200100,
-    status: "EXPORTED",
-  },
-];
 
 interface LayoffItem {
   id: string;
@@ -146,25 +78,25 @@ export default function LayoffPage() {
       const res = await fetch("/api/layoff");
       if (res.ok) {
         const data = await res.json();
-        // Merge API data with default values
+        // Map API data to LayoffItem format
         const items = (data.layoffNumbers || []).map((item: { number: string; betType: string; totalAmount: number; limit: number; overLimit: number; layoffAmount: number; potentialPayout: number }, idx: number) => ({
           id: `${idx + 1}`,
           number: item.number,
           betType: item.betType,
           totalAmount: item.totalAmount,
-          limitAmount: item.limit || 11111,
+          limitAmount: item.limit || 0,
           excessAmount: item.overLimit || 0,
           layoffAmount: item.layoffAmount || item.overLimit || 0,
           keepAmount: item.totalAmount - (item.layoffAmount || item.overLimit || 0),
           payRate: getPayRate(item.betType),
-          potentialPayout: item.potentialPayout,
+          potentialPayout: item.potentialPayout || 0,
           status: "PENDING",
         }));
-        setLayoffItems(items.length > 0 ? items : demoLayoffItems);
+        setLayoffItems(items);
       }
     } catch (error) {
       console.error("Fetch layoff error:", error);
-      setLayoffItems(demoLayoffItems);
+      setLayoffItems([]);
     } finally {
       setIsLoading(false);
     }
@@ -359,9 +291,15 @@ export default function LayoffPage() {
         {/* Layoff Table */}
         <Card>
           <CardHeader>
-            <CardTitle>📋 รายการตีออก - หวยไทย งวด 16/01/2569</CardTitle>
+            <CardTitle>📋 รายการตีออก - {LOTTERY_TYPES[selectedLottery as keyof typeof LOTTERY_TYPES]?.name || "หวยไทย"}</CardTitle>
           </CardHeader>
           <CardContent>
+            {layoffItems.length === 0 ? (
+              <div className="text-center py-12 text-slate-400">
+                <p className="text-lg">ไม่มีรายการที่ต้องตีออก</p>
+                <p className="text-sm mt-2">เลขทั้งหมดอยู่ในเกณฑ์ปลอดภัย</p>
+              </div>
+            ) : (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -438,6 +376,7 @@ export default function LayoffPage() {
                 ))}
               </TableBody>
             </Table>
+            )}
           </CardContent>
         </Card>
 
