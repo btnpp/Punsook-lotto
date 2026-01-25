@@ -133,11 +133,26 @@ export default function RoundsPage() {
       if (settingsRes.ok) {
         const data = await settingsRes.json();
         if (data.lotteryTypes) {
+          // Update lotteryTypes state
           setLotteryTypes(data.lotteryTypes.map((lt: { id: string; code: string; name: string }) => ({
             id: lt.id,
             code: lt.code,
             name: lt.name,
           })));
+          
+          // Update lotterySettings from API data
+          const newSettings = { ...defaultLotterySettings };
+          for (const lt of data.lotteryTypes) {
+            if (newSettings[lt.code as keyof typeof newSettings]) {
+              newSettings[lt.code as keyof typeof newSettings] = {
+                openTime: lt.openTime || "00:00",
+                closeTime: lt.closeTime || "14:30",
+                drawDays: lt.drawDays || "",
+                isActive: lt.isActive ?? true,
+              };
+            }
+          }
+          setLotterySettings(newSettings);
         }
       }
     } catch (error) {
@@ -281,10 +296,41 @@ export default function RoundsPage() {
     setIsSettingsDialogOpen(true);
   };
 
-  const handleSaveSettings = () => {
-    // TODO: Save to API
-    toast.success("บันทึกการตั้งค่าสำเร็จ!");
-    setIsSettingsDialogOpen(false);
+  const handleSaveSettings = async () => {
+    if (!selectedLotteryForSettings) return;
+    
+    const settings = lotterySettings[selectedLotteryForSettings as keyof typeof lotterySettings];
+    const lotteryType = lotteryTypes.find(lt => lt.code === selectedLotteryForSettings);
+    
+    if (!lotteryType) {
+      toast.error("ไม่พบประเภทหวย");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/lottery-types/${lotteryType.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          openTime: settings.openTime,
+          closeTime: settings.closeTime,
+          drawDays: settings.drawDays,
+          isActive: settings.isActive,
+        }),
+      });
+      
+      if (res.ok) {
+        toast.success("บันทึกการตั้งค่าสำเร็จ!");
+        setIsSettingsDialogOpen(false);
+        fetchRounds(); // Refresh data
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "ไม่สามารถบันทึกได้");
+      }
+    } catch (error) {
+      console.error("Save settings error:", error);
+      toast.error("เกิดข้อผิดพลาดในการบันทึก");
+    }
   };
 
   const handleToggleRoundStatus = async (roundId: string) => {
