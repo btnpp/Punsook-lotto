@@ -49,19 +49,26 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { lotteryTypeCode, roundDate } = body;
+    const { lotteryTypeCode, lotteryTypeId, roundDate } = body;
 
-    if (!lotteryTypeCode || !roundDate) {
+    if ((!lotteryTypeCode && !lotteryTypeId) || !roundDate) {
       return NextResponse.json(
         { error: "กรุณาระบุประเภทหวยและวันที่" },
         { status: 400 }
       );
     }
 
-    // Get lottery type
-    const lotteryType = await prisma.lotteryType.findUnique({
-      where: { code: lotteryTypeCode },
-    });
+    // Get lottery type by code or id
+    let lotteryType;
+    if (lotteryTypeId) {
+      lotteryType = await prisma.lotteryType.findUnique({
+        where: { id: lotteryTypeId },
+      });
+    } else {
+      lotteryType = await prisma.lotteryType.findUnique({
+        where: { code: lotteryTypeCode },
+      });
+    }
 
     if (!lotteryType) {
       return NextResponse.json(
