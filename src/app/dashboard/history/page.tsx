@@ -30,6 +30,8 @@ import {
 import { Search, Download, ChevronRight, FileText, X, Loader2 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES } from "@/lib/constants";
+import { useToast } from "@/components/ui/toast";
+import { useAuth } from "@/lib/auth-context";
 
 // Interface สำหรับ bet item
 interface BetItem {
@@ -200,6 +202,8 @@ function getSlipStatusBadge(status: string, items: BetItem[]) {
 }
 
 export default function HistoryPage() {
+  const toast = useToast();
+  const { user } = useAuth();
   const [slips, setSlips] = useState<Slip[]>([]);
   const [rounds, setRounds] = useState<Array<{ id: string; date: Date; lottery: string; name: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -213,6 +217,41 @@ export default function HistoryPage() {
     fetchHistory();
     fetchRounds();
   }, []);
+
+  const handleCancelBet = async (betId: string) => {
+    if (!confirm("ยืนยันการยกเลิกรายการนี้?")) return;
+    
+    try {
+      const res = await fetch(`/api/bets/${betId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user?.id,
+          reason: "ยกเลิกโดย Admin",
+        }),
+      });
+      
+      if (res.ok) {
+        toast.success("ยกเลิกรายการสำเร็จ");
+        fetchHistory(); // Refresh data
+        // Update selectedSlip if it's open
+        if (selectedSlip) {
+          setSelectedSlip({
+            ...selectedSlip,
+            items: selectedSlip.items.map(item => 
+              item.id === betId ? { ...item, status: "CANCELLED" } : item
+            ),
+          });
+        }
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "ไม่สามารถยกเลิกได้");
+      }
+    } catch (error) {
+      console.error("Cancel bet error:", error);
+      toast.error("เกิดข้อผิดพลาด");
+    }
+  };
 
   const fetchHistory = async () => {
     try {
@@ -548,18 +587,34 @@ export default function HistoryPage() {
                           ฿{formatNumber(item.netAmount)}
                         </TableCell>
                         <TableCell className="text-right">
-                          {item.status === "ACTIVE" ? (
-                            <Badge variant="success">รอผล</Badge>
-                          ) : item.status === "WON" ? (
-                            <div className="flex flex-col items-end">
-                              <Badge variant="default">ถูก</Badge>
-                              <span className="text-xs text-amber-400">+฿{formatNumber(item.winAmount || 0)}</span>
-                            </div>
-                          ) : item.status === "LOST" ? (
-                            <Badge variant="secondary">ไม่ถูก</Badge>
-                          ) : (
-                            <Badge variant="destructive">ยกเลิก</Badge>
-                          )}
+                          <div className="flex items-center justify-end gap-2">
+                            {item.status === "ACTIVE" ? (
+                              <>
+                                <Badge variant="success">รอผล</Badge>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCancelBet(item.id);
+                                  }}
+                                >
+                                  <X className="w-3 h-3 mr-1" />
+                                  ยกเลิก
+                                </Button>
+                              </>
+                            ) : item.status === "WON" ? (
+                              <div className="flex flex-col items-end">
+                                <Badge variant="default">ถูก</Badge>
+                                <span className="text-xs text-amber-400">+฿{formatNumber(item.winAmount || 0)}</span>
+                              </div>
+                            ) : item.status === "LOST" ? (
+                              <Badge variant="secondary">ไม่ถูก</Badge>
+                            ) : (
+                              <Badge variant="destructive">ยกเลิก</Badge>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
