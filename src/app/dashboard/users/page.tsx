@@ -275,14 +275,19 @@ export default function UsersPage() {
 
   // Handlers
   const handleCreateUser = () => {
-    const newUser = {
+    const newUser: UserData = {
       id: String(users.length + 1),
-      ...formData,
+      username: formData.username,
+      name: formData.name,
+      email: formData.email || null,
+      phone: formData.phone || null,
+      role: formData.role,
+      customPermissions: null,
       isActive: true,
-      lastLogin: null as Date | null,
+      lastLogin: null,
       createdAt: new Date(),
     };
-    setUsers([...users, newUser as typeof initialUsers[0]]);
+    setUsers([...users, newUser]);
     setIsCreateDialogOpen(false);
     resetForm();
   };
