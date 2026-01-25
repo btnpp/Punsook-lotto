@@ -37,15 +37,30 @@ export async function PUT(request: NextRequest) {
       const { totalCapital, riskMode, riskPercentage } = capitalSettings;
       const usableCapital = (totalCapital * riskPercentage) / 100;
 
-      await prisma.capitalSetting.updateMany({
-        where: { isActive: true },
-        data: {
-          totalCapital,
-          riskMode,
-          riskPercentage,
-          usableCapital,
-        },
-      });
+      // Find existing or create new
+      const existing = await prisma.capitalSetting.findFirst({ where: { isActive: true } });
+      
+      if (existing) {
+        await prisma.capitalSetting.update({
+          where: { id: existing.id },
+          data: {
+            totalCapital,
+            riskMode,
+            riskPercentage,
+            usableCapital,
+          },
+        });
+      } else {
+        await prisma.capitalSetting.create({
+          data: {
+            totalCapital,
+            riskMode,
+            riskPercentage,
+            usableCapital,
+            isActive: true,
+          },
+        });
+      }
     }
 
     // Update pay rates

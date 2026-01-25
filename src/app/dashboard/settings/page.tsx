@@ -96,9 +96,13 @@ export default function SettingsPage() {
       });
       if (res.ok) {
         toast.success("บันทึกอัตราจ่ายสำเร็จ!");
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "ไม่สามารถบันทึกได้");
       }
     } catch (error) {
       console.error("Save pay rates error:", error);
+      toast.error("เกิดข้อผิดพลาดในการบันทึก");
     } finally {
       setIsSaving(false);
     }
@@ -114,9 +118,13 @@ export default function SettingsPage() {
       });
       if (res.ok) {
         toast.success("บันทึก Limit สำเร็จ!");
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "ไม่สามารถบันทึกได้");
       }
     } catch (error) {
       console.error("Save limits error:", error);
+      toast.error("เกิดข้อผิดพลาดในการบันทึก");
     } finally {
       setIsSaving(false);
     }
@@ -132,9 +140,13 @@ export default function SettingsPage() {
       });
       if (res.ok) {
         toast.success("บันทึกการตั้งค่าทุนสำเร็จ!");
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "ไม่สามารถบันทึกได้");
       }
     } catch (error) {
       console.error("Save capital error:", error);
+      toast.error("เกิดข้อผิดพลาดในการบันทึก");
     } finally {
       setIsSaving(false);
     }
