@@ -603,37 +603,56 @@ export default function BetsPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="max-h-[400px] overflow-y-auto space-y-2">
-                      {betItems.map((bet) => (
-                        <div
-                          key={bet.id}
-                          className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 group"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="text-xl font-mono font-bold text-amber-400">
-                              {bet.number}
-                            </span>
-                            <Badge variant="secondary">
-                              {BET_TYPES[bet.betType as keyof typeof BET_TYPES]?.shortName}
+                    <div className="max-h-[400px] overflow-y-auto space-y-3">
+                      {/* Group betItems by betType */}
+                      {Object.entries(
+                        betItems.reduce((groups, bet) => {
+                          const key = bet.betType;
+                          if (!groups[key]) groups[key] = [];
+                          groups[key].push(bet);
+                          return groups;
+                        }, {} as Record<string, BetItem[]>)
+                      ).map(([betType, bets]) => (
+                        <div key={betType} className="space-y-1">
+                          {/* Section Header */}
+                          <div className="flex items-center gap-2 px-2 py-1 bg-slate-700/50 rounded-md">
+                            <Badge variant="outline" className="text-amber-400 border-amber-400/50">
+                              {BET_TYPES[betType as keyof typeof BET_TYPES]?.name || betType}
                             </Badge>
+                            <span className="text-xs text-slate-400">
+                              ({bets.length} รายการ)
+                            </span>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <p className="text-sm font-medium text-slate-100">
-                                ฿{formatNumber(bet.amount)}
-                              </p>
-                              <p className="text-xs text-emerald-400">
-                                สุทธิ ฿{formatNumber(bet.netAmount)}
-                              </p>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => handleRemoveBet(bet.id)}
-                            >
-                              <Trash2 className="w-4 h-4 text-red-400" />
-                            </Button>
+                          {/* Bets in this section */}
+                          <div className="space-y-1 pl-2">
+                            {bets.map((bet) => (
+                              <div
+                                key={bet.id}
+                                className="flex items-center justify-between p-2 rounded-lg bg-slate-800/50 group"
+                              >
+                                <span className="text-lg font-mono font-bold text-amber-400">
+                                  {bet.number}
+                                </span>
+                                <div className="flex items-center gap-3">
+                                  <div className="text-right">
+                                    <p className="text-sm font-medium text-slate-100">
+                                      ฿{formatNumber(bet.amount)}
+                                    </p>
+                                    <p className="text-xs text-emerald-400">
+                                      สุทธิ ฿{formatNumber(bet.netAmount)}
+                                    </p>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7"
+                                    onClick={() => handleRemoveBet(bet.id)}
+                                  >
+                                    <Trash2 className="w-3 h-3 text-red-400" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       ))}
