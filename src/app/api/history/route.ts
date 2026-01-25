@@ -93,7 +93,25 @@ export async function GET(request: NextRequest) {
       slip.totalNetAmount += bet.netAmount;
     }
 
-    const slips = Array.from(slipsMap.values());
+    // Calculate correct status for each slip based on all items
+    const slips = Array.from(slipsMap.values()).map(slip => {
+      const statuses = slip.items.map(i => i.status);
+      
+      // If ALL items are cancelled -> slip is cancelled
+      if (statuses.every(s => s === "CANCELLED")) {
+        slip.status = "CANCELLED";
+      }
+      // If any item has result (WON or LOST) -> slip is resulted
+      else if (statuses.some(s => s === "WON" || s === "LOST")) {
+        slip.status = "RESULTED";
+      }
+      // Otherwise -> active (waiting for result)
+      else {
+        slip.status = "ACTIVE";
+      }
+      
+      return slip;
+    });
 
     return NextResponse.json({ slips, total: slips.length });
   } catch (error) {

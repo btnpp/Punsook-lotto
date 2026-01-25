@@ -182,9 +182,14 @@ function getNumbersPreview(items: BetItem[], maxShow: number = 3): string {
 
 // Get slip status badge
 function getSlipStatusBadge(status: string, items: BetItem[]) {
+  const cancelledCount = items.filter(i => i.status === "CANCELLED").length;
+  const activeCount = items.filter(i => i.status === "ACTIVE").length;
+  
+  // All items cancelled
   if (status === "CANCELLED") {
-    return <Badge variant="destructive">ยกเลิก</Badge>;
+    return <Badge variant="destructive">ยกเลิกทั้งหมด</Badge>;
   }
+  
   if (status === "RESULTED") {
     const wonItems = items.filter((i) => i.status === "WON");
     const totalWin = wonItems.reduce((sum, i) => sum + (i.winAmount || 0), 0);
@@ -198,6 +203,17 @@ function getSlipStatusBadge(status: string, items: BetItem[]) {
     }
     return <Badge variant="secondary">ไม่ถูก</Badge>;
   }
+  
+  // Active status - check if some are cancelled
+  if (cancelledCount > 0) {
+    return (
+      <div className="flex flex-col items-end gap-1">
+        <Badge variant="success">รอผล {activeCount}/{items.length}</Badge>
+        <span className="text-xs text-red-400">ยกเลิก {cancelledCount}</span>
+      </div>
+    );
+  }
+  
   return <Badge variant="success">รอผล</Badge>;
 }
 
