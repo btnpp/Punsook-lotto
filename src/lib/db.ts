@@ -4,7 +4,6 @@ import { Pool } from "pg";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
-  pool: Pool | undefined;
 };
 
 function createPrismaClient() {
@@ -14,7 +13,13 @@ function createPrismaClient() {
     throw new Error("DATABASE_URL or DIRECT_URL is not set");
   }
 
-  const pool = new Pool({ connectionString });
+  // Add SSL for production (Supabase requires SSL)
+  const pool = new Pool({ 
+    connectionString,
+    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+    max: 5, // Limit pool size for serverless
+  });
+  
   const adapter = new PrismaPg(pool);
   
   return new PrismaClient({

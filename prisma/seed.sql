@@ -18,7 +18,7 @@ INSERT INTO "User" (id, username, password, name, "roleId", "isActive", "created
 VALUES (
   'user_admin',
   'admin',
-  '$2a$10$rQnM1rZ5yDGx8Y4Xk5qZ5O8JHlZpCqKp5L.mN3xQzR5vW7yB3cK6i',
+  '$2b$10$lAmF0QqFiAph1WUzrRLHs..CL.NoMIcWldj4/Fx76/yV8NYMdLMmG',
   'Administrator',
   'role_admin',
   true,
