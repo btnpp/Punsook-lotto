@@ -54,16 +54,44 @@ interface BetItem {
   payRate: number;
 }
 
-// ฟังก์ชันกลับเลข
+// ฟังก์ชันกลับเลข (reverse)
 function reverseNumber(num: string): string {
   return num.split("").reverse().join("");
 }
 
-// ฟังก์ชันสร้างเลขกลับทั้งหมด (permutations for 3 digits)
-function getReversedNumbers(num: string): string[] {
-  const reversed = reverseNumber(num);
-  if (reversed === num) return []; // ถ้าเลขเหมือนกัน ไม่ต้องเพิ่ม
-  return [reversed];
+// ฟังก์ชันสร้าง permutations ทั้งหมด
+function getPermutations(str: string): string[] {
+  if (str.length <= 1) return [str];
+  
+  const result: string[] = [];
+  
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+    const remaining = str.slice(0, i) + str.slice(i + 1);
+    const perms = getPermutations(remaining);
+    
+    for (const perm of perms) {
+      result.push(char + perm);
+    }
+  }
+  
+  // Return unique values only
+  return [...new Set(result)];
+}
+
+// ฟังก์ชันสร้างเลขกลับทั้งหมด
+function getAllReversedNumbers(num: string): string[] {
+  if (num.length === 2) {
+    // 2 ตัว -> 2 กลับ (หรือ 1 ถ้าเลขซ้ำ เช่น 55)
+    const reversed = reverseNumber(num);
+    if (reversed === num) return [];
+    return [reversed];
+  } else if (num.length === 3) {
+    // 3 ตัว -> 6 กลับ (หรือน้อยกว่าถ้าเลขซ้ำ)
+    const perms = getPermutations(num);
+    return perms.filter(p => p !== num);
+  }
+  return [];
 }
 
 export default function BetsPage() {
@@ -209,7 +237,7 @@ export default function BetsPage() {
     }
   };
 
-  // ฟังก์ชันกลับเลขและเพิ่มเข้า input
+  // ฟังก์ชันกลับเลขและเพิ่มเข้า input (สร้าง permutations ทั้งหมด)
   const handleReverseNumbers = () => {
     const validNumbers = getValidNumbersFromInput();
     if (validNumbers.length === 0) return;
@@ -217,10 +245,12 @@ export default function BetsPage() {
     const allNumbers = [...validNumbers];
     validNumbers.forEach((num) => {
       if (num.length >= 2) {
-        const reversed = reverseNumber(num);
-        if (reversed !== num && !allNumbers.includes(reversed)) {
-          allNumbers.push(reversed);
-        }
+        const reversedNums = getAllReversedNumbers(num);
+        reversedNums.forEach(reversed => {
+          if (!allNumbers.includes(reversed)) {
+            allNumbers.push(reversed);
+          }
+        });
       }
     });
 
