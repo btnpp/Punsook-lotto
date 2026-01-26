@@ -233,11 +233,14 @@ export default function ReportsPage() {
           setAgents(data.byAgent.map((a: AgentReport) => ({
             code: a.agentCode,
             name: a.agentName,
+            phone: "",
+            discountPct: a.totalAmount > 0 ? Math.round((a.totalDiscount / a.totalAmount) * 100) : 0,
             totalBets: a.totalAmount,
             discount: a.totalDiscount,
             netAmount: a.totalNetAmount,
-            payout: a.totalWinAmount,
-            balance: a.profit,
+            payout: a.totalWinAmount || 0,
+            profit: (a.totalNetAmount || 0) - (a.totalWinAmount || 0),
+            balance: (a.totalNetAmount || 0) - (a.totalWinAmount || 0), // Same as profit for now
           })));
         }
       }
