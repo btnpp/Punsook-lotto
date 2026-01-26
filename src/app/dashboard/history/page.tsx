@@ -290,6 +290,58 @@ export default function HistoryPage() {
     }
   };
 
+  const handleCancelAllBets = async (items: BetItem[]) => {
+    if (!confirm(`ยืนยันการยกเลิกทั้งหมด ${items.length} รายการ?`)) return;
+    
+    try {
+      let successCount = 0;
+      let failCount = 0;
+      
+      // Cancel all bets in parallel
+      await Promise.all(
+        items.map(async (item) => {
+          try {
+            const res = await fetch(`/api/bets/${item.id}`, {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                userId: user?.id,
+                reason: "ยกเลิกทั้งบิลโดย Admin",
+              }),
+            });
+            if (res.ok) {
+              successCount++;
+            } else {
+              failCount++;
+            }
+          } catch {
+            failCount++;
+          }
+        })
+      );
+      
+      if (successCount > 0) {
+        toast.success(`ยกเลิกสำเร็จ ${successCount} รายการ`);
+        mutateHistory();
+        // Update selectedSlip
+        if (selectedSlip) {
+          setSelectedSlip({
+            ...selectedSlip,
+            items: selectedSlip.items.map(item => 
+              items.some(i => i.id === item.id) ? { ...item, status: "CANCELLED" } : item
+            ),
+          });
+        }
+      }
+      if (failCount > 0) {
+        toast.error(`ยกเลิกไม่สำเร็จ ${failCount} รายการ`);
+      }
+    } catch (error) {
+      console.error("Cancel all bets error:", error);
+      toast.error("เกิดข้อผิดพลาด");
+    }
+  };
+
   // Get available rounds based on selected lottery
   const availableRounds = filterLottery === "ALL" 
     ? rounds 
@@ -561,6 +613,20 @@ export default function HistoryPage() {
                   {getSlipStatusBadge(selectedSlip.status, selectedSlip.items)}
                 </div>
               </div>
+
+              {/* Actions */}
+              {selectedSlip.items.some(i => i.status === "ACTIVE") && (
+                <div className="flex justify-end">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleCancelAllBets(selectedSlip.items.filter(i => i.status === "ACTIVE"))}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    ยกเลิกทั้งบิล ({selectedSlip.items.filter(i => i.status === "ACTIVE").length} รายการ)
+                  </Button>
+                </div>
+              )}
 
               {/* Items Table */}
               <div>
