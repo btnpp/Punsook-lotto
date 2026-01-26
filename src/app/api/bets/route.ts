@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { roundId, agentId, bets: betItems } = body;
+    const { roundId, agentId, bets: betItems, note } = body;
 
     if (!roundId || !agentId || !betItems || !Array.isArray(betItems)) {
       return NextResponse.json(
@@ -118,6 +118,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Create BetSession if note is provided
+    let sessionId: string | undefined;
+    if (note) {
+      const session = await prisma.betSession.create({
+        data: {
+          agentId,
+          note,
+        },
+      });
+      sessionId = session.id;
+    }
+
     // Create bets
     const createdBets = [];
 
@@ -132,6 +144,7 @@ export async function POST(request: NextRequest) {
 
       const bet = await prisma.bet.create({
         data: {
+          sessionId,
           roundId,
           agentId,
           number,
@@ -152,6 +165,7 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         count: createdBets.length,
+        sessionId,
         bets: createdBets,
       },
       { status: 201 }

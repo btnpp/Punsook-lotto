@@ -56,6 +56,7 @@ interface Slip {
   roundDate: Date;
   agent: { code: string; name: string };
   lottery: string;
+  note?: string;
   items: BetItem[];
   totalAmount: number;
   totalDiscount: number;
@@ -613,6 +614,16 @@ export default function HistoryPage() {
                   {getSlipStatusBadge(selectedSlip.status, selectedSlip.items)}
                 </div>
               </div>
+
+              {/* Note */}
+              {selectedSlip.note && (
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                  <p className="text-sm text-amber-400 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    หมายเหตุ: {selectedSlip.note}
+                  </p>
+                </div>
+              )}
 
               {/* Actions */}
               {selectedSlip.items.some(i => i.status === "ACTIVE") && (

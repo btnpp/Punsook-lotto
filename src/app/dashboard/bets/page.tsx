@@ -109,6 +109,7 @@ export default function BetsPage() {
   const [bulkInput, setBulkInput] = useState("");
   const [betItems, setBetItems] = useState<BetItem[]>([]);
   const [mode, setMode] = useState<"single" | "bulk">("single");
+  const [slipNote, setSlipNote] = useState(""); // หมายเหตุโพย
 
   // Fetch agents and rounds on mount
   useEffect(() => {
@@ -313,6 +314,7 @@ export default function BetsPage() {
         body: JSON.stringify({
           roundId: selectedRoundId,
           agentId: selectedAgent,
+          note: slipNote || undefined,
           bets: betItems.map(bet => ({
             number: bet.number,
             betType: bet.betType,
@@ -325,6 +327,7 @@ export default function BetsPage() {
         const data = await res.json();
         toast.success(`ส่งโพยสำเร็จ! จำนวน ${data.count} รายการ ยอดรวม ${formatCurrency(totalNetAmount)}`);
         setBetItems([]);
+        setSlipNote(""); // Reset note
       } else {
         const data = await res.json();
         toast.error(data.error || "ไม่สามารถส่งโพยได้");
@@ -710,9 +713,19 @@ export default function BetsPage() {
                       </div>
                     </div>
 
-                    <Button className="w-full gap-2" size="lg" onClick={handleSubmit}>
+                    {/* หมายเหตุโพย */}
+                    <div className="space-y-2">
+                      <Input
+                        placeholder="หมายเหตุ (ถ้ามี) เช่น ลูกค้านายก, โพยโทรศัพท์..."
+                        value={slipNote}
+                        onChange={(e) => setSlipNote(e.target.value)}
+                        className="text-sm"
+                      />
+                    </div>
+
+                    <Button className="w-full gap-2" size="lg" onClick={handleSubmit} disabled={isSubmitting}>
                       <Send className="w-4 h-4" />
-                      ส่งโพย
+                      {isSubmitting ? "กำลังส่ง..." : "ส่งโพย"}
                     </Button>
                   </div>
                 )}
