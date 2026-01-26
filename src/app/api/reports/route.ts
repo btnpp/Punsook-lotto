@@ -20,7 +20,9 @@ export async function GET(request: NextRequest) {
       dateFilter.lte = end;
     }
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = {
+      status: { not: "CANCELLED" }, // ไม่นับรายการที่ถูกยกเลิก
+    };
     if (Object.keys(dateFilter).length > 0) {
       where.createdAt = dateFilter;
     }
@@ -28,7 +30,7 @@ export async function GET(request: NextRequest) {
       where.agentId = agentId;
     }
 
-    // Get all bets in the period
+    // Get all bets in the period (excluding cancelled)
     const bets = await prisma.bet.findMany({
       where,
       include: {
