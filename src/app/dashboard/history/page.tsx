@@ -628,7 +628,7 @@ export default function HistoryPage() {
           {selectedSlip && (
             <div className="space-y-6">
               {/* Slip Info */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-lg bg-slate-800/50">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 p-4 rounded-lg bg-slate-800/50">
                 <div>
                   <p className="text-xs text-slate-400">วันที่/เวลา</p>
                   <p className="text-slate-100">
@@ -639,6 +639,10 @@ export default function HistoryPage() {
                   <p className="text-xs text-slate-400">Agent</p>
                   <p className="text-amber-400 font-mono">{selectedSlip.agent.code}</p>
                   <p className="text-xs text-slate-400">{selectedSlip.agent.name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400">คีย์โดย</p>
+                  <p className="text-cyan-400">{selectedSlip.createdBy || "-"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-400">ประเภทหวย</p>
@@ -653,21 +657,13 @@ export default function HistoryPage() {
                 </div>
               </div>
 
-              {/* Note & Created By */}
-              {(selectedSlip.note || selectedSlip.createdBy) && (
-                <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700 space-y-1">
-                  {selectedSlip.createdBy && (
-                    <p className="text-sm text-slate-400 flex items-center gap-2">
-                      <span className="text-slate-500">คีย์โดย:</span>
-                      <span className="text-slate-100">{selectedSlip.createdBy}</span>
-                    </p>
-                  )}
-                  {selectedSlip.note && (
-                    <p className="text-sm text-amber-400 flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      หมายเหตุ: {selectedSlip.note}
-                    </p>
-                  )}
+              {/* Note */}
+              {selectedSlip.note && (
+                <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
+                  <p className="text-sm text-amber-400 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    หมายเหตุ: {selectedSlip.note}
+                  </p>
                 </div>
               )}
 
