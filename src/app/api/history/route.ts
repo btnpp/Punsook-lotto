@@ -20,6 +20,9 @@ export async function GET(request: NextRequest) {
       include: {
         agent: true,
         session: true,
+        createdBy: {
+          select: { id: true, username: true, name: true },
+        },
         round: {
           include: {
             lotteryType: true,
@@ -40,6 +43,7 @@ export async function GET(request: NextRequest) {
       lottery: string;
       lotteryName: string;
       note?: string;
+      createdBy?: string;
       items: Array<{
         id: string;
         number: string;
@@ -72,6 +76,7 @@ export async function GET(request: NextRequest) {
           lottery: bet.round.lotteryType.code,
           lotteryName: bet.round.lotteryType.name,
           note: bet.session?.note || undefined,
+          createdBy: bet.createdBy?.name || bet.createdBy?.username || undefined,
           items: [],
           totalAmount: 0,
           totalDiscount: 0,

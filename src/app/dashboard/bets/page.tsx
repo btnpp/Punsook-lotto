@@ -29,6 +29,7 @@ import { Plus, Trash2, Send, FileText, RefreshCw, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { formatNumber, formatCurrency, parseBulkBet, calculateNetAmount } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES, DEFAULT_PAY_RATES } from "@/lib/constants";
+import { useAuth } from "@/lib/auth-context";
 
 interface Agent {
   id: string;
@@ -96,6 +97,7 @@ function getAllReversedNumbers(num: string): string[] {
 
 export default function BetsPage() {
   const toast = useToast();
+  const { user } = useAuth();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [rounds, setRounds] = useState<Round[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -315,6 +317,7 @@ export default function BetsPage() {
           roundId: selectedRoundId,
           agentId: selectedAgent,
           note: slipNote || undefined,
+          userId: user?.id,
           bets: betItems.map(bet => ({
             number: bet.number,
             betType: bet.betType,

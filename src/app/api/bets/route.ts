@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { roundId, agentId, bets: betItems, note } = body;
+    const { roundId, agentId, bets: betItems, note, userId } = body;
 
     if (!roundId || !agentId || !betItems || !Array.isArray(betItems)) {
       return NextResponse.json(
@@ -155,6 +155,7 @@ export async function POST(request: NextRequest) {
           netAmount,
           payRate,
           status: "ACTIVE",
+          createdById: userId || undefined,
         },
       });
 

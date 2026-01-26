@@ -57,6 +57,7 @@ interface Slip {
   agent: { code: string; name: string };
   lottery: string;
   note?: string;
+  createdBy?: string; // Admin ที่คีย์
   items: BetItem[];
   totalAmount: number;
   totalDiscount: number;
@@ -362,9 +363,22 @@ export default function HistoryPage() {
   });
 
   const totalSlips = filteredSlips.length;
-  const totalAmount = filteredSlips.reduce((sum, slip) => sum + slip.totalAmount, 0);
-  const totalNetAmount = filteredSlips.reduce((sum, slip) => sum + slip.totalNetAmount, 0);
-  const totalItems = filteredSlips.reduce((sum, slip) => sum + slip.items.length, 0);
+  const cancelledSlips = filteredSlips.filter(slip => slip.status === "CANCELLED").length;
+  const activeSlips = totalSlips - cancelledSlips;
+  
+  // Calculate amounts excluding cancelled items
+  const totalAmount = filteredSlips.reduce((sum, slip) => 
+    sum + slip.items.filter(i => i.status !== "CANCELLED").reduce((s, i) => s + i.amount, 0), 0);
+  const totalNetAmount = filteredSlips.reduce((sum, slip) => 
+    sum + slip.items.filter(i => i.status !== "CANCELLED").reduce((s, i) => s + i.netAmount, 0), 0);
+  const totalItems = filteredSlips.reduce((sum, slip) => 
+    sum + slip.items.filter(i => i.status !== "CANCELLED").length, 0);
+  
+  // Calculate cancelled amounts
+  const cancelledAmount = filteredSlips.reduce((sum, slip) => 
+    sum + slip.items.filter(i => i.status === "CANCELLED").reduce((s, i) => s + i.amount, 0), 0);
+  const cancelledItems = filteredSlips.reduce((sum, slip) => 
+    sum + slip.items.filter(i => i.status === "CANCELLED").length, 0);
 
   if (isLoading) {
     return (
@@ -455,17 +469,23 @@ export default function HistoryPage() {
         </Card>
 
         {/* Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card>
             <CardContent className="p-4">
               <p className="text-sm text-slate-400">จำนวนโพย</p>
               <p className="text-2xl font-bold text-slate-100">{totalSlips}</p>
+              {cancelledSlips > 0 && (
+                <p className="text-xs text-red-400 mt-1">ยกเลิก {cancelledSlips} โพย</p>
+              )}
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <p className="text-sm text-slate-400">จำนวนรายการ</p>
               <p className="text-2xl font-bold text-slate-100">{totalItems}</p>
+              {cancelledItems > 0 && (
+                <p className="text-xs text-red-400 mt-1">ยกเลิก {cancelledItems} รายการ</p>
+              )}
             </CardContent>
           </Card>
           <Card>
@@ -480,6 +500,15 @@ export default function HistoryPage() {
               <p className="text-2xl font-bold text-emerald-400">฿{formatNumber(totalNetAmount)}</p>
             </CardContent>
           </Card>
+          {cancelledAmount > 0 && (
+            <Card className="bg-red-500/10 border-red-500/30">
+              <CardContent className="p-4">
+                <p className="text-sm text-red-400">ยอดที่ยกเลิก</p>
+                <p className="text-2xl font-bold text-red-400">฿{formatNumber(cancelledAmount)}</p>
+                <p className="text-xs text-red-400/70 mt-1">{cancelledItems} รายการ</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Slips Table */}
@@ -615,13 +644,21 @@ export default function HistoryPage() {
                 </div>
               </div>
 
-              {/* Note */}
-              {selectedSlip.note && (
-                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                  <p className="text-sm text-amber-400 flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    หมายเหตุ: {selectedSlip.note}
-                  </p>
+              {/* Note & Created By */}
+              {(selectedSlip.note || selectedSlip.createdBy) && (
+                <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700 space-y-1">
+                  {selectedSlip.createdBy && (
+                    <p className="text-sm text-slate-400 flex items-center gap-2">
+                      <span className="text-slate-500">คีย์โดย:</span>
+                      <span className="text-slate-100">{selectedSlip.createdBy}</span>
+                    </p>
+                  )}
+                  {selectedSlip.note && (
+                    <p className="text-sm text-amber-400 flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      หมายเหตุ: {selectedSlip.note}
+                    </p>
+                  )}
                 </div>
               )}
 
