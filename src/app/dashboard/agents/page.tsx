@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { TableSkeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -28,6 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Edit, Settings, Eye, DollarSign, Percent, Loader2, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { formatNumber } from "@/lib/utils";
+import { fetcher } from "@/lib/fetcher";
 import { LOTTERY_TYPES, BET_TYPES, DEFAULT_PAY_RATES } from "@/lib/constants";
 
 interface AgentDiscount {
@@ -63,8 +66,18 @@ const createEmptyPayRates = () => {
 
 export default function AgentsPage() {
   const toast = useToast();
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // Use SWR for data fetching with caching
+  const { data: agentsData, isLoading, mutate } = useSWR<{ agents: Agent[] }>(
+    "/api/agents",
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 30000,
+    }
+  );
+  const agents = agentsData?.agents || [];
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
@@ -84,25 +97,6 @@ export default function AgentsPage() {
     createEmptyPayRates()
   );
   const [selectedLottery, setSelectedLottery] = useState("THAI");
-
-  // Fetch agents on mount
-  useEffect(() => {
-    fetchAgents();
-  }, []);
-
-  const fetchAgents = async () => {
-    try {
-      const res = await fetch("/api/agents");
-      if (res.ok) {
-        const data = await res.json();
-        setAgents(data.agents);
-      }
-    } catch (error) {
-      console.error("Fetch agents error:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Helper to get discount value from agent
   const getAgentDiscounts = (agent: Agent): { THAI: number; LAO: number; HANOI: number } => {
@@ -171,7 +165,7 @@ export default function AgentsPage() {
           }),
         });
         if (res.ok) {
-          fetchAgents();
+          mutate();
         }
       } else {
         // Create new agent
@@ -192,7 +186,7 @@ export default function AgentsPage() {
           }),
         });
         if (res.ok) {
-          fetchAgents();
+          mutate();
         }
       }
       setIsDialogOpen(false);
@@ -221,7 +215,7 @@ export default function AgentsPage() {
       });
 
       if (res.ok) {
-        fetchAgents();
+        mutate();
       }
       setIsSettingsDialogOpen(false);
     } catch (error) {
@@ -243,7 +237,7 @@ export default function AgentsPage() {
       });
 
       if (res.ok) {
-        fetchAgents();
+        mutate();
       }
     } catch (error) {
       console.error("Toggle active error:", error);
@@ -269,7 +263,7 @@ export default function AgentsPage() {
         } else {
           toast.success("ลบ Agent สำเร็จ");
         }
-        fetchAgents();
+        mutate();
       } else {
         const error = await res.json();
         toast.error(error.error || "ไม่สามารถลบ Agent ได้");
@@ -297,8 +291,18 @@ export default function AgentsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      <div className="min-h-screen">
+        <Header title="จัดการ Agent" subtitle="เพิ่ม แก้ไข และจัดการข้อมูล Agent" />
+        <div className="p-6 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>รายการ Agent</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TableSkeleton rows={8} cols={6} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }

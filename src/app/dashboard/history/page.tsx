@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { TableSkeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -27,8 +29,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Download, ChevronRight, FileText, X, Loader2 } from "lucide-react";
+import { Search, Download, ChevronRight, FileText, X } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
+import { fetcher } from "@/lib/fetcher";
 import { LOTTERY_TYPES, BET_TYPES } from "@/lib/constants";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-context";
@@ -220,19 +223,37 @@ function getSlipStatusBadge(status: string, items: BetItem[]) {
 export default function HistoryPage() {
   const toast = useToast();
   const { user } = useAuth();
-  const [slips, setSlips] = useState<Slip[]>([]);
-  const [rounds, setRounds] = useState<Array<{ id: string; date: Date; lottery: string; name: string }>>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // Use SWR for data fetching
+  const { data: historyData, isLoading: isLoadingHistory, mutate: mutateHistory } = useSWR<{ slips: Slip[] }>(
+    "/api/history",
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 30000 }
+  );
+  const { data: roundsData } = useSWR<{ rounds: Array<{ id: string; roundDate: string; lotteryType: { code: string; name: string } }> }>(
+    "/api/rounds",
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 60000 }
+  );
+  
+  const slips = (historyData?.slips || []).map(slip => ({
+    ...slip,
+    date: new Date(slip.date),
+    roundDate: new Date(slip.roundDate),
+  }));
+  const rounds = (roundsData?.rounds || []).map(r => ({
+    id: r.id,
+    date: new Date(r.roundDate),
+    lottery: r.lotteryType.code,
+    name: r.lotteryType.name,
+  }));
+  const isLoading = isLoadingHistory;
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLottery, setFilterLottery] = useState("ALL");
   const [filterRound, setFilterRound] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [selectedSlip, setSelectedSlip] = useState<Slip | null>(null);
-
-  useEffect(() => {
-    fetchHistory();
-    fetchRounds();
-  }, []);
 
   const handleCancelBet = async (betId: string) => {
     if (!confirm("ยืนยันการยกเลิกรายการนี้?")) return;
@@ -249,7 +270,7 @@ export default function HistoryPage() {
       
       if (res.ok) {
         toast.success("ยกเลิกรายการสำเร็จ");
-        fetchHistory(); // Refresh data
+        mutateHistory(); // Refresh data with SWR
         // Update selectedSlip if it's open
         if (selectedSlip) {
           setSelectedSlip({
@@ -266,41 +287,6 @@ export default function HistoryPage() {
     } catch (error) {
       console.error("Cancel bet error:", error);
       toast.error("เกิดข้อผิดพลาด");
-    }
-  };
-
-  const fetchHistory = async () => {
-    try {
-      const res = await fetch("/api/history");
-      if (res.ok) {
-        const data = await res.json();
-        setSlips(data.slips.map((s: Slip & { date: string; roundDate: string }) => ({
-          ...s,
-          date: new Date(s.date),
-          roundDate: new Date(s.roundDate),
-        })));
-      }
-    } catch (error) {
-      console.error("Fetch history error:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchRounds = async () => {
-    try {
-      const res = await fetch("/api/rounds");
-      if (res.ok) {
-        const data = await res.json();
-        setRounds(data.rounds.map((r: { id: string; roundDate: string; lotteryType: { code: string; name: string } }) => ({
-          id: r.id,
-          date: new Date(r.roundDate),
-          lottery: r.lotteryType.code,
-          name: `${r.lotteryType.name} ${new Date(r.roundDate).toLocaleDateString("th-TH")}`,
-        })));
-      }
-    } catch (error) {
-      console.error("Fetch rounds error:", error);
     }
   };
 
@@ -329,8 +315,18 @@ export default function HistoryPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      <div className="min-h-screen">
+        <Header title="ประวัติการแทง" subtitle="ดูประวัติการแทงทั้งหมด" />
+        <div className="p-6 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>รายการโพย</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TableSkeleton rows={10} cols={6} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }

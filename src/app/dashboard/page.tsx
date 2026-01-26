@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CardSkeleton, TableSkeleton } from "@/components/ui/skeleton";
 import {
   Users,
   Ticket,
@@ -13,10 +14,11 @@ import {
   ArrowUpRight,
   Plus,
   Eye,
-  Loader2,
   Calendar,
+  RefreshCw,
 } from "lucide-react";
 import { formatCurrency, formatNumber } from "@/lib/utils";
+import { fetcher } from "@/lib/fetcher";
 import Link from "next/link";
 
 interface DashboardData {
@@ -50,45 +52,59 @@ interface DashboardData {
 }
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    fetchDashboard();
-  }, []);
-
-  const fetchDashboard = async () => {
-    try {
-      const res = await fetch("/api/dashboard");
-      if (res.ok) {
-        const json = await res.json();
-        setData(json);
-      } else {
-        setError("ไม่สามารถโหลดข้อมูลได้");
-      }
-    } catch (err) {
-      console.error("Dashboard fetch error:", err);
-      setError("เกิดข้อผิดพลาดในการเชื่อมต่อ");
-    } finally {
-      setIsLoading(false);
+  const { data, error, isLoading, mutate } = useSWR<DashboardData>(
+    "/api/dashboard",
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 30000, // Cache for 30 seconds
     }
-  };
+  );
 
+  // Show skeleton loading
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      <div className="min-h-screen">
+        <Header title="Dashboard" subtitle="ภาพรวมระบบ" />
+        <main className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <CardSkeleton key={i} />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>งวดที่เปิดรับ</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TableSkeleton rows={3} cols={4} />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>รายการล่าสุด</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TableSkeleton rows={5} cols={3} />
+              </CardContent>
+            </Card>
+          </div>
+        </main>
       </div>
     );
   }
 
+  // Show error state
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-400 mb-4">{error}</p>
-          <Button onClick={fetchDashboard}>ลองใหม่</Button>
+          <p className="text-red-400 mb-4">ไม่สามารถโหลดข้อมูลได้</p>
+          <Button onClick={() => mutate()}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            ลองใหม่
+          </Button>
         </div>
       </div>
     );
