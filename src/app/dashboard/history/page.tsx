@@ -350,11 +350,14 @@ export default function HistoryPage() {
     : rounds.filter((r) => r.lottery === filterLottery);
 
   const filteredSlips = slips.filter((slip) => {
+    const searchLower = searchTerm.toLowerCase();
     const matchSearch =
       slip.items.some((i) => i.number.includes(searchTerm)) ||
-      slip.agent.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      slip.agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      slip.id.toLowerCase().includes(searchTerm.toLowerCase());
+      slip.agent.code.toLowerCase().includes(searchLower) ||
+      slip.agent.name.toLowerCase().includes(searchLower) ||
+      slip.id.toLowerCase().includes(searchLower) ||
+      (slip.note && slip.note.toLowerCase().includes(searchLower)) ||
+      (slip.createdBy && slip.createdBy.toLowerCase().includes(searchLower));
     const matchLottery = filterLottery === "ALL" || slip.lottery === filterLottery;
     const matchRound = filterRound === "ALL" || slip.roundId === filterRound;
     const matchStatus = filterStatus === "ALL" || slip.status === filterStatus;
@@ -409,7 +412,7 @@ export default function HistoryPage() {
             <div className="flex flex-wrap gap-4">
               <div className="flex-1 min-w-[200px]">
                 <Input
-                  placeholder="ค้นหาเลข, รหัสโพย, Agent..."
+                  placeholder="ค้นหาเลข, รหัสโพย, Agent, หมายเหตุ..."
                   icon={<Search className="w-4 h-4" />}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
