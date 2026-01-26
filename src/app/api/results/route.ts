@@ -16,12 +16,43 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         lotteryType: true,
+        bets: {
+          where: {
+            status: { not: "CANCELLED" },
+          },
+          select: {
+            id: true,
+            netAmount: true,
+            winAmount: true,
+            isWin: true,
+          },
+        },
       },
       orderBy: { roundDate: "desc" },
       take: 50,
     });
 
-    return NextResponse.json({ rounds });
+    // Calculate aggregates for each round
+    const roundsWithStats = rounds.map((round) => {
+      const betCount = round.bets.length;
+      const totalBets = round.bets.reduce((sum, bet) => sum + (bet.netAmount || 0), 0);
+      const winAmount = round.bets.reduce((sum, bet) => sum + (bet.winAmount || 0), 0);
+      const profit = totalBets - winAmount;
+
+      // Remove bets from response to reduce payload
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { bets, ...roundWithoutBets } = round;
+
+      return {
+        ...roundWithoutBets,
+        betCount,
+        totalBets,
+        winAmount,
+        profit,
+      };
+    });
+
+    return NextResponse.json({ rounds: roundsWithStats });
   } catch (error) {
     console.error("Get results error:", error);
     return NextResponse.json(
