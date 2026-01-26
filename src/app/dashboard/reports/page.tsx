@@ -62,13 +62,7 @@ interface Payment {
   date: Date;
 }
 
-// Demo payment history
-const demoPayments: Payment[] = [
-  { id: "p1", agentCode: "A001", type: "RECEIVE", amount: 50000, note: "ชำระยอดค้าง", date: new Date("2026-01-08") },
-  { id: "p2", agentCode: "A001", type: "PAY", amount: 15000, note: "จ่ายรางวัลงวด 1/1/69", date: new Date("2026-01-02") },
-  { id: "p3", agentCode: "A002", type: "PAY", amount: 25000, note: "จ่ายรางวัลงวด 1/1/69", date: new Date("2026-01-02") },
-  { id: "p4", agentCode: "A003", type: "RECEIVE", amount: 30000, note: "ชำระยอดค้าง", date: new Date("2026-01-05") },
-];
+// Payment history (will be loaded from API in future)
 
 // Default empty data (will be replaced by API data)
 const financialSummary = {
@@ -191,7 +185,7 @@ export default function ReportsPage() {
     byDate: Array<{ date: string; totalBets: number; totalAmount: number; totalNetAmount: number; totalWinAmount: number; profit: number }>;
   } | null>(null);
   const [agents, setAgents] = useState<typeof agentSummary>([]);
-  const [payments, setPayments] = useState(demoPayments);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<typeof agentSummary[0] | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
