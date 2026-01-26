@@ -529,6 +529,7 @@ export default function HistoryPage() {
                   <TableHead>รหัสโพย</TableHead>
                   <TableHead>วันที่/เวลา</TableHead>
                   <TableHead>Agent</TableHead>
+                  <TableHead>คีย์โดย</TableHead>
                   <TableHead>หวย</TableHead>
                   <TableHead>งวด</TableHead>
                   <TableHead>เลข</TableHead>
@@ -567,6 +568,11 @@ export default function HistoryPage() {
                         <span className="font-mono text-amber-400">{slip.agent.code}</span>
                         <p className="text-xs text-slate-400">{slip.agent.name}</p>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-slate-400">
+                        {slip.createdBy || "-"}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <span>
