@@ -106,19 +106,7 @@ const agentSummary: Array<{
   balance: number;
 }> = [];
 
-// Will be populated from API  
-const lotterySummary: Array<{
-  type: string;
-  name: string;
-  flag: string;
-  discountPct?: number;
-  totalBets: number;
-  discount: number;
-  netAmount: number;
-  payout: number;
-  profit: number;
-  rounds?: number;
-}> = [];
+// lotterySummary is now computed from API data in the component
 
 // Will be populated from API
 const recentTransactions: Array<{
@@ -312,6 +300,31 @@ export default function ReportsPage() {
       ? Math.round((apiSummary.totalProfit / apiSummary.totalNetAmount) * 1000) / 10 
       : fallbackSummary.profitPct,
   };
+
+  // Map API byLottery data to display format
+  const LOTTERY_FLAGS: Record<string, { name: string; flag: string }> = {
+    THAI: { name: "หวยไทย", flag: "🇹🇭" },
+    LAO: { name: "หวยลาว", flag: "🇱🇦" },
+    HANOI: { name: "หวยฮานอย", flag: "🇻🇳" },
+  };
+  
+  const lotteryData = (reportData?.byLottery || []).map(l => {
+    const info = LOTTERY_FLAGS[l.lotteryCode] || { name: l.lotteryName, flag: "🎲" };
+    const discount = l.totalAmount - l.totalNetAmount;
+    const discountPct = l.totalAmount > 0 ? Math.round((discount / l.totalAmount) * 100) : 0;
+    return {
+      type: l.lotteryCode,
+      name: info.name,
+      flag: info.flag,
+      discountPct,
+      totalBets: l.totalAmount,
+      discount,
+      netAmount: l.totalNetAmount,
+      payout: l.totalWinAmount,
+      profit: l.profit,
+      rounds: l.totalBets, // จำนวนเดิมพัน
+    };
+  });
 
   if (isLoading) {
     return (
@@ -598,109 +611,119 @@ export default function ReportsPage() {
                 <CardDescription>รายงานยอดแทงและกำไรแยกตามประเภทหวย</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  {lotterySummary.map((lottery) => (
-                    <Card key={lottery.type} className="bg-slate-800/50">
-                      <CardContent className="p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className="text-2xl">{lottery.flag}</span>
-                          <span className="font-bold">{lottery.name}</span>
-                          <Badge variant="secondary">{lottery.rounds} งวด</Badge>
-                        </div>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-slate-400">ยอดแทง</span>
-                            <span className="font-medium">฿{formatNumber(lottery.totalBets)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-400">ส่วนลด ({lottery.discountPct}%)</span>
-                            <span className="text-purple-400">-฿{formatNumber(lottery.discount)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-400">จ่ายรางวัล</span>
-                            <span className="text-red-400">-฿{formatNumber(lottery.payout)}</span>
-                          </div>
-                          <div className="flex justify-between border-t border-slate-700 pt-2">
-                            <span className="text-slate-400">กำไร</span>
-                            <span className="text-emerald-400 font-bold">฿{formatNumber(lottery.profit)}</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>ประเภท</TableHead>
-                        <TableHead className="text-center">จำนวนงวด</TableHead>
-                        <TableHead className="text-right">ยอดแทง</TableHead>
-                        <TableHead className="text-center">ส่วนลด</TableHead>
-                        <TableHead className="text-right">ยอดสุทธิ</TableHead>
-                        <TableHead className="text-right">จ่ายรางวัล</TableHead>
-                        <TableHead className="text-right">กำไร</TableHead>
-                        <TableHead className="text-right">% กำไร</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {lotterySummary.map((lottery) => (
-                        <TableRow key={lottery.type}>
-                          <TableCell>
-                            <span className="flex items-center gap-2">
-                              <span className="text-xl">{lottery.flag}</span>
-                              <span className="font-medium">{lottery.name}</span>
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-center">{lottery.rounds}</TableCell>
-                          <TableCell className="text-right">฿{formatNumber(lottery.totalBets)}</TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="secondary">{lottery.discountPct}%</Badge>
-                            <p className="text-xs text-slate-400 mt-1">-฿{formatNumber(lottery.discount)}</p>
-                          </TableCell>
-                          <TableCell className="text-right text-amber-400">
-                            ฿{formatNumber(lottery.netAmount)}
-                          </TableCell>
-                          <TableCell className="text-right text-red-400">
-                            -฿{formatNumber(lottery.payout)}
-                          </TableCell>
-                          <TableCell className="text-right text-emerald-400 font-bold">
-                            ฿{formatNumber(lottery.profit)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Badge variant="default">
-                              {((lottery.profit / lottery.netAmount) * 100).toFixed(1)}%
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
+                {lotteryData.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400">
+                    <p>ไม่มีข้อมูลในช่วงเวลาที่เลือก</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      {lotteryData.map((lottery) => (
+                        <Card key={lottery.type} className="bg-slate-800/50">
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="text-2xl">{lottery.flag}</span>
+                              <span className="font-bold">{lottery.name}</span>
+                              <Badge variant="secondary">{lottery.rounds} รายการ</Badge>
+                            </div>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-slate-400">ยอดแทง</span>
+                                <span className="font-medium">฿{formatNumber(lottery.totalBets)}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-400">ส่วนลด ({lottery.discountPct}%)</span>
+                                <span className="text-purple-400">-฿{formatNumber(lottery.discount)}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-slate-400">จ่ายรางวัล</span>
+                                <span className="text-red-400">-฿{formatNumber(lottery.payout)}</span>
+                              </div>
+                              <div className="flex justify-between border-t border-slate-700 pt-2">
+                                <span className="text-slate-400">กำไร</span>
+                                <span className={`font-bold ${lottery.profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                  ฿{formatNumber(lottery.profit)}
+                                </span>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
                       ))}
-                      {/* Total Row */}
-                      <TableRow className="bg-slate-800/50 font-bold">
-                        <TableCell>รวมทั้งหมด</TableCell>
-                        <TableCell className="text-center">
-                          {lotterySummary.reduce((sum, l) => sum + (l.rounds || 0), 0)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          ฿{formatNumber(lotterySummary.reduce((sum, l) => sum + l.totalBets, 0))}
-                        </TableCell>
-                        <TableCell className="text-center text-slate-400">
-                          -฿{formatNumber(lotterySummary.reduce((sum, l) => sum + l.discount, 0))}
-                        </TableCell>
-                        <TableCell className="text-right text-amber-400">
-                          ฿{formatNumber(lotterySummary.reduce((sum, l) => sum + l.netAmount, 0))}
-                        </TableCell>
-                        <TableCell className="text-right text-red-400">
-                          -฿{formatNumber(lotterySummary.reduce((sum, l) => sum + l.payout, 0))}
-                        </TableCell>
-                        <TableCell className="text-right text-emerald-400">
-                          ฿{formatNumber(lotterySummary.reduce((sum, l) => sum + l.profit, 0))}
-                        </TableCell>
-                        <TableCell></TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>ประเภท</TableHead>
+                            <TableHead className="text-center">จำนวนรายการ</TableHead>
+                            <TableHead className="text-right">ยอดแทง</TableHead>
+                            <TableHead className="text-center">ส่วนลด</TableHead>
+                            <TableHead className="text-right">ยอดสุทธิ</TableHead>
+                            <TableHead className="text-right">จ่ายรางวัล</TableHead>
+                            <TableHead className="text-right">กำไร</TableHead>
+                            <TableHead className="text-right">% กำไร</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {lotteryData.map((lottery) => (
+                            <TableRow key={lottery.type}>
+                              <TableCell>
+                                <span className="flex items-center gap-2">
+                                  <span className="text-xl">{lottery.flag}</span>
+                                  <span className="font-medium">{lottery.name}</span>
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-center">{lottery.rounds}</TableCell>
+                              <TableCell className="text-right">฿{formatNumber(lottery.totalBets)}</TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="secondary">{lottery.discountPct}%</Badge>
+                                <p className="text-xs text-slate-400 mt-1">-฿{formatNumber(lottery.discount)}</p>
+                              </TableCell>
+                              <TableCell className="text-right text-amber-400">
+                                ฿{formatNumber(lottery.netAmount)}
+                              </TableCell>
+                              <TableCell className="text-right text-red-400">
+                                -฿{formatNumber(lottery.payout)}
+                              </TableCell>
+                              <TableCell className={`text-right font-bold ${lottery.profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                ฿{formatNumber(lottery.profit)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Badge variant="default">
+                                  {lottery.netAmount > 0 ? ((lottery.profit / lottery.netAmount) * 100).toFixed(1) : 0}%
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          {/* Total Row */}
+                          <TableRow className="bg-slate-800/50 font-bold">
+                            <TableCell>รวมทั้งหมด</TableCell>
+                            <TableCell className="text-center">
+                              {lotteryData.reduce((sum, l) => sum + (l.rounds || 0), 0)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              ฿{formatNumber(lotteryData.reduce((sum, l) => sum + l.totalBets, 0))}
+                            </TableCell>
+                            <TableCell className="text-center text-slate-400">
+                              -฿{formatNumber(lotteryData.reduce((sum, l) => sum + l.discount, 0))}
+                            </TableCell>
+                            <TableCell className="text-right text-amber-400">
+                              ฿{formatNumber(lotteryData.reduce((sum, l) => sum + l.netAmount, 0))}
+                            </TableCell>
+                            <TableCell className="text-right text-red-400">
+                              -฿{formatNumber(lotteryData.reduce((sum, l) => sum + l.payout, 0))}
+                            </TableCell>
+                            <TableCell className="text-right text-emerald-400">
+                              ฿{formatNumber(lotteryData.reduce((sum, l) => sum + l.profit, 0))}
+                            </TableCell>
+                            <TableCell></TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
