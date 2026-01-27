@@ -46,6 +46,9 @@ model User {
   bets       Bet[]
   layoffs    Layoff[]
   activities ActivityLog[]
+
+  @@index([roleId])
+  @@index([isActive])
 }
 
 // =============================================
@@ -69,6 +72,9 @@ model Agent {
   bets            Bet[]
   betSessions     BetSession[]
   discountPresets DiscountPreset[]
+
+  @@index([isActive])
+  @@index([createdAt])
 }
 
 // Discount Preset - รูปแบบส่วนลดของ Agent ต่อประเภทหวย (Master กำหนด)
@@ -88,6 +94,8 @@ model DiscountPreset {
   betSessions BetSession[]
 
   @@unique([agentId, lotteryType, name])
+  @@index([agentId, lotteryType])
+  @@index([isDefault])
 }
 
 // ส่วนลด Agent แยกตามประเภทหวย
@@ -227,6 +235,9 @@ model LotteryRound {
   layoffs      Layoff[]
 
   @@unique([lotteryTypeId, roundDate])
+  @@index([status])
+  @@index([roundDate])
+  @@index([lotteryTypeId, status])
 }
 
 // =============================================
@@ -243,6 +254,10 @@ model BetSession {
   agent          Agent           @relation(fields: [agentId], references: [id])
   discountPreset DiscountPreset? @relation(fields: [discountPresetId], references: [id])
   bets           Bet[]
+
+  @@index([agentId])
+  @@index([createdAt])
+  @@index([note])
 }
 
 model Bet {
@@ -274,6 +289,17 @@ model Bet {
   agent     Agent        @relation(fields: [agentId], references: [id])
   round     LotteryRound @relation(fields: [roundId], references: [id])
   createdBy User?        @relation(fields: [createdById], references: [id])
+
+  // Indexes for common queries
+  @@index([roundId])
+  @@index([agentId])
+  @@index([sessionId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([number, betType])
+  @@index([roundId, status])
+  @@index([agentId, status])
+  @@index([roundId, number, betType])
 }
 
 // =============================================
@@ -293,6 +319,7 @@ model NumberRestriction {
   round LotteryRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
 
   @@unique([roundId, number, betType])
+  @@index([roundId])
 }
 
 // =============================================
@@ -320,6 +347,10 @@ model Layoff {
 
   round     LotteryRound @relation(fields: [roundId], references: [id])
   createdBy User?        @relation(fields: [createdById], references: [id])
+
+  @@index([roundId])
+  @@index([status])
+  @@index([roundId, status])
 }
 
 // =============================================
@@ -337,4 +368,9 @@ model ActivityLog {
   createdAt  DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([entityType, entityId])
 }
