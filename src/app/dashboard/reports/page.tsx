@@ -52,6 +52,7 @@ import {
 } from "lucide-react";
 import { formatNumber, formatCurrency } from "@/lib/utils";
 import { LOTTERY_TYPES } from "@/lib/constants";
+import { ReportsSkeleton } from "@/components/ui/skeleton";
 
 // Payment history type
 interface Payment {
@@ -378,8 +379,9 @@ export default function ReportsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      <div className="min-h-screen">
+        <Header title="รายงานการเงิน" subtitle="สรุปยอดและตรวจสอบกำไร-ขาดทุน" />
+        <ReportsSkeleton />
       </div>
     );
   }

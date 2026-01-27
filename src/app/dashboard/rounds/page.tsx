@@ -47,6 +47,7 @@ import {
   Loader2
 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
+import { RoundsSkeleton } from "@/components/ui/skeleton";
 import { LOTTERY_TYPES, BET_TYPES, RESTRICTION_TYPES } from "@/lib/constants";
 import { useToast } from "@/components/ui/toast";
 
@@ -275,8 +276,9 @@ export default function RoundsPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      <div className="min-h-screen">
+        <Header title="งวดหวย / เลขอั้น" subtitle="จัดการงวดหวยและกำหนดเลขอั้น" />
+        <RoundsSkeleton />
       </div>
     );
   }

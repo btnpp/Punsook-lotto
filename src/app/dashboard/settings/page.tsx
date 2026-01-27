@@ -16,7 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Save, RefreshCw, Shield, DollarSign, Clock, Bell, Loader2 } from "lucide-react";
+import { Save, RefreshCw, Shield, DollarSign, Clock, Bell } from "lucide-react";
+import { SettingsSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { formatNumber } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES, DEFAULT_PAY_RATES, DEFAULT_GLOBAL_LIMITS, RISK_MODES } from "@/lib/constants";
@@ -175,8 +176,9 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      <div className="min-h-screen">
+        <Header title="ตั้งค่าระบบ" subtitle="จัดการการตั้งค่าต่างๆ ของระบบ" />
+        <SettingsSkeleton />
       </div>
     );
   }

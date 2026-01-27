@@ -24,7 +24,8 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Check, Calendar, Trophy, Calculator, Plus, ArrowRight, Eye, Users, Loader2 } from "lucide-react";
+import { Check, Calendar, Trophy, Calculator, Plus, ArrowRight, Eye, Users } from "lucide-react";
+import { ResultsSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import {
   Table,
@@ -262,8 +263,9 @@ export default function ResultsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      <div className="min-h-screen">
+        <Header title="ผลหวย" subtitle="บันทึกผลและดูผู้ถูกรางวัล" />
+        <ResultsSkeleton />
       </div>
     );
   }

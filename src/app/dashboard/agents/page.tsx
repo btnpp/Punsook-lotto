@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { TableSkeleton } from "@/components/ui/skeleton";
+import { AgentsSkeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -430,16 +430,7 @@ export default function AgentsPage() {
     return (
       <div className="min-h-screen">
         <Header title="จัดการ Agent" subtitle="เพิ่ม แก้ไข และจัดการข้อมูล Agent" />
-        <div className="p-6 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>รายการ Agent</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <TableSkeleton rows={8} cols={6} />
-            </CardContent>
-          </Card>
-        </div>
+        <AgentsSkeleton />
       </div>
     );
   }

@@ -27,10 +27,10 @@ import {
   TrendingUp,
   Ban,
   RefreshCw,
-  Loader2,
   Calendar,
 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
+import { RiskSkeleton } from "@/components/ui/skeleton";
 import { LOTTERY_TYPES, BET_TYPES } from "@/lib/constants";
 
 interface RiskNumber {
@@ -148,8 +148,9 @@ export default function RiskPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      <div className="min-h-screen">
+        <Header title="บริหารความเสี่ยง" subtitle="ติดตามและจัดการความเสี่ยงแบบ Real-time" />
+        <RiskSkeleton />
       </div>
     );
   }

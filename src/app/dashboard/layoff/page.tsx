@@ -39,9 +39,9 @@ import {
   Send,
   Trash2,
   RefreshCw,
-  Loader2,
 } from "lucide-react";
 import { formatNumber, formatCurrency } from "@/lib/utils";
+import { LayoffSkeleton } from "@/components/ui/skeleton";
 import { LOTTERY_TYPES, BET_TYPES } from "@/lib/constants";
 import { useToast } from "@/components/ui/toast";
 
@@ -118,8 +118,9 @@ export default function LayoffPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      <div className="min-h-screen">
+        <Header title="ตีออก" subtitle="จัดการเลขที่เกิน Limit" />
+        <LayoffSkeleton />
       </div>
     );
   }

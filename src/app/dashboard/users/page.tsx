@@ -43,9 +43,9 @@ import {
   EyeOff,
   Users,
   Key,
-  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UsersSkeleton } from "@/components/ui/skeleton";
 import { ROLE_DEFINITIONS, ROLE_COLORS, PERMISSIONS, RoleCode } from "@/lib/permissions";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/ui/toast";
@@ -528,8 +528,9 @@ export default function UsersPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      <div className="min-h-screen">
+        <Header title="จัดการ Admin" subtitle="เพิ่ม แก้ไข และจัดการผู้ใช้งานระบบ" />
+        <UsersSkeleton />
       </div>
     );
   }

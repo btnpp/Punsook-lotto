@@ -5,7 +5,7 @@ import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CardSkeleton, TableSkeleton } from "@/components/ui/skeleton";
+import { DashboardSkeleton } from "@/components/ui/skeleton";
 import {
   Users,
   Ticket,
@@ -66,31 +66,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen">
         <Header title="Dashboard" subtitle="ภาพรวมระบบ" />
-        <main className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <CardSkeleton key={i} />
-            ))}
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>งวดที่เปิดรับ</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <TableSkeleton rows={3} cols={4} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>รายการล่าสุด</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <TableSkeleton rows={5} cols={3} />
-              </CardContent>
-            </Card>
-          </div>
-        </main>
+        <DashboardSkeleton />
       </div>
     );
   }

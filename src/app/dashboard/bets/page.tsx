@@ -26,7 +26,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Trash2, Send, FileText, RefreshCw, Loader2 } from "lucide-react";
+import { Plus, Trash2, Send, FileText, RefreshCw } from "lucide-react";
+import { BetsSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { formatNumber, formatCurrency, parseBulkBet, calculateNetAmount } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES, DEFAULT_PAY_RATES } from "@/lib/constants";
@@ -393,8 +394,9 @@ export default function BetsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      <div className="min-h-screen">
+        <Header title="คีย์หวย" subtitle="บันทึกการรับแทงหวย" />
+        <BetsSkeleton />
       </div>
     );
   }
