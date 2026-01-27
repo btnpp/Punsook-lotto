@@ -526,18 +526,14 @@ export default function HistoryPage() {
             <CardContent className="p-4">
               <p className="text-sm text-slate-400">จำนวนโพย</p>
               <p className="text-2xl font-bold text-slate-100">{totalSlips}</p>
-              {cancelledSlips > 0 && (
-                <p className="text-xs text-red-400 mt-1">ยกเลิก {cancelledSlips} โพย</p>
-              )}
+              <p className="text-xs text-red-400 mt-1">ยกเลิก {cancelledSlips} โพย</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <p className="text-sm text-slate-400">จำนวนรายการ</p>
               <p className="text-2xl font-bold text-slate-100">{totalItems}</p>
-              {cancelledItems > 0 && (
-                <p className="text-xs text-red-400 mt-1">ยกเลิก {cancelledItems} รายการ</p>
-              )}
+              <p className="text-xs text-red-400 mt-1">ยกเลิก {cancelledItems} รายการ</p>
             </CardContent>
           </Card>
           <Card>
@@ -552,15 +548,13 @@ export default function HistoryPage() {
               <p className="text-2xl font-bold text-emerald-400">฿{formatNumber(totalNetAmount)}</p>
             </CardContent>
           </Card>
-          {cancelledAmount > 0 && (
-            <Card className="bg-red-500/10 border-red-500/30">
-              <CardContent className="p-4">
-                <p className="text-sm text-red-400">ยอดที่ยกเลิก</p>
-                <p className="text-2xl font-bold text-red-400">฿{formatNumber(cancelledAmount)}</p>
-                <p className="text-xs text-red-400/70 mt-1">{cancelledItems} รายการ</p>
-              </CardContent>
-            </Card>
-          )}
+          <Card className={cancelledAmount > 0 ? "bg-red-500/10 border-red-500/30" : ""}>
+            <CardContent className="p-4">
+              <p className="text-sm text-red-400">ยอดที่ยกเลิก</p>
+              <p className="text-2xl font-bold text-red-400">฿{formatNumber(cancelledAmount)}</p>
+              <p className="text-xs text-red-400/70 mt-1">{cancelledItems} รายการ</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Note Summary - สรุปยอดตาม Note สำหรับคิดเงินลูกค้า */}
