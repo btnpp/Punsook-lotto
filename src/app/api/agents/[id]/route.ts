@@ -47,18 +47,21 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, phone, note, isActive, discounts } = body;
+    const { name, phone, note, isActive, discounts, payRates } = body;
 
-    // Update agent
-    const agent = await prisma.agent.update({
-      where: { id },
-      data: {
-        name,
-        phone,
-        note,
-        isActive,
-      },
-    });
+    // Update agent basic info (only if provided)
+    const updateData: Record<string, unknown> = {};
+    if (name !== undefined) updateData.name = name;
+    if (phone !== undefined) updateData.phone = phone;
+    if (note !== undefined) updateData.note = note;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
+    if (Object.keys(updateData).length > 0) {
+      await prisma.agent.update({
+        where: { id },
+        data: updateData,
+      });
+    }
 
     // Update discounts if provided
     if (discounts && Array.isArray(discounts)) {
@@ -80,10 +83,44 @@ export async function PUT(
       }
     }
 
+    // Update pay rates if provided
+    if (payRates && Array.isArray(payRates)) {
+      for (const pr of payRates) {
+        // If rate is null or 0, delete the custom rate (use global)
+        if (pr.rate === null || pr.rate === 0) {
+          await prisma.agentPayRate.deleteMany({
+            where: {
+              agentId: id,
+              lotteryType: pr.lotteryType,
+              betType: pr.betType,
+            },
+          });
+        } else {
+          // Upsert the custom rate
+          await prisma.agentPayRate.upsert({
+            where: {
+              agentId_lotteryType_betType: {
+                agentId: id,
+                lotteryType: pr.lotteryType,
+                betType: pr.betType,
+              },
+            },
+            update: { payRate: pr.rate },
+            create: {
+              agentId: id,
+              lotteryType: pr.lotteryType,
+              betType: pr.betType,
+              payRate: pr.rate,
+            },
+          });
+        }
+      }
+    }
+
     // Fetch updated agent with relations
     const updatedAgent = await prisma.agent.findUnique({
       where: { id },
-      include: { discounts: true },
+      include: { discounts: true, payRates: true },
     });
 
     return NextResponse.json({ agent: updatedAgent });

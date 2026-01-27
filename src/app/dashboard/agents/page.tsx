@@ -334,14 +334,25 @@ export default function AgentsPage() {
         discount,
       }));
 
+      // Convert payRateData to array format
+      const payRates: { lotteryType: string; betType: string; rate: number | null }[] = [];
+      for (const [lotteryType, betRates] of Object.entries(payRateData)) {
+        for (const [betType, rate] of Object.entries(betRates)) {
+          payRates.push({ lotteryType, betType, rate });
+        }
+      }
+
       const res = await fetch(`/api/agents/${selectedAgent.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ discounts }),
+        body: JSON.stringify({ discounts, payRates }),
       });
 
       if (res.ok) {
+        toast.success("บันทึกการตั้งค่าสำเร็จ");
         mutate();
+      } else {
+        toast.error("ไม่สามารถบันทึกได้");
       }
       setIsSettingsDialogOpen(false);
     } catch (error) {

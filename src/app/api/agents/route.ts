@@ -11,13 +11,28 @@ export async function GET() {
         payRates: true,
         discountPresets: {
           where: { isActive: true },
-          orderBy: [{ isDefault: "desc" }, { isFullPay: "asc" }, { createdAt: "asc" }],
+          orderBy: [{ lotteryType: "asc" }, { isDefault: "desc" }, { isFullPay: "asc" }, { createdAt: "asc" }],
         },
       },
       orderBy: { code: "asc" },
     });
 
-    return NextResponse.json({ agents });
+    // Convert payRates array to customPayRates object for frontend compatibility
+    const agentsWithCustomPayRates = agents.map((agent) => {
+      const customPayRates: Record<string, Record<string, number>> = {};
+      for (const pr of agent.payRates) {
+        if (!customPayRates[pr.lotteryType]) {
+          customPayRates[pr.lotteryType] = {};
+        }
+        customPayRates[pr.lotteryType][pr.betType] = pr.payRate;
+      }
+      return {
+        ...agent,
+        customPayRates: Object.keys(customPayRates).length > 0 ? customPayRates : null,
+      };
+    });
+
+    return NextResponse.json({ agents: agentsWithCustomPayRates });
   } catch (error) {
     console.error("Get agents error:", error);
     return NextResponse.json(
