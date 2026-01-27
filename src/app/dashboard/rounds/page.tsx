@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import useSWR from "swr";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -100,7 +101,6 @@ export default function RoundsPage() {
   const toast = useToast();
   const [rounds, setRounds] = useState<Round[]>([]);
   const [lotteryTypes, setLotteryTypes] = useState<{ id: string; code: string; name: string }[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [lotterySettings, setLotterySettings] = useState(defaultLotterySettings);
   const [selectedRound, setSelectedRound] = useState<Round | null>(null);
   const [isRestrictionDialogOpen, setIsRestrictionDialogOpen] = useState(false);
@@ -113,54 +113,44 @@ export default function RoundsPage() {
   const [newRoundLotteryType, setNewRoundLotteryType] = useState("");
   const [newRoundDate, setNewRoundDate] = useState("");
 
-  // Fetch rounds on mount
-  useEffect(() => {
-    fetchRounds();
-  }, []);
+  // SWR for rounds and settings
+  const { data: roundsData, isLoading: roundsLoading, mutate: mutateRounds } = useSWR<{ rounds: Round[] }>("/api/rounds");
+  const { data: settingsData, isLoading: settingsLoading } = useSWR<{ lotteryTypes: Array<{ id: string; code: string; name: string; openTime?: string; closeTime?: string; drawDays?: string; isActive?: boolean }> }>("/api/settings");
+  
+  const isLoading = roundsLoading || settingsLoading;
 
-  const fetchRounds = async () => {
-    try {
-      const [roundsRes, settingsRes] = await Promise.all([
-        fetch("/api/rounds"),
-        fetch("/api/settings"),
-      ]);
+  // Update local state when SWR data changes
+  useEffect(() => {
+    if (roundsData?.rounds) {
+      setRounds(roundsData.rounds);
+    }
+  }, [roundsData]);
+
+  useEffect(() => {
+    if (settingsData?.lotteryTypes) {
+      setLotteryTypes(settingsData.lotteryTypes.map((lt) => ({
+        id: lt.id,
+        code: lt.code,
+        name: lt.name,
+      })));
       
-      if (roundsRes.ok) {
-        const data = await roundsRes.json();
-        setRounds(data.rounds || []);
-      }
-      
-      if (settingsRes.ok) {
-        const data = await settingsRes.json();
-        if (data.lotteryTypes) {
-          // Update lotteryTypes state
-          setLotteryTypes(data.lotteryTypes.map((lt: { id: string; code: string; name: string }) => ({
-            id: lt.id,
-            code: lt.code,
-            name: lt.name,
-          })));
-          
-          // Update lotterySettings from API data
-          const newSettings = { ...defaultLotterySettings };
-          for (const lt of data.lotteryTypes) {
-            if (newSettings[lt.code as keyof typeof newSettings]) {
-              newSettings[lt.code as keyof typeof newSettings] = {
-                openTime: lt.openTime || "00:00",
-                closeTime: lt.closeTime || "14:30",
-                drawDays: lt.drawDays || "",
-                isActive: lt.isActive ?? true,
-              };
-            }
-          }
-          setLotterySettings(newSettings);
+      const newSettings = { ...defaultLotterySettings };
+      for (const lt of settingsData.lotteryTypes) {
+        if (newSettings[lt.code as keyof typeof newSettings]) {
+          newSettings[lt.code as keyof typeof newSettings] = {
+            openTime: lt.openTime || "00:00",
+            closeTime: lt.closeTime || "14:30",
+            drawDays: lt.drawDays || "",
+            isActive: lt.isActive ?? true,
+          };
         }
       }
-    } catch (error) {
-      console.error("Fetch rounds error:", error);
-    } finally {
-      setIsLoading(false);
+      setLotterySettings(newSettings);
     }
-  };
+  }, [settingsData]);
+
+  // Refetch helper for mutations
+  const fetchRounds = () => mutateRounds();
 
   // Helper to get round by lottery type code
   const getRoundByLotteryCode = (code: string) => {

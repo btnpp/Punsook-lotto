@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import useSWR from "swr";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -196,7 +197,6 @@ interface Winner {
 
 export default function ResultsPage() {
   const toast = useToast();
-  const [isLoading, setIsLoading] = useState(true);
   const [rounds, setRounds] = useState<Round[]>([]);
   const [winners, setWinners] = useState<Winner[]>([]);
   const [selectedRound, setSelectedRound] = useState<Round | null>(null);
@@ -215,28 +215,24 @@ export default function ResultsPage() {
     result2Bottom: "",
   });
 
-  useEffect(() => {
-    fetchRounds();
-  }, []);
+  // SWR for rounds
+  interface ResultsResponse {
+    rounds: Array<Round & { roundDate: string }>;
+  }
+  const { data: roundsData, isLoading, mutate: mutateRounds } = useSWR<ResultsResponse>("/api/results");
 
-  const fetchRounds = async () => {
-    try {
-      const res = await fetch("/api/results");
-      if (res.ok) {
-        const data = await res.json();
-        setRounds(data.rounds.map((r: Round & { roundDate: string }) => ({
-          ...r,
-          roundDate: new Date(r.roundDate),
-          lotteryCode: r.lotteryType.code,
-          lotteryName: r.lotteryType.name,
-        })));
-      }
-    } catch (error) {
-      console.error("Fetch rounds error:", error);
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    if (roundsData?.rounds) {
+      setRounds(roundsData.rounds.map((r) => ({
+        ...r,
+        roundDate: new Date(r.roundDate),
+        lotteryCode: r.lotteryType.code,
+        lotteryName: r.lotteryType.name,
+      })));
     }
-  };
+  }, [roundsData]);
+
+  const fetchRounds = () => mutateRounds();
 
   const fetchWinners = async (roundId: string) => {
     try {

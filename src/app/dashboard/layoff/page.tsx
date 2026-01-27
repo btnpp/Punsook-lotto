@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import useSWR from "swr";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,46 +62,12 @@ interface LayoffItem {
 
 export default function LayoffPage() {
   const toast = useToast();
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedLottery, setSelectedLottery] = useState("THAI");
   const [layoffItems, setLayoffItems] = useState<LayoffItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [sentTo, setSentTo] = useState("");
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    fetchLayoffData();
-  }, [selectedLottery]);
-
-  const fetchLayoffData = async () => {
-    try {
-      const res = await fetch("/api/layoff");
-      if (res.ok) {
-        const data = await res.json();
-        // Map API data to LayoffItem format
-        const items = (data.layoffNumbers || []).map((item: { number: string; betType: string; totalAmount: number; limit: number; overLimit: number; layoffAmount: number; potentialPayout: number }, idx: number) => ({
-          id: `${idx + 1}`,
-          number: item.number,
-          betType: item.betType,
-          totalAmount: item.totalAmount,
-          limitAmount: item.limit || 0,
-          excessAmount: item.overLimit || 0,
-          layoffAmount: item.layoffAmount || item.overLimit || 0,
-          keepAmount: item.totalAmount - (item.layoffAmount || item.overLimit || 0),
-          payRate: getPayRate(item.betType),
-          potentialPayout: item.potentialPayout || 0,
-          status: "PENDING",
-        }));
-        setLayoffItems(items);
-      }
-    } catch (error) {
-      console.error("Fetch layoff error:", error);
-      setLayoffItems([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const getPayRate = (betType: string) => {
     switch (betType) {
@@ -113,6 +80,33 @@ export default function LayoffPage() {
       default: return 90;
     }
   };
+
+  // SWR for layoff data
+  interface LayoffResponse {
+    layoffNumbers: Array<{ number: string; betType: string; totalAmount: number; limit: number; overLimit: number; layoffAmount: number; potentialPayout: number }>;
+  }
+  const { data: layoffData, isLoading, mutate } = useSWR<LayoffResponse>("/api/layoff");
+
+  useEffect(() => {
+    if (layoffData?.layoffNumbers) {
+      const items = layoffData.layoffNumbers.map((item, idx) => ({
+        id: `${idx + 1}`,
+        number: item.number,
+        betType: item.betType,
+        totalAmount: item.totalAmount,
+        limitAmount: item.limit || 0,
+        excessAmount: item.overLimit || 0,
+        layoffAmount: item.layoffAmount || item.overLimit || 0,
+        keepAmount: item.totalAmount - (item.layoffAmount || item.overLimit || 0),
+        payRate: getPayRate(item.betType),
+        potentialPayout: item.potentialPayout || 0,
+        status: "PENDING",
+      }));
+      setLayoffItems(items);
+    }
+  }, [layoffData]);
+
+  const fetchLayoffData = () => mutate();
 
   const totalLayoffAmount = layoffItems
     .filter((item) => item.status === "PENDING")

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import useSWR from "swr";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -110,7 +111,6 @@ export default function BetsPage() {
   const { user } = useAuth();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [rounds, setRounds] = useState<Round[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState("");
   const [selectedPresetId, setSelectedPresetId] = useState("");
@@ -124,10 +124,25 @@ export default function BetsPage() {
   const [mode, setMode] = useState<"single" | "bulk">("single");
   const [slipNote, setSlipNote] = useState(""); // หมายเหตุโพย
 
-  // Fetch agents and rounds on mount
+  // SWR for agents and rounds
+  interface AgentsResponse { agents: Agent[] }
+  interface RoundsResponse { rounds: Round[] }
+  const { data: agentsData, isLoading: agentsLoading } = useSWR<AgentsResponse>("/api/agents");
+  const { data: roundsData, isLoading: roundsLoading } = useSWR<RoundsResponse>("/api/rounds?status=OPEN");
+  
+  const isLoading = agentsLoading || roundsLoading;
+
   useEffect(() => {
-    Promise.all([fetchAgents(), fetchRounds()]).finally(() => setIsLoading(false));
-  }, []);
+    if (agentsData?.agents) {
+      setAgents(agentsData.agents.filter((a) => a));
+    }
+  }, [agentsData]);
+
+  useEffect(() => {
+    if (roundsData?.rounds) {
+      setRounds(roundsData.rounds);
+    }
+  }, [roundsData]);
 
   // Update selected round when lottery changes
   useEffect(() => {
@@ -153,30 +168,6 @@ export default function BetsPage() {
       setSelectedPresetId("");
     }
   }, [selectedAgent, selectedLottery, agents]);
-
-  const fetchAgents = async () => {
-    try {
-      const res = await fetch("/api/agents");
-      if (res.ok) {
-        const data = await res.json();
-        setAgents(data.agents.filter((a: Agent) => a));
-      }
-    } catch (error) {
-      console.error("Fetch agents error:", error);
-    }
-  };
-
-  const fetchRounds = async () => {
-    try {
-      const res = await fetch("/api/rounds?status=OPEN");
-      if (res.ok) {
-        const data = await res.json();
-        setRounds(data.rounds);
-      }
-    } catch (error) {
-      console.error("Fetch rounds error:", error);
-    }
-  };
 
   // Helper to get preset by id
   const getSelectedPreset = (): DiscountPreset | null => {

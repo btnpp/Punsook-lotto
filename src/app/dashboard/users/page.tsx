@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import useSWR from "swr";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -237,7 +238,6 @@ export default function UsersPage() {
   const toast = useToast();
   const [users, setUsers] = useState<UserData[]>([]);
   const [roles, setRoles] = useState<Array<{ code: string; name: string }>>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("ALL");
@@ -264,38 +264,36 @@ export default function UsersPage() {
     role: "OPERATOR",
   });
 
-  // Fetch users and roles on mount
+  // SWR for users and roles
+  interface UsersResponse {
+    users: Array<UserData & { createdAt: string; lastLogin: string | null }>;
+  }
+  interface RolesResponse {
+    roles: Array<{ code: string; name: string }>;
+  }
+  const { data: usersData, isLoading: usersLoading, mutate: mutateUsers } = useSWR<UsersResponse>("/api/users");
+  const { data: rolesData, isLoading: rolesLoading } = useSWR<RolesResponse>("/api/roles");
+  
+  const isLoading = usersLoading || rolesLoading;
+
   useEffect(() => {
-    Promise.all([fetchUsers(), fetchRoles()]).finally(() => setIsLoading(false));
-  }, []);
-
-  const fetchUsers = async () => {
-    try {
-      const res = await fetch("/api/users");
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data.users.map((u: UserData & { createdAt: string; lastLogin: string | null }) => ({
-          ...u,
-          createdAt: new Date(u.createdAt),
-          lastLogin: u.lastLogin ? new Date(u.lastLogin) : null,
-        })));
-      }
-    } catch (error) {
-      console.error("Fetch users error:", error);
+    if (usersData?.users) {
+      setUsers(usersData.users.map((u) => ({
+        ...u,
+        createdAt: new Date(u.createdAt),
+        lastLogin: u.lastLogin ? new Date(u.lastLogin) : null,
+      })));
     }
-  };
+  }, [usersData]);
 
-  const fetchRoles = async () => {
-    try {
-      const res = await fetch("/api/roles");
-      if (res.ok) {
-        const data = await res.json();
-        setRoles(data.roles);
-      }
-    } catch (error) {
-      console.error("Fetch roles error:", error);
+  useEffect(() => {
+    if (rolesData?.roles) {
+      setRoles(rolesData.roles);
     }
-  };
+  }, [rolesData]);
+
+  const fetchUsers = () => mutateUsers();
+
 
   // Filter users
   const filteredUsers = users.filter((user) => {

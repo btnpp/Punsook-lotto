@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import useSWR from "swr";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,50 +42,51 @@ export default function SettingsPage() {
     lineToken: "",
   });
 
+  // SWR for settings
+  interface SettingsResponse {
+    capitalSettings?: { totalCapital: number; riskMode: string; riskPercentage: number };
+    payRates?: Array<{ lotteryType?: { code: string }; betType: string; payRate: number }>;
+    globalLimits?: Array<{ lotteryType?: { code: string }; betType: string; limitAmount: number }>;
+  }
+  const { data: settingsData, isLoading: swrLoading, mutate } = useSWR<SettingsResponse>("/api/settings");
+  
   useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
-    try {
-      const res = await fetch("/api/settings");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.capitalSettings) {
-          setCapitalSettings({
-            totalCapital: data.capitalSettings.totalCapital || 1000000,
-            riskMode: data.capitalSettings.riskMode || "BALANCED",
-            customPercentage: data.capitalSettings.riskPercentage || 75,
-          });
-        }
-        // Update pay rates and limits from API if available
-        if (data.payRates) {
-          const rates = JSON.parse(JSON.stringify(DEFAULT_PAY_RATES));
-          for (const rate of data.payRates) {
-            const lotteryCode = rate.lotteryType?.code;
-            if (lotteryCode && rates[lotteryCode]) {
-              rates[lotteryCode][rate.betType] = rate.payRate;
-            }
-          }
-          setPayRates(rates);
-        }
-        if (data.globalLimits) {
-          const limits = JSON.parse(JSON.stringify(DEFAULT_GLOBAL_LIMITS));
-          for (const limit of data.globalLimits) {
-            const lotteryCode = limit.lotteryType?.code;
-            if (lotteryCode && limits[lotteryCode]) {
-              limits[lotteryCode][limit.betType] = limit.limitAmount;
-            }
-          }
-          setGlobalLimits(limits);
-        }
+    if (settingsData) {
+      if (settingsData.capitalSettings) {
+        setCapitalSettings({
+          totalCapital: settingsData.capitalSettings.totalCapital || 1000000,
+          riskMode: settingsData.capitalSettings.riskMode || "BALANCED",
+          customPercentage: settingsData.capitalSettings.riskPercentage || 75,
+        });
       }
-    } catch (error) {
-      console.error("Fetch settings error:", error);
-    } finally {
+      if (settingsData.payRates) {
+        const rates = JSON.parse(JSON.stringify(DEFAULT_PAY_RATES));
+        for (const rate of settingsData.payRates) {
+          const lotteryCode = rate.lotteryType?.code;
+          if (lotteryCode && rates[lotteryCode]) {
+            rates[lotteryCode][rate.betType] = rate.payRate;
+          }
+        }
+        setPayRates(rates);
+      }
+      if (settingsData.globalLimits) {
+        const limits = JSON.parse(JSON.stringify(DEFAULT_GLOBAL_LIMITS));
+        for (const limit of settingsData.globalLimits) {
+          const lotteryCode = limit.lotteryType?.code;
+          if (lotteryCode && limits[lotteryCode]) {
+            limits[lotteryCode][limit.betType] = limit.limitAmount;
+          }
+        }
+        setGlobalLimits(limits);
+      }
       setIsLoading(false);
     }
-  };
+  }, [settingsData]);
+
+  // Sync loading state with SWR
+  useEffect(() => {
+    if (!swrLoading && settingsData) setIsLoading(false);
+  }, [swrLoading, settingsData]);
 
   const handleSavePayRates = async () => {
     setIsSaving(true);
