@@ -7,9 +7,16 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const roundId = searchParams.get("roundId");
     const lotteryTypeCode = searchParams.get("lotteryType");
+    const includeHistory = searchParams.get("includeHistory") === "true";
 
-    // Get open rounds
-    const roundsWhere: Record<string, unknown> = { status: "OPEN" };
+    // Build filter for rounds
+    const roundsWhere: Record<string, unknown> = {};
+    
+    // If includeHistory, show all rounds; otherwise only OPEN
+    if (!includeHistory) {
+      roundsWhere.status = "OPEN";
+    }
+    
     if (lotteryTypeCode) {
       const lotteryType = await prisma.lotteryType.findUnique({
         where: { code: lotteryTypeCode },
@@ -19,18 +26,24 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const openRounds = await prisma.lotteryRound.findMany({
+    // Get rounds (last 20 for history)
+    const availableRounds = await prisma.lotteryRound.findMany({
       where: roundsWhere,
       include: { lotteryType: true },
-      orderBy: { roundDate: "asc" },
+      orderBy: { roundDate: "desc" },
+      take: includeHistory ? 20 : 10,
     });
 
     // Get bets for analysis
-    const betsWhere: Record<string, unknown> = { status: "ACTIVE" };
+    const betsWhere: Record<string, unknown> = { status: { not: "CANCELLED" } };
     if (roundId) {
       betsWhere.roundId = roundId;
-    } else if (openRounds.length > 0) {
-      betsWhere.roundId = { in: openRounds.map((r) => r.id) };
+    } else if (availableRounds.length > 0) {
+      // Default to first open round or first available round
+      const defaultRound = availableRounds.find(r => r.status === "OPEN") || availableRounds[0];
+      if (defaultRound) {
+        betsWhere.roundId = defaultRound.id;
+      }
     }
 
     const bets = await prisma.bet.findMany({
@@ -79,8 +92,13 @@ export async function GET(request: NextRequest) {
     const totalBetAmount = bets.reduce((sum, bet) => sum + bet.netAmount, 0);
     const totalPotentialPayout = riskNumbers.reduce((sum, r) => sum + r.potentialPayout, 0);
 
+    // Find current round (the one we're showing data for)
+    const currentRoundId = roundId || (betsWhere.roundId as string);
+    const currentRound = availableRounds.find(r => r.id === currentRoundId);
+
     return NextResponse.json({
-      rounds: openRounds,
+      rounds: availableRounds,
+      currentRound,
       riskNumbers,
       summary: {
         totalBetAmount,

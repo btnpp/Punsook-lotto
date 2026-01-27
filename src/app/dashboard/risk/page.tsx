@@ -14,12 +14,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertTriangle,
   Shield,
   TrendingUp,
   Ban,
   RefreshCw,
   Loader2,
+  Calendar,
 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import { LOTTERY_TYPES, BET_TYPES } from "@/lib/constants";
@@ -33,11 +41,22 @@ interface RiskNumber {
   potentialPayout: number;
 }
 
+interface Round {
+  id: string;
+  roundDate: string;
+  status: string;
+  lotteryType: { code: string; name: string };
+}
+
 export default function RiskPage() {
   const [riskNumbers, setRiskNumbers] = useState<RiskNumber[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedLottery, setSelectedLottery] = useState("THAI");
+  const [selectedLottery, setSelectedLottery] = useState("ALL");
+  const [selectedRound, setSelectedRound] = useState<string>("");
+  const [rounds, setRounds] = useState<Round[]>([]);
+  const [currentRound, setCurrentRound] = useState<Round | null>(null);
   const [usableCapital, setUsableCapital] = useState(0);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     fetchCapitalSettings();
@@ -45,7 +64,8 @@ export default function RiskPage() {
 
   useEffect(() => {
     fetchRiskData();
-  }, [selectedLottery]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLottery, selectedRound, showHistory]);
 
   const fetchCapitalSettings = async () => {
     try {
@@ -62,11 +82,27 @@ export default function RiskPage() {
   };
 
   const fetchRiskData = async () => {
+    setIsLoading(true);
     try {
-      const res = await fetch(`/api/risk?lotteryType=${selectedLottery}`);
+      const params = new URLSearchParams();
+      if (selectedLottery !== "ALL") params.append("lotteryType", selectedLottery);
+      if (selectedRound) params.append("roundId", selectedRound);
+      if (showHistory) params.append("includeHistory", "true");
+      
+      const res = await fetch(`/api/risk?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setRiskNumbers(data.riskNumbers || []);
+        setRounds(data.rounds || []);
+        setCurrentRound(data.currentRound || null);
+        
+        // Auto-select first round if none selected
+        if (!selectedRound && data.rounds?.length > 0) {
+          const openRound = data.rounds.find((r: Round) => r.status === "OPEN");
+          if (openRound) {
+            setSelectedRound(openRound.id);
+          }
+        }
       }
     } catch (error) {
       console.error("Fetch risk error:", error);
@@ -210,11 +246,18 @@ export default function RiskPage() {
         {/* Lottery Selector */}
         <div className="flex items-center justify-between">
           <div className="flex gap-2">
+            <Button
+              variant={selectedLottery === "ALL" ? "default" : "outline"}
+              onClick={() => { setSelectedLottery("ALL"); setSelectedRound(""); }}
+              className="gap-2"
+            >
+              ทั้งหมด
+            </Button>
             {Object.entries(LOTTERY_TYPES).map(([key, lottery]) => (
               <Button
                 key={key}
                 variant={selectedLottery === key ? "default" : "outline"}
-                onClick={() => setSelectedLottery(key)}
+                onClick={() => { setSelectedLottery(key); setSelectedRound(""); }}
                 className="gap-2"
               >
                 <span>{lottery.flag}</span>
@@ -222,11 +265,75 @@ export default function RiskPage() {
               </Button>
             ))}
           </div>
-          <Button variant="outline" className="gap-2">
-            <RefreshCw className="w-4 h-4" />
-            รีเฟรช
-          </Button>
+          <div className="flex gap-2 items-center">
+            <Select value={selectedRound} onValueChange={setSelectedRound}>
+              <SelectTrigger className="w-[220px]">
+                <Calendar className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="เลือกงวด" />
+              </SelectTrigger>
+              <SelectContent>
+                {rounds.map((round) => (
+                  <SelectItem key={round.id} value={round.id}>
+                    <span className="flex items-center gap-2">
+                      <span>{LOTTERY_TYPES[round.lotteryType.code as keyof typeof LOTTERY_TYPES]?.flag}</span>
+                      <span>
+                        {new Date(round.roundDate).toLocaleDateString("th-TH", { 
+                          day: "numeric", 
+                          month: "short", 
+                          year: "2-digit" 
+                        })}
+                      </span>
+                      {round.status === "OPEN" && (
+                        <Badge variant="outline" className="text-emerald-400 border-emerald-400/50 text-xs">เปิด</Badge>
+                      )}
+                      {round.status === "RESULTED" && (
+                        <Badge variant="secondary" className="text-xs">ออกผลแล้ว</Badge>
+                      )}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button 
+              variant={showHistory ? "default" : "outline"} 
+              onClick={() => setShowHistory(!showHistory)}
+              className="gap-2"
+            >
+              {showHistory ? "ซ่อนประวัติ" : "ดูงวดย้อนหลัง"}
+            </Button>
+            <Button variant="outline" className="gap-2" onClick={fetchRiskData}>
+              <RefreshCw className="w-4 h-4" />
+              รีเฟรช
+            </Button>
+          </div>
         </div>
+
+        {/* Current Round Info */}
+        {currentRound && (
+          <Card className="bg-gradient-to-r from-amber-500/10 to-amber-600/5 border-amber-500/30">
+            <CardContent className="py-3 px-4">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{LOTTERY_TYPES[currentRound.lotteryType.code as keyof typeof LOTTERY_TYPES]?.flag}</span>
+                <div>
+                  <p className="font-bold text-amber-400">
+                    {currentRound.lotteryType.name} งวดวันที่{" "}
+                    {new Date(currentRound.roundDate).toLocaleDateString("th-TH", { 
+                      day: "numeric", 
+                      month: "long", 
+                      year: "numeric" 
+                    })}
+                  </p>
+                  <p className="text-sm text-slate-400">
+                    สถานะ:{" "}
+                    {currentRound.status === "OPEN" && <span className="text-emerald-400">เปิดรับแทง</span>}
+                    {currentRound.status === "CLOSED" && <span className="text-amber-400">ปิดรับแทง</span>}
+                    {currentRound.status === "RESULTED" && <span className="text-slate-400">ออกผลแล้ว</span>}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Risk Table */}
         <Card>
