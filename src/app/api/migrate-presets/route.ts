@@ -18,45 +18,49 @@ export async function POST() {
 
     for (const agent of agents) {
       for (const lotteryType of LOTTERY_TYPES) {
-        // Check if agent already has presets for this lottery type
-        const existingPresets = agent.discountPresets.filter(
+        const presetsForLottery = agent.discountPresets.filter(
           (p) => p.lotteryType === lotteryType
         );
         
-        if (existingPresets.length > 0) {
-          continue;
-        }
+        // Check if Default preset exists
+        const hasDefault = presetsForLottery.some((p) => p.name === "Default");
+        // Check if จ่ายเต็ม preset exists
+        const hasFullPay = presetsForLottery.some((p) => p.isFullPay || p.name === "จ่ายเต็ม");
 
         // Get discount value from agent discounts
         const discountValue = agent.discounts.find(
           (d) => d.lotteryType === lotteryType
         )?.discount || 15;
 
-        // Create default preset for this lottery type
-        await prisma.discountPreset.create({
-          data: {
-            agentId: agent.id,
-            lotteryType,
-            name: "Default",
-            discount: discountValue,
-            isDefault: true,
-            isFullPay: false,
-          },
-        });
+        // Create Default preset if not exists
+        if (!hasDefault) {
+          await prisma.discountPreset.create({
+            data: {
+              agentId: agent.id,
+              lotteryType,
+              name: "Default",
+              discount: discountValue,
+              isDefault: true,
+              isFullPay: false,
+            },
+          });
+          created++;
+        }
 
-        // Create "จ่ายเต็ม" preset for this lottery type
-        await prisma.discountPreset.create({
-          data: {
-            agentId: agent.id,
-            lotteryType,
-            name: "จ่ายเต็ม",
-            discount: 0,
-            isDefault: false,
-            isFullPay: true,
-          },
-        });
-
-        created += 2;
+        // Create "จ่ายเต็ม" preset if not exists
+        if (!hasFullPay) {
+          await prisma.discountPreset.create({
+            data: {
+              agentId: agent.id,
+              lotteryType,
+              name: "จ่ายเต็ม",
+              discount: 0,
+              isDefault: false,
+              isFullPay: true,
+            },
+          });
+          created++;
+        }
       }
     }
 
