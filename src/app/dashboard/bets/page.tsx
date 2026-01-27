@@ -474,7 +474,11 @@ export default function BetsPage() {
                                 {preset.isFullPay && <span>💰</span>}
                                 {preset.isDefault && <span className="text-amber-400">★</span>}
                                 <span>{preset.name}</span>
-                                {!preset.isFullPay && (
+                                {preset.isFullPay ? (
+                                  <span className="text-xs text-slate-400">
+                                    (ไม่ลด %)
+                                  </span>
+                                ) : (
                                   <span className="text-xs text-slate-400">
                                     (ลด {preset.discount}%)
                                   </span>
