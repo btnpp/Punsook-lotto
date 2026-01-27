@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import useSWR from "swr";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -185,55 +186,56 @@ export default function ReportsPage() {
     note: "",
   });
 
-  useEffect(() => {
-    fetchReports();
+  // Build API URL based on period
+  const reportsUrl = useMemo(() => {
+    const now = new Date();
+    let startDate: Date;
+    
+    switch (period) {
+      case "today":
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case "thisWeek":
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+        break;
+      case "thisMonth":
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+    }
+    return `/api/reports?startDate=${startDate.toISOString()}&endDate=${now.toISOString()}`;
   }, [period]);
 
-  const fetchReports = async () => {
-    try {
-      // Calculate date range based on period
-      const now = new Date();
-      let startDate: Date;
-      
-      switch (period) {
-        case "today":
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          break;
-        case "thisWeek":
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
-          break;
-        case "thisMonth":
-        default:
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          break;
+  // SWR for reports
+  const { data: fetchedReportData, isLoading: swrLoading } = useSWR(reportsUrl);
+  
+  // Update local state when SWR data changes
+  useEffect(() => {
+    if (fetchedReportData) {
+      setReportData(fetchedReportData);
+      if (fetchedReportData.byAgent) {
+        setAgents(fetchedReportData.byAgent.map((a: AgentReport) => ({
+          code: a.agentCode,
+          name: a.agentName,
+          phone: "",
+          discountPct: a.totalAmount > 0 ? Math.round((a.totalDiscount / a.totalAmount) * 100) : 0,
+          totalBets: a.totalAmount,
+          discount: a.totalDiscount,
+          netAmount: a.totalNetAmount,
+          payout: a.totalWinAmount || 0,
+          profit: (a.totalNetAmount || 0) - (a.totalWinAmount || 0),
+          balance: (a.totalNetAmount || 0) - (a.totalWinAmount || 0),
+        })));
       }
+    }
+  }, [fetchedReportData]);
 
-      const res = await fetch(`/api/reports?startDate=${startDate.toISOString()}&endDate=${now.toISOString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        setReportData(data);
-        // Update agents with report data
-        if (data.byAgent) {
-          setAgents(data.byAgent.map((a: AgentReport) => ({
-            code: a.agentCode,
-            name: a.agentName,
-            phone: "",
-            discountPct: a.totalAmount > 0 ? Math.round((a.totalDiscount / a.totalAmount) * 100) : 0,
-            totalBets: a.totalAmount,
-            discount: a.totalDiscount,
-            netAmount: a.totalNetAmount,
-            payout: a.totalWinAmount || 0,
-            profit: (a.totalNetAmount || 0) - (a.totalWinAmount || 0),
-            balance: (a.totalNetAmount || 0) - (a.totalWinAmount || 0), // Same as profit for now
-          })));
-        }
-      }
-    } catch (error) {
-      console.error("Fetch reports error:", error);
-    } finally {
+  // Use SWR loading state
+  useEffect(() => {
+    if (!swrLoading && fetchedReportData) {
       setIsLoading(false);
     }
-  };
+  }, [swrLoading, fetchedReportData]);
 
   // เปิด Payment Dialog
   const handleOpenPaymentDialog = (agent: typeof agentSummary[0]) => {

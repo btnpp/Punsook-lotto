@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import useSWR from "swr";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,68 +49,50 @@ interface Round {
   lotteryType: { code: string; name: string };
 }
 
+interface RiskData {
+  rounds: Round[];
+  currentRound: Round | null;
+  riskNumbers: RiskNumber[];
+}
+
+interface SettingsData {
+  capitalSettings?: { usableCapital: number };
+}
+
 export default function RiskPage() {
-  const [riskNumbers, setRiskNumbers] = useState<RiskNumber[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedLottery, setSelectedLottery] = useState("ALL");
   const [selectedRound, setSelectedRound] = useState<string>("");
-  const [rounds, setRounds] = useState<Round[]>([]);
-  const [currentRound, setCurrentRound] = useState<Round | null>(null);
-  const [usableCapital, setUsableCapital] = useState(0);
   const [showHistory, setShowHistory] = useState(false);
 
-  useEffect(() => {
-    fetchCapitalSettings();
-  }, []);
-
-  useEffect(() => {
-    fetchRiskData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedLottery, selectedRound, showHistory]);
-
-  const fetchCapitalSettings = async () => {
-    try {
-      const res = await fetch("/api/settings");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.capitalSettings) {
-          setUsableCapital(data.capitalSettings.usableCapital || 0);
-        }
-      }
-    } catch (error) {
-      console.error("Fetch capital error:", error);
-    }
+  // Build API URL with params
+  const buildRiskUrl = () => {
+    const params = new URLSearchParams();
+    if (selectedLottery !== "ALL") params.append("lotteryType", selectedLottery);
+    if (selectedRound) params.append("roundId", selectedRound);
+    if (showHistory) params.append("includeHistory", "true");
+    return `/api/risk?${params.toString()}`;
   };
 
-  const fetchRiskData = async () => {
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (selectedLottery !== "ALL") params.append("lotteryType", selectedLottery);
-      if (selectedRound) params.append("roundId", selectedRound);
-      if (showHistory) params.append("includeHistory", "true");
-      
-      const res = await fetch(`/api/risk?${params.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        setRiskNumbers(data.riskNumbers || []);
-        setRounds(data.rounds || []);
-        setCurrentRound(data.currentRound || null);
-        
-        // Auto-select first round if none selected
-        if (!selectedRound && data.rounds?.length > 0) {
-          const openRound = data.rounds.find((r: Round) => r.status === "OPEN");
-          if (openRound) {
-            setSelectedRound(openRound.id);
-          }
-        }
+  // SWR for settings (cached)
+  const { data: settingsData } = useSWR<SettingsData>("/api/settings");
+  const usableCapital = settingsData?.capitalSettings?.usableCapital || 0;
+
+  // SWR for risk data
+  const { data: riskApiData, isLoading, mutate } = useSWR<RiskData>(buildRiskUrl());
+  
+  const riskNumbers = riskApiData?.riskNumbers || [];
+  const rounds = riskApiData?.rounds || [];
+  const currentRound = riskApiData?.currentRound || null;
+
+  // Auto-select first open round
+  useEffect(() => {
+    if (!selectedRound && rounds.length > 0) {
+      const openRound = rounds.find((r) => r.status === "OPEN");
+      if (openRound) {
+        setSelectedRound(openRound.id);
       }
-    } catch (error) {
-      console.error("Fetch risk error:", error);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [rounds, selectedRound]);
 
   // usableCapital is now fetched from API
 
@@ -301,7 +284,7 @@ export default function RiskPage() {
             >
               {showHistory ? "ซ่อนประวัติ" : "ดูงวดย้อนหลัง"}
             </Button>
-            <Button variant="outline" className="gap-2" onClick={fetchRiskData}>
+            <Button variant="outline" className="gap-2" onClick={() => mutate()}>
               <RefreshCw className="w-4 h-4" />
               รีเฟรช
             </Button>
