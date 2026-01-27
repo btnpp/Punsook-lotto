@@ -187,14 +187,16 @@ export default function SettingsPage() {
     <div className="min-h-screen">
       <Header title="ตั้งค่าระบบ" subtitle="จัดการการตั้งค่าต่างๆ ของระบบ" />
 
-      <div className="p-6">
-        <Tabs defaultValue="payrates" className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-4">
-            <TabsTrigger value="payrates">อัตราจ่าย</TabsTrigger>
-            <TabsTrigger value="limits">Limit</TabsTrigger>
-            <TabsTrigger value="capital">ทุน</TabsTrigger>
-            <TabsTrigger value="notifications">แจ้งเตือน</TabsTrigger>
-          </TabsList>
+      <div className="p-4 lg:p-6">
+        <Tabs defaultValue="payrates" className="space-y-4 lg:space-y-6">
+          <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+            <TabsList className="inline-flex w-auto min-w-full lg:grid lg:w-full lg:max-w-2xl lg:grid-cols-4">
+              <TabsTrigger value="payrates" className="min-w-[80px]">อัตราจ่าย</TabsTrigger>
+              <TabsTrigger value="limits" className="min-w-[60px]">Limit</TabsTrigger>
+              <TabsTrigger value="capital" className="min-w-[60px]">ทุน</TabsTrigger>
+              <TabsTrigger value="notifications" className="min-w-[80px]">แจ้งเตือน</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Pay Rates Tab */}
           <TabsContent value="payrates" className="space-y-6">

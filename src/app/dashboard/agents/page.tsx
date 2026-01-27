@@ -439,9 +439,9 @@ export default function AgentsPage() {
     <div className="min-h-screen">
       <Header title="จัดการ Agent" subtitle="เพิ่ม แก้ไข และจัดการข้อมูล Agent" />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between">
+        <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 justify-between">
           <div className="w-full sm:w-80">
             <Input
               placeholder="ค้นหา Agent..."
@@ -450,46 +450,42 @@ export default function AgentsPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button onClick={handleAddAgent} className="gap-2">
+          <Button onClick={handleAddAgent} className="gap-2 w-full sm:w-auto">
             <Plus className="w-4 h-4" />
             เพิ่ม Agent ใหม่
           </Button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-2 lg:gap-4">
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+            <CardContent className="p-3 lg:p-4">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-1">
                 <div>
-                  <p className="text-sm text-slate-400">Agent ทั้งหมด</p>
-                  <p className="text-2xl font-bold text-slate-100">{agents.length}</p>
+                  <p className="text-xs lg:text-sm text-slate-400">Agent ทั้งหมด</p>
+                  <p className="text-lg lg:text-2xl font-bold text-slate-100">{agents.length}</p>
                 </div>
-                <Badge variant="default">{agents.filter((a) => a.isActive).length} Active</Badge>
+                <Badge variant="default" className="w-fit text-xs">{agents.filter((a) => a.isActive).length} Active</Badge>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-400">ยอดแทงรวม</p>
-                  <p className="text-2xl font-bold text-amber-400">
-                    ฿{formatNumber(agents.reduce((sum, a) => sum + (a.totalBets || 0), 0))}
-                  </p>
-                </div>
+            <CardContent className="p-3 lg:p-4">
+              <div>
+                <p className="text-xs lg:text-sm text-slate-400">ยอดแทงรวม</p>
+                <p className="text-lg lg:text-2xl font-bold text-amber-400">
+                  ฿{formatNumber(agents.reduce((sum, a) => sum + (a.totalBets || 0), 0))}
+                </p>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-400">ยอดคงค้าง</p>
-                  <p className="text-2xl font-bold text-emerald-400">
-                    ฿{formatNumber(agents.reduce((sum, a) => sum + (a.balance || 0), 0))}
-                  </p>
-                </div>
+            <CardContent className="p-3 lg:p-4">
+              <div>
+                <p className="text-xs lg:text-sm text-slate-400">ยอดคงค้าง</p>
+                <p className="text-lg lg:text-2xl font-bold text-emerald-400">
+                  ฿{formatNumber(agents.reduce((sum, a) => sum + (a.balance || 0), 0))}
+                </p>
               </div>
             </CardContent>
           </Card>

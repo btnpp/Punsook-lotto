@@ -159,7 +159,7 @@ export default function RiskPage() {
     <div className="min-h-screen">
       <Header title="บริหารความเสี่ยง" subtitle="ติดตามและจัดการความเสี่ยงแบบ Real-time" />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
         {/* Usable Capital Display */}
         <div className="flex items-center justify-between p-4 rounded-lg bg-slate-800/50 border border-slate-700">
           <div className="flex items-center gap-3">

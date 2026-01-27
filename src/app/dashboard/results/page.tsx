@@ -316,7 +316,7 @@ export default function ResultsPage() {
     <div className="min-h-screen">
       <Header title="ออกผลหวย" subtitle="กรอกผลหวยและดูสรุป" />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
         {/* Open Rounds */}
         <div>
           <h2 className="text-lg font-bold text-slate-100 mb-4">🎰 งวดที่เปิดรับ</h2>

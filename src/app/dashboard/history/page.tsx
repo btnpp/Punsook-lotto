@@ -432,12 +432,12 @@ export default function HistoryPage() {
     <div className="min-h-screen">
       <Header title="ประวัติการแทง" subtitle="ดูประวัติการแทงทั้งหมด" />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
         {/* Filters */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px]">
+          <CardContent className="p-3 lg:p-4">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 lg:gap-4">
+              <div className="w-full sm:flex-1 sm:min-w-[200px]">
                 <Input
                   placeholder="ค้นหาเลข, รหัสโพย, Agent, หมายเหตุ..."
                   icon={<Search className="w-4 h-4" />}
@@ -445,67 +445,69 @@ export default function HistoryPage() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Select 
-                value={filterLottery} 
-                onValueChange={(value) => {
-                  setFilterLottery(value);
-                  setFilterRound("ALL"); // Reset round when lottery changes
-                }}
-              >
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="ประเภทหวย" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">ทั้งหมด</SelectItem>
-                  {Object.entries(LOTTERY_TYPES).map(([key, lottery]) => (
-                    <SelectItem key={key} value={key}>
-                      {lottery.flag} {lottery.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={filterRound} onValueChange={setFilterRound}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="งวด" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">ทุกงวด</SelectItem>
-                  {availableRounds.map((round) => (
-                    <SelectItem key={round.id} value={round.id}>
-                      {round.date.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" })}
-                      {" - "}
-                      {LOTTERY_TYPES[round.lottery as keyof typeof LOTTERY_TYPES]?.flag}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={filterAgent} onValueChange={setFilterAgent}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Agent" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">ทุก Agent</SelectItem>
-                  {availableAgents.map((agent) => (
-                    <SelectItem key={agent.code} value={agent.code}>
-                      {agent.code} - {agent.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="สถานะ" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">ทั้งหมด</SelectItem>
-                  <SelectItem value="ACTIVE">รอผล</SelectItem>
-                  <SelectItem value="RESULTED">ออกผลแล้ว</SelectItem>
-                  <SelectItem value="CANCELLED">ยกเลิก</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" className="gap-2">
+              <div className="grid grid-cols-2 sm:flex gap-2 lg:gap-4">
+                <Select 
+                  value={filterLottery} 
+                  onValueChange={(value) => {
+                    setFilterLottery(value);
+                    setFilterRound("ALL"); // Reset round when lottery changes
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-[130px] lg:w-[150px]">
+                    <SelectValue placeholder="ประเภทหวย" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">ทั้งหมด</SelectItem>
+                    {Object.entries(LOTTERY_TYPES).map(([key, lottery]) => (
+                      <SelectItem key={key} value={key}>
+                        {lottery.flag} {lottery.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filterRound} onValueChange={setFilterRound}>
+                  <SelectTrigger className="w-full sm:w-[150px] lg:w-[180px]">
+                    <SelectValue placeholder="งวด" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">ทุกงวด</SelectItem>
+                    {availableRounds.map((round) => (
+                      <SelectItem key={round.id} value={round.id}>
+                        {round.date.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" })}
+                        {" - "}
+                        {LOTTERY_TYPES[round.lottery as keyof typeof LOTTERY_TYPES]?.flag}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filterAgent} onValueChange={setFilterAgent}>
+                  <SelectTrigger className="w-full sm:w-[130px] lg:w-[150px]">
+                    <SelectValue placeholder="Agent" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">ทุก Agent</SelectItem>
+                    {availableAgents.map((agent) => (
+                      <SelectItem key={agent.code} value={agent.code}>
+                        {agent.code} - {agent.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="w-full sm:w-[130px] lg:w-[150px]">
+                    <SelectValue placeholder="สถานะ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">ทั้งหมด</SelectItem>
+                    <SelectItem value="ACTIVE">รอผล</SelectItem>
+                    <SelectItem value="RESULTED">ออกผลแล้ว</SelectItem>
+                    <SelectItem value="CANCELLED">ยกเลิก</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button variant="outline" className="gap-2 w-full sm:w-auto">
                 <Download className="w-4 h-4" />
-                Export
+                <span className="hidden sm:inline">Export</span>
               </Button>
             </div>
           </CardContent>

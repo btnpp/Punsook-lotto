@@ -147,22 +147,22 @@ export default function DashboardPage() {
     <div className="min-h-screen">
       <Header title="Dashboard" subtitle="ภาพรวมระบบคีย์หวย" />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
         {/* Quick Actions */}
-        <div className="flex flex-wrap gap-3">
-          <Button className="gap-2" asChild>
+        <div className="flex flex-wrap gap-2 lg:gap-3">
+          <Button className="gap-2 flex-1 sm:flex-none" asChild>
             <Link href="/dashboard/bets">
               <Plus className="w-4 h-4" />
               คีย์หวยใหม่
             </Link>
           </Button>
-          <Button variant="outline" className="gap-2" asChild>
+          <Button variant="outline" className="gap-2 flex-1 sm:flex-none" asChild>
             <Link href="/dashboard/agents">
               <Users className="w-4 h-4" />
               เพิ่ม Agent
             </Link>
           </Button>
-          <Button variant="outline" className="gap-2" asChild>
+          <Button variant="outline" className="gap-2 flex-1 sm:flex-none" asChild>
             <Link href="/dashboard/risk">
               <Eye className="w-4 h-4" />
               ดูความเสี่ยง
@@ -171,7 +171,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {stats.map((stat, index) => (
             <Card key={index} className="overflow-hidden">
               <CardContent className="p-6">

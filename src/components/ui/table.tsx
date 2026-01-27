@@ -1,6 +1,25 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+// Responsive table wrapper for horizontal scrolling on mobile
+const TableWrapper = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, children, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "relative w-full overflow-x-auto rounded-xl",
+      "-mx-4 px-4 md:mx-0 md:px-0", // Extend to edges on mobile
+      className
+    )}
+    {...props}
+  >
+    {children}
+  </div>
+));
+TableWrapper.displayName = "TableWrapper";
+
 const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
@@ -8,7 +27,7 @@ const Table = React.forwardRef<
   <div className="relative w-full overflow-auto rounded-xl">
     <table
       ref={ref}
-      className={cn("w-full caption-bottom text-sm", className)}
+      className={cn("w-full caption-bottom text-sm min-w-[600px] lg:min-w-0", className)}
       {...props}
     />
   </div>
@@ -112,6 +131,7 @@ TableCaption.displayName = "TableCaption";
 
 export {
   Table,
+  TableWrapper,
   TableHeader,
   TableBody,
   TableFooter,

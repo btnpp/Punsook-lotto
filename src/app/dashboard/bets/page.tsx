@@ -405,14 +405,14 @@ export default function BetsPage() {
     <div className="min-h-screen">
       <Header title="คีย์หวย" subtitle="คีย์โพยหวยสำหรับ Agent" />
 
-      <div className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="p-4 lg:p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           {/* Left Panel - Input */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 lg:space-y-6">
             {/* Select Agent & Lottery */}
             <Card>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="p-4 lg:p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
                   <div className="space-y-2">
                     <Label>เลือก Agent</Label>
                     <Select value={selectedAgent} onValueChange={setSelectedAgent}>
@@ -510,11 +510,11 @@ export default function BetsPage() {
 
             {/* Bet Type Selection - Multi Select */}
             <Card>
-              <CardContent className="p-6">
-                <Label className="mb-4 block">ประเภทการแทง (เลือกได้หลายประเภท)</Label>
+              <CardContent className="p-4 lg:p-6">
+                <Label className="mb-3 lg:mb-4 block text-sm lg:text-base">ประเภทการแทง (เลือกได้หลายประเภท)</Label>
                 
                 {/* 3 ตัว */}
-                <div className="mb-4">
+                <div className="mb-3 lg:mb-4">
                   <p className="text-xs text-slate-400 mb-2">3 ตัว</p>
                   <div className="flex flex-wrap gap-2">
                     {threeDigitTypes.map((key) => {
@@ -524,7 +524,7 @@ export default function BetsPage() {
                         <button
                           key={key}
                           onClick={() => toggleBetType(key)}
-                          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                          className={`px-3 lg:px-4 py-2.5 lg:py-2 rounded-lg font-medium transition-all text-sm lg:text-base touch-manipulation ${
                             isSelected
                               ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
                               : "bg-slate-800 text-slate-300 hover:bg-slate-700"
@@ -538,7 +538,7 @@ export default function BetsPage() {
                 </div>
 
                 {/* 2 ตัว */}
-                <div className="mb-4">
+                <div className="mb-3 lg:mb-4">
                   <p className="text-xs text-slate-400 mb-2">2 ตัว</p>
                   <div className="flex flex-wrap gap-2">
                     {twoDigitTypes.map((key) => {
@@ -548,7 +548,7 @@ export default function BetsPage() {
                         <button
                           key={key}
                           onClick={() => toggleBetType(key)}
-                          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                          className={`px-3 lg:px-4 py-2.5 lg:py-2 rounded-lg font-medium transition-all text-sm lg:text-base touch-manipulation ${
                             isSelected
                               ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
                               : "bg-slate-800 text-slate-300 hover:bg-slate-700"
@@ -572,7 +572,7 @@ export default function BetsPage() {
                         <button
                           key={key}
                           onClick={() => toggleBetType(key)}
-                          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                          className={`px-3 lg:px-4 py-2.5 lg:py-2 rounded-lg font-medium transition-all text-sm lg:text-base touch-manipulation ${
                             isSelected
                               ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
                               : "bg-slate-800 text-slate-300 hover:bg-slate-700"

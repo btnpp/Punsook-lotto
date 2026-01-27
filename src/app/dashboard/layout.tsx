@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useAuth } from "@/lib/auth-context";
+import { SidebarProvider } from "@/lib/sidebar-context";
 
 export default function DashboardLayout({
   children,
@@ -33,12 +34,14 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <Sidebar />
-      <main className="pl-64 transition-all duration-300">
-        {children}
-      </main>
-    </div>
+    <SidebarProvider>
+      <div className="min-h-screen bg-slate-950">
+        <Sidebar />
+        <main className="lg:pl-64 transition-all duration-300">
+          {children}
+        </main>
+      </div>
+    </SidebarProvider>
   );
 }
 

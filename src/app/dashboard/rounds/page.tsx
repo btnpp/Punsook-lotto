@@ -404,7 +404,7 @@ export default function RoundsPage() {
     <div className="min-h-screen">
       <Header title="จัดการงวดหวย" subtitle="ตั้งค่างวดหวย เลขอั้น และเวลาเปิด-ปิด" />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
         <Tabs defaultValue="rounds" className="space-y-6">
           <TabsList>
             <TabsTrigger value="rounds">งวดหวย & เลขอั้น</TabsTrigger>

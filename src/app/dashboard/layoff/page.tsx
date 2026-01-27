@@ -200,7 +200,7 @@ export default function LayoffPage() {
     <div className="min-h-screen">
       <Header title="ระบบตีออก" subtitle="จัดการและส่งออกรายการตีออก" />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
         {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>

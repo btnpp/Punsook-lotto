@@ -390,7 +390,7 @@ export default function ReportsPage() {
     <div className="min-h-screen">
       <Header title="รายงานการเงิน" subtitle="สรุปยอดรวมและรายงานทางการเงิน" />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
         {/* Period Selector */}
         <div className="flex flex-wrap gap-4 justify-between items-center">
           <div className="flex gap-2">
