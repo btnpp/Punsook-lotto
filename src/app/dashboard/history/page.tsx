@@ -254,6 +254,7 @@ export default function HistoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLottery, setFilterLottery] = useState("ALL");
   const [filterRound, setFilterRound] = useState("ALL");
+  const [filterAgent, setFilterAgent] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [selectedSlip, setSelectedSlip] = useState<Slip | null>(null);
 
@@ -349,6 +350,11 @@ export default function HistoryPage() {
     ? rounds 
     : rounds.filter((r) => r.lottery === filterLottery);
 
+  // Get unique agents from slips
+  const availableAgents = Array.from(
+    new Map(slips.map(s => [s.agent.code, s.agent])).values()
+  ).sort((a, b) => a.code.localeCompare(b.code));
+
   const filteredSlips = slips.filter((slip) => {
     const searchLower = searchTerm.toLowerCase();
     const matchSearch =
@@ -360,9 +366,10 @@ export default function HistoryPage() {
       (slip.createdBy && slip.createdBy.toLowerCase().includes(searchLower));
     const matchLottery = filterLottery === "ALL" || slip.lottery === filterLottery;
     const matchRound = filterRound === "ALL" || slip.roundId === filterRound;
+    const matchAgent = filterAgent === "ALL" || slip.agent.code === filterAgent;
     const matchStatus = filterStatus === "ALL" || slip.status === filterStatus;
 
-    return matchSearch && matchLottery && matchRound && matchStatus;
+    return matchSearch && matchLottery && matchRound && matchAgent && matchStatus;
   });
 
   const totalSlips = filteredSlips.length;
@@ -477,6 +484,19 @@ export default function HistoryPage() {
                       {round.date.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" })}
                       {" - "}
                       {LOTTERY_TYPES[round.lottery as keyof typeof LOTTERY_TYPES]?.flag}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterAgent} onValueChange={setFilterAgent}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Agent" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">ทุก Agent</SelectItem>
+                  {availableAgents.map((agent) => (
+                    <SelectItem key={agent.code} value={agent.code}>
+                      {agent.code} - {agent.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
