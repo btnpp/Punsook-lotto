@@ -71,10 +71,11 @@ export default function SettingsPage() {
       }
       if (settingsData.globalLimits) {
         const limits = JSON.parse(JSON.stringify(DEFAULT_GLOBAL_LIMITS));
+        // globalLimits is an array with lotteryType, betType, limitAmount
+        // We use the same limit for all lottery types, so just get the first value per betType
         for (const limit of settingsData.globalLimits) {
-          const lotteryCode = limit.lotteryType?.code;
-          if (lotteryCode && limits[lotteryCode]) {
-            limits[lotteryCode][limit.betType] = limit.limitAmount;
+          if (limits[limit.betType] !== undefined) {
+            limits[limit.betType] = limit.limitAmount;
           }
         }
         setGlobalLimits(limits);
@@ -98,6 +99,7 @@ export default function SettingsPage() {
       });
       if (res.ok) {
         toast.success("บันทึกอัตราจ่ายสำเร็จ!");
+        mutate(); // Refresh cache
       } else {
         const data = await res.json();
         toast.error(data.error || "ไม่สามารถบันทึกได้");
@@ -120,6 +122,7 @@ export default function SettingsPage() {
       });
       if (res.ok) {
         toast.success("บันทึก Limit สำเร็จ!");
+        mutate(); // Refresh cache
       } else {
         const data = await res.json();
         toast.error(data.error || "ไม่สามารถบันทึกได้");
@@ -153,6 +156,7 @@ export default function SettingsPage() {
       });
       if (res.ok) {
         toast.success("บันทึกการตั้งค่าทุนสำเร็จ!");
+        mutate(); // Refresh cache
       } else {
         const data = await res.json();
         toast.error(data.error || "ไม่สามารถบันทึกได้");
