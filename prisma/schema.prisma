@@ -71,27 +71,23 @@ model Agent {
   discountPresets DiscountPreset[]
 }
 
-// Discount Preset - รูปแบบส่วนลดของ Agent (Master กำหนด)
+// Discount Preset - รูปแบบส่วนลดของ Agent ต่อประเภทหวย (Master กำหนด)
 model DiscountPreset {
-  id              String   @id @default(cuid())
-  agentId         String
-  name            String   // ชื่อ Preset เช่น "VIP", "Premium", "ลูกค้าประจำ"
-  discount3Top    Float    @default(0) // % ส่วนลด 3 ตัวบน
-  discount3Tod    Float    @default(0) // % ส่วนลด 3 ตัวโต๊ด
-  discount2Top    Float    @default(0) // % ส่วนลด 2 ตัวบน
-  discount2Bottom Float    @default(0) // % ส่วนลด 2 ตัวล่าง
-  discountRunTop  Float    @default(0) // % ส่วนลด วิ่งบน
-  discountRunBottom Float  @default(0) // % ส่วนลด วิ่งล่าง
-  isFullPay       Boolean  @default(false) // จ่ายเต็ม (ไม่ลด%, ถูกเลขอั้นก็จ่ายเต็ม)
-  isDefault       Boolean  @default(false) // เป็น preset หลัก
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id          String   @id @default(cuid())
+  agentId     String
+  lotteryType String   // THAI, LAO, HANOI
+  name        String   // ชื่อ Preset เช่น "VIP", "Premium", "ลูกค้าประจำ"
+  discount    Float    @default(0) // % ส่วนลด (ใช้กับทุกประเภทการแทง)
+  isFullPay   Boolean  @default(false) // จ่ายเต็ม (ไม่ลด%, ถูกเลขอั้นก็จ่ายเต็ม)
+  isDefault   Boolean  @default(false) // เป็น preset หลัก
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   agent       Agent        @relation(fields: [agentId], references: [id], onDelete: Cascade)
   betSessions BetSession[]
 
-  @@unique([agentId, name])
+  @@unique([agentId, lotteryType, name])
 }
 
 // ส่วนลด Agent แยกตามประเภทหวย

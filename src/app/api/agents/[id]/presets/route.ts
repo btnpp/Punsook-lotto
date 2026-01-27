@@ -8,10 +8,18 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const lotteryType = searchParams.get("lotteryType");
+
+    const where: Record<string, unknown> = { agentId: id };
+    if (lotteryType) {
+      where.lotteryType = lotteryType;
+    }
 
     const presets = await prisma.discountPreset.findMany({
-      where: { agentId: id },
+      where,
       orderBy: [
+        { lotteryType: "asc" },
         { isDefault: "desc" },
         { isFullPay: "asc" },
         { createdAt: "asc" },
@@ -37,13 +45,9 @@ export async function POST(
     const { id } = await params;
     const body = await request.json();
     const {
+      lotteryType,
       name,
-      discount3Top = 0,
-      discount3Tod = 0,
-      discount2Top = 0,
-      discount2Bottom = 0,
-      discountRunTop = 0,
-      discountRunBottom = 0,
+      discount = 0,
       isFullPay = false,
       isDefault = false,
     } = body;
@@ -51,6 +55,13 @@ export async function POST(
     if (!name) {
       return NextResponse.json(
         { error: "กรุณาระบุชื่อ Preset" },
+        { status: 400 }
+      );
+    }
+
+    if (!lotteryType) {
+      return NextResponse.json(
+        { error: "กรุณาระบุประเภทหวย" },
         { status: 400 }
       );
     }
@@ -64,10 +75,10 @@ export async function POST(
       );
     }
 
-    // If this is set as default, unset other defaults
+    // If this is set as default, unset other defaults for same lottery type
     if (isDefault) {
       await prisma.discountPreset.updateMany({
-        where: { agentId: id, isDefault: true },
+        where: { agentId: id, lotteryType, isDefault: true },
         data: { isDefault: false },
       });
     }
@@ -75,13 +86,9 @@ export async function POST(
     const preset = await prisma.discountPreset.create({
       data: {
         agentId: id,
+        lotteryType,
         name,
-        discount3Top,
-        discount3Tod,
-        discount2Top,
-        discount2Bottom,
-        discountRunTop,
-        discountRunBottom,
+        discount,
         isFullPay,
         isDefault,
       },

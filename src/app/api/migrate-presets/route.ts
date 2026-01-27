@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
+const LOTTERY_TYPES = ["THAI", "LAO", "HANOI"];
+
 // POST - Create default presets for agents that don't have any
 export async function POST() {
   try {
-    // Get all agents that don't have any presets
+    // Get all agents with their discounts and presets
     const agents = await prisma.agent.findMany({
       include: {
         discounts: true,
@@ -15,51 +17,52 @@ export async function POST() {
     let created = 0;
 
     for (const agent of agents) {
-      if (agent.discountPresets.length > 0) {
-        continue;
+      for (const lotteryType of LOTTERY_TYPES) {
+        // Check if agent already has presets for this lottery type
+        const existingPresets = agent.discountPresets.filter(
+          (p) => p.lotteryType === lotteryType
+        );
+        
+        if (existingPresets.length > 0) {
+          continue;
+        }
+
+        // Get discount value from agent discounts
+        const discountValue = agent.discounts.find(
+          (d) => d.lotteryType === lotteryType
+        )?.discount || 15;
+
+        // Create default preset for this lottery type
+        await prisma.discountPreset.create({
+          data: {
+            agentId: agent.id,
+            lotteryType,
+            name: "Default",
+            discount: discountValue,
+            isDefault: true,
+            isFullPay: false,
+          },
+        });
+
+        // Create "จ่ายเต็ม" preset for this lottery type
+        await prisma.discountPreset.create({
+          data: {
+            agentId: agent.id,
+            lotteryType,
+            name: "จ่ายเต็ม",
+            discount: 0,
+            isDefault: false,
+            isFullPay: true,
+          },
+        });
+
+        created += 2;
       }
-
-      // Get discount values from agent discounts (if any)
-      const thaiDiscount = agent.discounts.find(d => d.lotteryType === "THAI")?.discount || 15;
-
-      // Create default preset
-      await prisma.discountPreset.create({
-        data: {
-          agentId: agent.id,
-          name: "Default",
-          discount3Top: thaiDiscount,
-          discount3Tod: thaiDiscount,
-          discount2Top: thaiDiscount > 10 ? 10 : thaiDiscount,
-          discount2Bottom: thaiDiscount > 10 ? 10 : thaiDiscount,
-          discountRunTop: thaiDiscount > 10 ? 10 : thaiDiscount,
-          discountRunBottom: thaiDiscount > 10 ? 10 : thaiDiscount,
-          isDefault: true,
-          isFullPay: false,
-        },
-      });
-
-      // Create "จ่ายเต็ม" preset
-      await prisma.discountPreset.create({
-        data: {
-          agentId: agent.id,
-          name: "จ่ายเต็ม",
-          discount3Top: 0,
-          discount3Tod: 0,
-          discount2Top: 0,
-          discount2Bottom: 0,
-          discountRunTop: 0,
-          discountRunBottom: 0,
-          isDefault: false,
-          isFullPay: true,
-        },
-      });
-
-      created++;
     }
 
     return NextResponse.json({
       success: true,
-      message: `Created presets for ${created} agents`,
+      message: `Created ${created} presets`,
     });
   } catch (error) {
     console.error("Migrate presets error:", error);

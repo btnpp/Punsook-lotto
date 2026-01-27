@@ -33,13 +33,9 @@ import { useAuth } from "@/lib/auth-context";
 
 interface DiscountPreset {
   id: string;
+  lotteryType: string;
   name: string;
-  discount3Top: number;
-  discount3Tod: number;
-  discount2Top: number;
-  discount2Bottom: number;
-  discountRunTop: number;
-  discountRunBottom: number;
+  discount: number;
   isFullPay: boolean;
   isDefault: boolean;
 }
@@ -141,11 +137,12 @@ export default function BetsPage() {
     }
   }, [selectedLottery, rounds]);
 
-  // Auto-select default preset when agent changes
+  // Auto-select default preset when agent or lottery changes
   useEffect(() => {
     if (selectedAgent) {
       const agentData = agents.find(a => a.id === selectedAgent);
-      const presets = agentData?.discountPresets;
+      // Filter presets by selected lottery type
+      const presets = agentData?.discountPresets?.filter(p => p.lotteryType === selectedLottery);
       if (presets && presets.length > 0) {
         const defaultPreset = presets.find(p => p.isDefault) || presets[0];
         setSelectedPresetId(defaultPreset.id);
@@ -155,7 +152,7 @@ export default function BetsPage() {
     } else {
       setSelectedPresetId("");
     }
-  }, [selectedAgent, agents]);
+  }, [selectedAgent, selectedLottery, agents]);
 
   const fetchAgents = async () => {
     try {
@@ -188,20 +185,19 @@ export default function BetsPage() {
     return agent?.discountPresets?.find(p => p.id === selectedPresetId) || null;
   };
 
-  // Helper to get discount by bet type from selected preset
-  const getDiscountByBetType = (betType: string): number => {
+  // Get presets for selected agent and lottery type
+  const getPresetsForLottery = (): DiscountPreset[] => {
+    if (!selectedAgent) return [];
+    const agent = agents.find(a => a.id === selectedAgent);
+    return agent?.discountPresets?.filter(p => p.lotteryType === selectedLottery) || [];
+  };
+
+  // Helper to get discount (same for all bet types now)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const getDiscountByBetType = (_betType: string): number => {
     const preset = getSelectedPreset();
     if (!preset || preset.isFullPay) return 0;
-    
-    switch (betType) {
-      case "THREE_TOP": return preset.discount3Top;
-      case "THREE_TOD": return preset.discount3Tod;
-      case "TWO_TOP": return preset.discount2Top;
-      case "TWO_BOTTOM": return preset.discount2Bottom;
-      case "RUN_TOP": return preset.discountRunTop;
-      case "RUN_BOTTOM": return preset.discountRunBottom;
-      default: return 0;
-    }
+    return preset.discount;
   };
 
   // Check if selected preset is full pay
@@ -462,17 +458,17 @@ export default function BetsPage() {
                   </div>
                 </div>
 
-                {/* Preset Selection */}
-                {agent && agent.discountPresets?.length > 0 && (
+                {/* Preset Selection - filtered by selected lottery */}
+                {agent && getPresetsForLottery().length > 0 && (
                   <div className="mt-4 space-y-3">
                     <div className="space-y-2">
-                      <Label>รูปแบบส่วนลด</Label>
+                      <Label>รูปแบบส่วนลด ({LOTTERY_TYPES[selectedLottery as keyof typeof LOTTERY_TYPES]?.name})</Label>
                       <Select value={selectedPresetId} onValueChange={setSelectedPresetId}>
                         <SelectTrigger>
                           <SelectValue placeholder="เลือกรูปแบบส่วนลด" />
                         </SelectTrigger>
                         <SelectContent>
-                          {agent.discountPresets.map((preset) => (
+                          {getPresetsForLottery().map((preset) => (
                             <SelectItem key={preset.id} value={preset.id}>
                               <span className="flex items-center gap-2">
                                 {preset.isFullPay && <span>💰</span>}
@@ -480,7 +476,7 @@ export default function BetsPage() {
                                 <span>{preset.name}</span>
                                 {!preset.isFullPay && (
                                   <span className="text-xs text-slate-400">
-                                    ({preset.discount3Top}%/{preset.discount2Top}%/{preset.discountRunTop}%)
+                                    (ลด {preset.discount}%)
                                   </span>
                                 )}
                               </span>
@@ -503,31 +499,9 @@ export default function BetsPage() {
                             <p className="text-xs text-slate-400">ไม่ลดส่วนลด และจ่ายรางวัลเต็มอัตราแม้ถูกเลขอั้น</p>
                           </div>
                         ) : (
-                          <div className="grid grid-cols-6 gap-2 text-center text-xs">
-                            <div>
-                              <p className="text-slate-500">3บน</p>
-                              <p className="text-amber-400 font-bold">{selectedPreset.discount3Top}%</p>
-                            </div>
-                            <div>
-                              <p className="text-slate-500">3โต๊ด</p>
-                              <p className="text-amber-400 font-bold">{selectedPreset.discount3Tod}%</p>
-                            </div>
-                            <div>
-                              <p className="text-slate-500">2บน</p>
-                              <p className="text-amber-400 font-bold">{selectedPreset.discount2Top}%</p>
-                            </div>
-                            <div>
-                              <p className="text-slate-500">2ล่าง</p>
-                              <p className="text-amber-400 font-bold">{selectedPreset.discount2Bottom}%</p>
-                            </div>
-                            <div>
-                              <p className="text-slate-500">วิ่งบน</p>
-                              <p className="text-amber-400 font-bold">{selectedPreset.discountRunTop}%</p>
-                            </div>
-                            <div>
-                              <p className="text-slate-500">วิ่งล่าง</p>
-                              <p className="text-amber-400 font-bold">{selectedPreset.discountRunBottom}%</p>
-                            </div>
+                          <div className="text-center">
+                            <p className="text-3xl font-bold text-amber-400">ลด {selectedPreset.discount}%</p>
+                            <p className="text-xs text-slate-400 mt-1">ส่วนลดสำหรับทุกประเภทการแทง</p>
                           </div>
                         )}
                       </div>

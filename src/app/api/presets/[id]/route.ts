@@ -41,12 +41,7 @@ export async function PUT(
     const body = await request.json();
     const {
       name,
-      discount3Top,
-      discount3Tod,
-      discount2Top,
-      discount2Bottom,
-      discountRunTop,
-      discountRunBottom,
+      discount,
       isFullPay,
       isDefault,
       isActive,
@@ -64,10 +59,14 @@ export async function PUT(
       );
     }
 
-    // If setting as default, unset other defaults
+    // If setting as default, unset other defaults for same lottery type
     if (isDefault && !existingPreset.isDefault) {
       await prisma.discountPreset.updateMany({
-        where: { agentId: existingPreset.agentId, isDefault: true },
+        where: { 
+          agentId: existingPreset.agentId, 
+          lotteryType: existingPreset.lotteryType,
+          isDefault: true 
+        },
         data: { isDefault: false },
       });
     }
@@ -76,12 +75,7 @@ export async function PUT(
       where: { id },
       data: {
         name: name ?? existingPreset.name,
-        discount3Top: discount3Top ?? existingPreset.discount3Top,
-        discount3Tod: discount3Tod ?? existingPreset.discount3Tod,
-        discount2Top: discount2Top ?? existingPreset.discount2Top,
-        discount2Bottom: discount2Bottom ?? existingPreset.discount2Bottom,
-        discountRunTop: discountRunTop ?? existingPreset.discountRunTop,
-        discountRunBottom: discountRunBottom ?? existingPreset.discountRunBottom,
+        discount: discount ?? existingPreset.discount,
         isFullPay: isFullPay ?? existingPreset.isFullPay,
         isDefault: isDefault ?? existingPreset.isDefault,
         isActive: isActive ?? existingPreset.isActive,

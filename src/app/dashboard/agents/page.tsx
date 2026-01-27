@@ -27,6 +27,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Plus, Search, Edit, Settings, DollarSign, Percent, Trash2, Tag, Check, X } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { formatNumber } from "@/lib/utils";
@@ -42,13 +49,9 @@ interface AgentDiscount {
 interface DiscountPreset {
   id: string;
   agentId: string;
+  lotteryType: string;
   name: string;
-  discount3Top: number;
-  discount3Tod: number;
-  discount2Top: number;
-  discount2Bottom: number;
-  discountRunTop: number;
-  discountRunBottom: number;
+  discount: number;
   isFullPay: boolean;
   isDefault: boolean;
   isActive: boolean;
@@ -115,14 +118,11 @@ export default function AgentsPage() {
   const [selectedLottery, setSelectedLottery] = useState("THAI");
   const [presets, setPresets] = useState<DiscountPreset[]>([]);
   const [isAddingPreset, setIsAddingPreset] = useState(false);
+  const [selectedPresetLottery, setSelectedPresetLottery] = useState("THAI");
   const [newPresetData, setNewPresetData] = useState({
+    lotteryType: "THAI",
     name: "",
-    discount3Top: 0,
-    discount3Tod: 0,
-    discount2Top: 0,
-    discount2Bottom: 0,
-    discountRunTop: 0,
-    discountRunBottom: 0,
+    discount: 0,
     isDefault: false,
   });
 
@@ -179,14 +179,11 @@ export default function AgentsPage() {
     // โหลด presets
     setPresets(agent.discountPresets || []);
     setIsAddingPreset(false);
+    setSelectedPresetLottery("THAI");
     setNewPresetData({
+      lotteryType: "THAI",
       name: "",
-      discount3Top: 0,
-      discount3Tod: 0,
-      discount2Top: 0,
-      discount2Bottom: 0,
-      discountRunTop: 0,
-      discountRunBottom: 0,
+      discount: 0,
       isDefault: false,
     });
     
@@ -209,13 +206,9 @@ export default function AgentsPage() {
         setPresets([...presets, data.preset]);
         setIsAddingPreset(false);
         setNewPresetData({
+          lotteryType: selectedPresetLottery,
           name: "",
-          discount3Top: 0,
-          discount3Tod: 0,
-          discount2Top: 0,
-          discount2Bottom: 0,
-          discountRunTop: 0,
-          discountRunBottom: 0,
+          discount: 0,
           isDefault: false,
         });
         toast.success("เพิ่ม Preset สำเร็จ");
@@ -693,9 +686,26 @@ export default function AgentsPage() {
                 </p>
               </div>
 
-              {/* Preset List */}
+              {/* Lottery Type Filter */}
+              <div className="flex gap-2">
+                {Object.entries(LOTTERY_TYPES).map(([key, lottery]) => (
+                  <Button
+                    key={key}
+                    variant={selectedPresetLottery === key ? "default" : "outline"}
+                    onClick={() => setSelectedPresetLottery(key)}
+                    className="gap-1"
+                  >
+                    <span>{lottery.flag}</span>
+                    {lottery.name}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Preset List - filtered by lottery type */}
               <div className="space-y-2">
-                {presets.map((preset) => (
+                {presets
+                  .filter(p => p.lotteryType === selectedPresetLottery)
+                  .map((preset) => (
                   <div
                     key={preset.id}
                     className={`p-3 rounded-lg border ${
@@ -706,15 +716,26 @@ export default function AgentsPage() {
                         : "bg-slate-800/50 border-slate-700"
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-slate-100">{preset.name}</span>
-                        {preset.isDefault && (
-                          <span className="px-2 py-0.5 text-xs bg-amber-500/20 text-amber-400 rounded">Default</span>
-                        )}
-                        {preset.isFullPay && (
-                          <span className="px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded">💰 จ่ายเต็ม</span>
-                        )}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">{LOTTERY_TYPES[preset.lotteryType as keyof typeof LOTTERY_TYPES]?.flag}</span>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-slate-100">{preset.name}</span>
+                            {preset.isDefault && (
+                              <span className="px-2 py-0.5 text-xs bg-amber-500/20 text-amber-400 rounded">Default</span>
+                            )}
+                            {preset.isFullPay && (
+                              <span className="px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded">💰 จ่ายเต็ม</span>
+                            )}
+                          </div>
+                          {!preset.isFullPay && (
+                            <p className="text-lg font-bold text-amber-400">ลด {preset.discount}%</p>
+                          )}
+                          {preset.isFullPay && (
+                            <p className="text-xs text-slate-400">ไม่ลดส่วนลด จ่ายรางวัลเต็มอัตรา</p>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-1">
                         {!preset.isDefault && !preset.isFullPay && (
@@ -739,37 +760,6 @@ export default function AgentsPage() {
                         )}
                       </div>
                     </div>
-                    {!preset.isFullPay && (
-                      <div className="grid grid-cols-6 gap-2 text-xs">
-                        <div className="text-center">
-                          <p className="text-slate-500">3บน</p>
-                          <p className="text-amber-400">{preset.discount3Top}%</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-slate-500">3โต๊ด</p>
-                          <p className="text-amber-400">{preset.discount3Tod}%</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-slate-500">2บน</p>
-                          <p className="text-amber-400">{preset.discount2Top}%</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-slate-500">2ล่าง</p>
-                          <p className="text-amber-400">{preset.discount2Bottom}%</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-slate-500">วิ่งบน</p>
-                          <p className="text-amber-400">{preset.discountRunTop}%</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-slate-500">วิ่งล่าง</p>
-                          <p className="text-amber-400">{preset.discountRunBottom}%</p>
-                        </div>
-                      </div>
-                    )}
-                    {preset.isFullPay && (
-                      <p className="text-xs text-slate-400">ไม่ลดส่วนลด และถ้าถูกเลขอั้นจะจ่ายรางวัลเต็มอัตรา</p>
-                    )}
                   </div>
                 ))}
               </div>
@@ -790,6 +780,28 @@ export default function AgentsPage() {
                   </div>
                   
                   <div className="space-y-2">
+                    <Label>ประเภทหวย</Label>
+                    <Select 
+                      value={newPresetData.lotteryType} 
+                      onValueChange={(value) => setNewPresetData({ ...newPresetData, lotteryType: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(LOTTERY_TYPES).map(([key, lottery]) => (
+                          <SelectItem key={key} value={key}>
+                            <span className="flex items-center gap-2">
+                              <span>{lottery.flag}</span>
+                              <span>{lottery.name}</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
                     <Label>ชื่อ Preset</Label>
                     <Input
                       placeholder="เช่น VIP, Premium, ลูกค้าประจำ"
@@ -798,66 +810,18 @@ export default function AgentsPage() {
                     />
                   </div>
                   
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs">3 ตัวบน (%)</Label>
+                  <div className="space-y-2">
+                    <Label>ส่วนลด (%)</Label>
+                    <div className="flex items-center gap-2">
                       <Input
                         type="number"
                         min="0"
                         max="100"
-                        value={newPresetData.discount3Top}
-                        onChange={(e) => setNewPresetData({ ...newPresetData, discount3Top: parseInt(e.target.value) || 0 })}
+                        value={newPresetData.discount}
+                        onChange={(e) => setNewPresetData({ ...newPresetData, discount: parseInt(e.target.value) || 0 })}
+                        className="w-32 text-center text-xl font-bold"
                       />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">3 ตัวโต๊ด (%)</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={newPresetData.discount3Tod}
-                        onChange={(e) => setNewPresetData({ ...newPresetData, discount3Tod: parseInt(e.target.value) || 0 })}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">2 ตัวบน (%)</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={newPresetData.discount2Top}
-                        onChange={(e) => setNewPresetData({ ...newPresetData, discount2Top: parseInt(e.target.value) || 0 })}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">2 ตัวล่าง (%)</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={newPresetData.discount2Bottom}
-                        onChange={(e) => setNewPresetData({ ...newPresetData, discount2Bottom: parseInt(e.target.value) || 0 })}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">วิ่งบน (%)</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={newPresetData.discountRunTop}
-                        onChange={(e) => setNewPresetData({ ...newPresetData, discountRunTop: parseInt(e.target.value) || 0 })}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">วิ่งล่าง (%)</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={newPresetData.discountRunBottom}
-                        onChange={(e) => setNewPresetData({ ...newPresetData, discountRunBottom: parseInt(e.target.value) || 0 })}
-                      />
+                      <span className="text-slate-400 text-lg">%</span>
                     </div>
                   </div>
                   
@@ -866,7 +830,7 @@ export default function AgentsPage() {
                       checked={newPresetData.isDefault}
                       onCheckedChange={(checked) => setNewPresetData({ ...newPresetData, isDefault: checked })}
                     />
-                    <Label>ตั้งเป็น Default</Label>
+                    <Label>ตั้งเป็น Default สำหรับหวยนี้</Label>
                   </div>
                   
                   <div className="flex gap-2">

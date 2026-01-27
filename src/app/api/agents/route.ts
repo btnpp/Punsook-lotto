@@ -52,6 +52,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get discount values for each lottery type
+    const getDiscount = (lotteryType: string): number => {
+      const d = discounts?.find((d: { lotteryType: string }) => d.lotteryType === lotteryType);
+      return d?.discount ?? 15;
+    };
+
+    // Create default presets for all lottery types
+    const defaultPresets = [
+      // THAI
+      { lotteryType: "THAI", name: "Default", discount: getDiscount("THAI"), isDefault: true, isFullPay: false },
+      { lotteryType: "THAI", name: "จ่ายเต็ม", discount: 0, isDefault: false, isFullPay: true },
+      // LAO
+      { lotteryType: "LAO", name: "Default", discount: getDiscount("LAO"), isDefault: true, isFullPay: false },
+      { lotteryType: "LAO", name: "จ่ายเต็ม", discount: 0, isDefault: false, isFullPay: true },
+      // HANOI
+      { lotteryType: "HANOI", name: "Default", discount: getDiscount("HANOI"), isDefault: true, isFullPay: false },
+      { lotteryType: "HANOI", name: "จ่ายเต็ม", discount: 0, isDefault: false, isFullPay: true },
+    ];
+
     // Create agent with discounts and default presets
     const agent = await prisma.agent.create({
       data: {
@@ -67,32 +86,9 @@ export async function POST(request: NextRequest) {
               })),
             }
           : undefined,
-        // Create default presets for every new agent
+        // Create default presets for every lottery type
         discountPresets: {
-          create: [
-            {
-              name: "Default",
-              discount3Top: discounts?.find((d: { lotteryType: string }) => d.lotteryType === "THREE_TOP")?.discount || 15,
-              discount3Tod: discounts?.find((d: { lotteryType: string }) => d.lotteryType === "THREE_TOD")?.discount || 15,
-              discount2Top: discounts?.find((d: { lotteryType: string }) => d.lotteryType === "TWO_TOP")?.discount || 10,
-              discount2Bottom: discounts?.find((d: { lotteryType: string }) => d.lotteryType === "TWO_BOTTOM")?.discount || 10,
-              discountRunTop: discounts?.find((d: { lotteryType: string }) => d.lotteryType === "RUN_TOP")?.discount || 10,
-              discountRunBottom: discounts?.find((d: { lotteryType: string }) => d.lotteryType === "RUN_BOTTOM")?.discount || 10,
-              isDefault: true,
-              isFullPay: false,
-            },
-            {
-              name: "จ่ายเต็ม",
-              discount3Top: 0,
-              discount3Tod: 0,
-              discount2Top: 0,
-              discount2Bottom: 0,
-              discountRunTop: 0,
-              discountRunBottom: 0,
-              isDefault: false,
-              isFullPay: true,
-            },
-          ],
+          create: defaultPresets,
         },
       },
       include: {

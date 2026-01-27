@@ -53,27 +53,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Helper function to get discount by bet type from preset
+// Helper function to get discount from preset (simplified - single discount per lottery type)
 function getDiscountFromPreset(preset: { 
-  discount3Top: number;
-  discount3Tod: number;
-  discount2Top: number;
-  discount2Bottom: number;
-  discountRunTop: number;
-  discountRunBottom: number;
+  discount: number;
   isFullPay: boolean;
-} | null, betType: string): number {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+} | null, _betType: string): number {
   if (!preset || preset.isFullPay) return 0;
-  
-  switch (betType) {
-    case "THREE_TOP": return preset.discount3Top;
-    case "THREE_TOD": return preset.discount3Tod;
-    case "TWO_TOP": return preset.discount2Top;
-    case "TWO_BOTTOM": return preset.discount2Bottom;
-    case "RUN_TOP": return preset.discountRunTop;
-    case "RUN_BOTTOM": return preset.discountRunBottom;
-    default: return 0;
-  }
+  return preset.discount;
 }
 
 // POST - Create new bet(s)
