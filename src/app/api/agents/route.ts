@@ -100,13 +100,13 @@ export async function POST(request: NextRequest) {
     // Create default presets for all lottery types
     const defaultPresets = [
       // THAI
-      { lotteryType: "THAI", name: "Default", discount: getDiscount("THAI"), isDefault: true, isFullPay: false },
+      { lotteryType: "THAI", name: "ปกติ", discount: getDiscount("THAI"), isDefault: true, isFullPay: false },
       { lotteryType: "THAI", name: "จ่ายเต็ม", discount: 0, isDefault: false, isFullPay: true },
       // LAO
-      { lotteryType: "LAO", name: "Default", discount: getDiscount("LAO"), isDefault: true, isFullPay: false },
+      { lotteryType: "LAO", name: "ปกติ", discount: getDiscount("LAO"), isDefault: true, isFullPay: false },
       { lotteryType: "LAO", name: "จ่ายเต็ม", discount: 0, isDefault: false, isFullPay: true },
       // HANOI
-      { lotteryType: "HANOI", name: "Default", discount: getDiscount("HANOI"), isDefault: true, isFullPay: false },
+      { lotteryType: "HANOI", name: "ปกติ", discount: getDiscount("HANOI"), isDefault: true, isFullPay: false },
       { lotteryType: "HANOI", name: "จ่ายเต็ม", discount: 0, isDefault: false, isFullPay: true },
     ];
 

@@ -6,6 +6,13 @@ const LOTTERY_TYPES = ["THAI", "LAO", "HANOI"];
 // POST - Create default presets for agents that don't have any
 export async function POST() {
   try {
+    // First, rename any existing "Default" presets to "ปกติ"
+    const renamed = await prisma.discountPreset.updateMany({
+      where: { name: "Default" },
+      data: { name: "ปกติ" },
+    });
+    console.log(`Renamed ${renamed.count} presets from Default to ปกติ`);
+
     // Get all agents with their discounts and presets
     const agents = await prisma.agent.findMany({
       include: {
@@ -22,8 +29,8 @@ export async function POST() {
           (p) => p.lotteryType === lotteryType
         );
         
-        // Check if Default preset exists
-        const hasDefault = presetsForLottery.some((p) => p.name === "Default");
+        // Check if default preset exists (check both "Default" and "ปกติ")
+        const hasDefault = presetsForLottery.some((p) => p.name === "Default" || p.name === "ปกติ" || p.isDefault);
         // Check if จ่ายเต็ม preset exists
         const hasFullPay = presetsForLottery.some((p) => p.isFullPay || p.name === "จ่ายเต็ม");
 
@@ -32,13 +39,13 @@ export async function POST() {
           (d) => d.lotteryType === lotteryType
         )?.discount || 15;
 
-        // Create Default preset if not exists
+        // Create default preset if not exists
         if (!hasDefault) {
           await prisma.discountPreset.create({
             data: {
               agentId: agent.id,
               lotteryType,
-              name: "Default",
+              name: "ปกติ",
               discount: discountValue,
               isDefault: true,
               isFullPay: false,
