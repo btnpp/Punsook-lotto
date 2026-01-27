@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCacheHeaders } from "@/lib/utils";
 
 // GET - List rounds
 export async function GET(request: NextRequest) {
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
       take: 50,
     });
 
-    return NextResponse.json({ rounds });
+    return NextResponse.json({ rounds }, { headers: getCacheHeaders(30, 60) });
   } catch (error) {
     console.error("Get rounds error:", error);
     return NextResponse.json(

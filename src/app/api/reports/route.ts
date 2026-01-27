@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCacheHeaders } from "@/lib/utils";
 
 // GET - ดึงรายงานการเงิน
 export async function GET(request: NextRequest) {
@@ -232,7 +233,7 @@ export async function GET(request: NextRequest) {
       byDate: Array.from(dailySummary.values()).sort((a, b) => b.date.localeCompare(a.date)),
       byRound: Array.from(roundSummary.values()).sort((a, b) => new Date(b.roundDate).getTime() - new Date(a.roundDate).getTime()),
       recentBets,
-    });
+    }, { headers: getCacheHeaders(30, 60) });
   } catch (error) {
     console.error("Get reports error:", error);
     return NextResponse.json(

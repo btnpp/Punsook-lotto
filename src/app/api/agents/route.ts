@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCacheHeaders } from "@/lib/utils";
 
 // GET - List all agents
 export async function GET() {
@@ -56,7 +57,7 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ agents: agentsWithStats });
+    return NextResponse.json({ agents: agentsWithStats }, { headers: getCacheHeaders(30, 60) });
   } catch (error) {
     console.error("Get agents error:", error);
     return NextResponse.json(

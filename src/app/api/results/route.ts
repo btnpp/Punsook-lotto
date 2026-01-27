@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCacheHeaders } from "@/lib/utils";
 
 // GET - ดึงผลหวยทั้งหมด
 export async function GET(request: NextRequest) {
@@ -52,7 +53,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ rounds: roundsWithStats });
+    return NextResponse.json({ rounds: roundsWithStats }, { headers: getCacheHeaders(30, 60) });
   } catch (error) {
     console.error("Get results error:", error);
     return NextResponse.json(

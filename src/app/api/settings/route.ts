@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCacheHeaders } from "@/lib/utils";
 
 // GET - Get all settings
 export async function GET() {
@@ -16,7 +17,7 @@ export async function GET() {
       lotteryTypes,
       globalLimits,
       payRates,
-    });
+    }, { headers: getCacheHeaders(60, 120) });
   } catch (error) {
     console.error("Get settings error:", error);
     return NextResponse.json(

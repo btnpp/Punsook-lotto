@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCacheHeaders } from "@/lib/utils";
 import bcrypt from "bcryptjs";
 
 // GET - List users
@@ -17,7 +18,7 @@ export async function GET() {
       safeUsers.push(safeUser);
     }
 
-    return NextResponse.json({ users: safeUsers });
+    return NextResponse.json({ users: safeUsers }, { headers: getCacheHeaders(30, 60) });
   } catch (error) {
     console.error("Get users error:", error);
     return NextResponse.json(

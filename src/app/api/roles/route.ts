@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCacheHeaders } from "@/lib/utils";
 
 // GET - List roles
 export async function GET() {
@@ -17,7 +18,7 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({ roles: rolesWithParsedPermissions });
+    return NextResponse.json({ roles: rolesWithParsedPermissions }, { headers: getCacheHeaders(120, 300) });
   } catch (error) {
     console.error("Get roles error:", error);
     return NextResponse.json(

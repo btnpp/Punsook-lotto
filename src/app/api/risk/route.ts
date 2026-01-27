@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCacheHeaders } from "@/lib/utils";
 
 // GET - ดึงข้อมูลความเสี่ยง
 export async function GET(request: NextRequest) {
@@ -106,7 +107,7 @@ export async function GET(request: NextRequest) {
         totalBets: bets.length,
         uniqueNumbers: riskNumbers.length,
       },
-    });
+    }, { headers: getCacheHeaders(10, 30) });
   } catch (error) {
     console.error("Get risk error:", error);
     return NextResponse.json(

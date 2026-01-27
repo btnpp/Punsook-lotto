@@ -115,3 +115,10 @@ export function getRiskLevelColor(percentage: number): string {
   return "text-green-600 bg-green-100";
 }
 
+// API Cache headers helper
+export function getCacheHeaders(maxAge: number = 30, staleWhileRevalidate: number = 60) {
+  return {
+    "Cache-Control": `public, s-maxage=${maxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
+  };
+}
+

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCacheHeaders } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   try {
@@ -121,7 +122,7 @@ export async function GET(request: NextRequest) {
       return slip;
     });
 
-    return NextResponse.json({ slips, total: slips.length });
+    return NextResponse.json({ slips, total: slips.length }, { headers: getCacheHeaders(10, 30) });
   } catch (error) {
     console.error("Get history error:", error);
     return NextResponse.json(

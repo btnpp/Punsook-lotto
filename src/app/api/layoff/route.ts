@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCacheHeaders } from "@/lib/utils";
 
 // GET - ดึงข้อมูลสำหรับตีออก
 export async function GET(request: NextRequest) {
@@ -123,7 +124,7 @@ export async function GET(request: NextRequest) {
         totalOverLimit: layoffNumbers.reduce((sum, n) => sum + n.overLimit, 0),
         numbersOverLimit: layoffNumbers.length,
       },
-    });
+    }, { headers: getCacheHeaders(10, 30) });
   } catch (error) {
     console.error("Get layoff error:", error);
     return NextResponse.json(

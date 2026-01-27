@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCacheHeaders } from "@/lib/utils";
 
 export async function GET() {
   try {
@@ -80,7 +81,7 @@ export async function GET() {
       recentBets,
       openRounds,
       riskData,
-    });
+    }, { headers: getCacheHeaders(10, 30) });
   } catch (error) {
     console.error("Dashboard error:", error);
     return NextResponse.json(
