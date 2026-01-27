@@ -383,6 +383,35 @@ export default function HistoryPage() {
   const cancelledItems = filteredSlips.reduce((sum, slip) => 
     sum + slip.items.filter(i => i.status === "CANCELLED").length, 0);
 
+  // Calculate Note-based summary (for customer billing)
+  const searchTermLower = searchTerm.toLowerCase().trim();
+  const slipsWithMatchingNote = searchTermLower 
+    ? filteredSlips.filter(slip => slip.note?.toLowerCase().includes(searchTermLower))
+    : [];
+  
+  const hasNoteSummary = slipsWithMatchingNote.length > 0;
+  
+  const noteSummary = hasNoteSummary ? {
+    note: searchTerm,
+    slipCount: slipsWithMatchingNote.length,
+    // ยอดซื้อรวม (ไม่รวมที่ยกเลิก)
+    totalAmount: slipsWithMatchingNote.reduce((sum, slip) => 
+      sum + slip.items.filter(i => i.status !== "CANCELLED").reduce((s, i) => s + i.amount, 0), 0),
+    // ส่วนลด
+    totalDiscount: slipsWithMatchingNote.reduce((sum, slip) => 
+      sum + slip.items.filter(i => i.status !== "CANCELLED").reduce((s, i) => s + (i.amount - i.netAmount), 0), 0),
+    // ยอดสุทธิ (หลังหักส่วนลด)
+    totalNetAmount: slipsWithMatchingNote.reduce((sum, slip) => 
+      sum + slip.items.filter(i => i.status !== "CANCELLED").reduce((s, i) => s + i.netAmount, 0), 0),
+    // ยอดถูกรางวัล
+    totalWinAmount: slipsWithMatchingNote.reduce((sum, slip) => 
+      sum + slip.items.filter(i => i.status === "WON").reduce((s, i) => s + (i.winAmount || 0), 0), 0),
+    // กำไร = ยอดสุทธิ - ยอดถูก
+    get profit() { return this.totalNetAmount - this.totalWinAmount; },
+    // % กำไร
+    get profitPercent() { return this.totalNetAmount > 0 ? (this.profit / this.totalNetAmount) * 100 : 0; },
+  } : null;
+
   if (isLoading) {
     return (
       <div className="min-h-screen">
@@ -513,6 +542,69 @@ export default function HistoryPage() {
             </Card>
           )}
         </div>
+
+        {/* Note Summary - สรุปยอดตาม Note สำหรับคิดเงินลูกค้า */}
+        {noteSummary && (
+          <Card className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-cyan-500/30">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-cyan-400">
+                <FileText className="w-5 h-5" />
+                สรุปยอดตาม Note: &quot;{noteSummary.note}&quot;
+              </CardTitle>
+              <p className="text-sm text-slate-400">
+                รวม {noteSummary.slipCount} โพย - สำหรับคิดเงินกับลูกค้า
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
+                  <p className="text-xs text-slate-400">ยอดแทงรวม</p>
+                  <p className="text-xl font-bold text-slate-100">฿{formatNumber(noteSummary.totalAmount)}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-slate-800/50 border border-purple-500/30">
+                  <p className="text-xs text-slate-400">ส่วนลด</p>
+                  <p className="text-xl font-bold text-purple-400">฿{formatNumber(noteSummary.totalDiscount)}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-slate-800/50 border border-emerald-500/30">
+                  <p className="text-xs text-slate-400">จ่ายรางวัล</p>
+                  <p className="text-xl font-bold text-red-400">-฿{formatNumber(noteSummary.totalWinAmount)}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-slate-800/50 border border-amber-500/30">
+                  <p className="text-xs text-slate-400">กำไรสุทธิ</p>
+                  <p className={`text-xl font-bold ${noteSummary.profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    {noteSummary.profit >= 0 ? "+" : ""}฿{formatNumber(noteSummary.profit)}
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30">
+                  <p className="text-xs text-slate-400">% กำไร</p>
+                  <p className={`text-xl font-bold ${noteSummary.profitPercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    {noteSummary.profitPercent.toFixed(1)}%
+                  </p>
+                </div>
+              </div>
+              
+              {/* แสดงรายละเอียดเพิ่มเติม */}
+              <div className="mt-4 pt-4 border-t border-slate-700 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">ยอดแทงรวม:</span>
+                  <span className="text-slate-100">฿{formatNumber(noteSummary.totalAmount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">หักส่วนลด:</span>
+                  <span className="text-purple-400">-฿{formatNumber(noteSummary.totalDiscount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">ยอดสุทธิ (เก็บ):</span>
+                  <span className="text-emerald-400">฿{formatNumber(noteSummary.totalNetAmount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">จ่ายรางวัล:</span>
+                  <span className="text-red-400">-฿{formatNumber(noteSummary.totalWinAmount)}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Slips Table */}
         <Card>
