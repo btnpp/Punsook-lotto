@@ -108,33 +108,7 @@ const agentSummary: Array<{
 
 // lotterySummary is now computed from API data in the component
 
-// Will be populated from API
-const recentTransactions: Array<{
-  id: number;
-  date: string;
-  type: string;
-  agent: string;
-  amount: number;
-  description: string;
-}> = [];
-
-// Will be populated from API
-const roundSummary: Array<{
-  id: string;
-  roundDate: Date;
-  lottery: string;
-  lotteryName: string;
-  flag: string;
-  status: string;
-  totalSlips: number;
-  totalBets: number;
-  discountPct: number;
-  discountAmount: number;
-  netAmount: number;
-  payout: number;
-  profit: number;
-  result: { top3: string; top2: string; bottom2: string } | null;
-}> = [];
+// roundSummary and recentTransactions are now computed from API data in the component
 
 interface ReportSummary {
   totalBets: number;
@@ -171,6 +145,34 @@ export default function ReportsPage() {
     byAgent: AgentReport[];
     byLottery: Array<{ lotteryCode: string; lotteryName: string; totalBets: number; totalAmount: number; totalNetAmount: number; totalWinAmount: number; profit: number }>;
     byDate: Array<{ date: string; totalBets: number; totalAmount: number; totalNetAmount: number; totalWinAmount: number; profit: number }>;
+    byRound: Array<{ 
+      roundId: string; 
+      roundDate: string; 
+      lotteryCode: string; 
+      lotteryName: string; 
+      status: string; 
+      result: { threeTop?: string; twoBottom?: string } | null;
+      totalSlips: number; 
+      totalAmount: number; 
+      totalDiscount: number;
+      totalNetAmount: number; 
+      totalWinAmount: number; 
+      profit: number 
+    }>;
+    recentBets: Array<{
+      id: string;
+      createdAt: string;
+      agentCode: string;
+      agentName: string;
+      lotteryCode: string;
+      number: string;
+      betType: string;
+      amount: number;
+      netAmount: number;
+      winAmount: number | null;
+      isWin: boolean | null;
+      status: string;
+    }>;
   } | null>(null);
   const [agents, setAgents] = useState<typeof agentSummary>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -325,6 +327,52 @@ export default function ReportsPage() {
       rounds: l.totalBets, // จำนวนเดิมพัน
     };
   });
+
+  // Map API byRound data to display format
+  const roundData = (reportData?.byRound || []).map(r => {
+    const info = LOTTERY_FLAGS[r.lotteryCode] || { name: r.lotteryName, flag: "🎲" };
+    const discountPct = r.totalAmount > 0 ? Math.round((r.totalDiscount / r.totalAmount) * 100) : 0;
+    return {
+      id: r.roundId,
+      roundDate: new Date(r.roundDate),
+      lottery: r.lotteryCode,
+      lotteryName: info.name,
+      flag: info.flag,
+      status: r.status,
+      totalSlips: r.totalSlips,
+      totalBets: r.totalAmount,
+      discountPct,
+      discountAmount: r.totalDiscount,
+      netAmount: r.totalNetAmount,
+      payout: r.totalWinAmount,
+      profit: r.profit,
+      result: r.result,
+    };
+  });
+
+  // Map recent bets to transaction format
+  const BET_TYPE_NAMES: Record<string, string> = {
+    THREE_TOP: "3 ตัวบน",
+    THREE_TOD: "3 ตัวโต๊ด",
+    TWO_TOP: "2 ตัวบน", 
+    TWO_BOTTOM: "2 ตัวล่าง",
+    RUN_TOP: "วิ่งบน",
+    RUN_BOTTOM: "วิ่งล่าง",
+  };
+
+  const recentBetsData = (reportData?.recentBets || []).map((bet, index) => ({
+    id: index + 1,
+    date: new Date(bet.createdAt).toLocaleString("th-TH", { 
+      day: "numeric", 
+      month: "short", 
+      hour: "2-digit", 
+      minute: "2-digit" 
+    }),
+    type: bet.isWin ? "PAYOUT" : "BET",
+    agent: bet.agentCode,
+    amount: bet.isWin ? -(bet.winAmount || 0) : bet.netAmount,
+    description: `${bet.number} ${BET_TYPE_NAMES[bet.betType] || bet.betType} ฿${bet.amount}`,
+  }));
 
   if (isLoading) {
     return (
@@ -739,151 +787,158 @@ export default function ReportsPage() {
                 <CardDescription>รายงานยอดแทงและกำไรแยกตามแต่ละงวดหวย</CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Summary Cards by Lottery Type */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <Card className="bg-gradient-to-br from-slate-700/50 to-slate-800/50">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-slate-400">งวดที่รอผล</span>
-                        <Badge variant="outline" className="text-amber-400 border-amber-400/50">
-                          {roundSummary.filter(r => r.status === "PENDING").length} งวด
-                        </Badge>
-                      </div>
-                      <p className="text-xl font-bold text-amber-400">
-                        ฿{formatNumber(roundSummary.filter(r => r.status === "PENDING").reduce((sum, r) => sum + r.totalBets, 0))}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-1">ยอดแทงรอผล</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-gradient-to-br from-slate-700/50 to-slate-800/50">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-slate-400">งวดที่ออกผลแล้ว</span>
-                        <Badge variant="secondary">
-                          {roundSummary.filter(r => r.status === "RESULTED").length} งวด
-                        </Badge>
-                      </div>
-                      <p className="text-xl font-bold text-emerald-400">
-                        ฿{formatNumber(roundSummary.filter(r => r.status === "RESULTED").reduce((sum, r) => sum + r.profit, 0))}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-1">กำไรรวม</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-gradient-to-br from-slate-700/50 to-slate-800/50">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-slate-400">จ่ายรางวัลแล้ว</span>
-                        <Badge variant="destructive">
-                          {roundSummary.filter(r => r.status === "RESULTED").length} งวด
-                        </Badge>
-                      </div>
-                      <p className="text-xl font-bold text-red-400">
-                        ฿{formatNumber(roundSummary.filter(r => r.status === "RESULTED").reduce((sum, r) => sum + r.payout, 0))}
-                      </p>
-                      <p className="text-xs text-slate-400 mt-1">จ่ายรางวัลทั้งหมด</p>
-                    </CardContent>
-                  </Card>
-                </div>
+                {roundData.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400">
+                    <p>ไม่มีข้อมูลในช่วงเวลาที่เลือก</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Summary Cards by Lottery Type */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <Card className="bg-gradient-to-br from-slate-700/50 to-slate-800/50">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-slate-400">งวดที่รอผล</span>
+                            <Badge variant="outline" className="text-amber-400 border-amber-400/50">
+                              {roundData.filter(r => r.status === "PENDING" || r.status === "OPEN").length} งวด
+                            </Badge>
+                          </div>
+                          <p className="text-xl font-bold text-amber-400">
+                            ฿{formatNumber(roundData.filter(r => r.status === "PENDING" || r.status === "OPEN").reduce((sum, r) => sum + r.totalBets, 0))}
+                          </p>
+                          <p className="text-xs text-slate-400 mt-1">ยอดแทงรอผล</p>
+                        </CardContent>
+                      </Card>
+                      <Card className="bg-gradient-to-br from-slate-700/50 to-slate-800/50">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-slate-400">งวดที่ออกผลแล้ว</span>
+                            <Badge variant="secondary">
+                              {roundData.filter(r => r.status === "RESULTED").length} งวด
+                            </Badge>
+                          </div>
+                          <p className="text-xl font-bold text-emerald-400">
+                            ฿{formatNumber(roundData.filter(r => r.status === "RESULTED").reduce((sum, r) => sum + r.profit, 0))}
+                          </p>
+                          <p className="text-xs text-slate-400 mt-1">กำไรรวม</p>
+                        </CardContent>
+                      </Card>
+                      <Card className="bg-gradient-to-br from-slate-700/50 to-slate-800/50">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-slate-400">จ่ายรางวัลแล้ว</span>
+                            <Badge variant="destructive">
+                              {roundData.filter(r => r.status === "RESULTED").length} งวด
+                            </Badge>
+                          </div>
+                          <p className="text-xl font-bold text-red-400">
+                            ฿{formatNumber(roundData.filter(r => r.status === "RESULTED").reduce((sum, r) => sum + r.payout, 0))}
+                          </p>
+                          <p className="text-xs text-slate-400 mt-1">จ่ายรางวัลทั้งหมด</p>
+                        </CardContent>
+                      </Card>
+                    </div>
 
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>งวดวันที่</TableHead>
-                        <TableHead>ประเภทหวย</TableHead>
-                        <TableHead className="text-center">โพย</TableHead>
-                        <TableHead className="text-right">ยอดแทง</TableHead>
-                        <TableHead className="text-center">ส่วนลด</TableHead>
-                        <TableHead className="text-right">ยอดสุทธิ</TableHead>
-                        <TableHead className="text-right">จ่ายรางวัล</TableHead>
-                        <TableHead className="text-right">กำไร</TableHead>
-                        <TableHead className="text-center">ผลออก</TableHead>
-                        <TableHead className="text-center">สถานะ</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {roundSummary.map((round) => (
-                        <TableRow key={round.id} className="table-row-hover">
-                          <TableCell>
-                            <div className="font-medium">
-                              {round.roundDate.toLocaleDateString("th-TH", { 
-                                day: "numeric", 
-                                month: "short", 
-                                year: "2-digit" 
-                              })}
-                            </div>
-                            <div className="text-xs text-slate-400">{round.id}</div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="flex items-center gap-2">
-                              <span className="text-lg">{round.flag}</span>
-                              <span className="font-medium">{round.lotteryName}</span>
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="outline">{round.totalSlips}</Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            ฿{formatNumber(round.totalBets)}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="secondary">{round.discountPct}%</Badge>
-                            <p className="text-xs text-slate-400 mt-1">-฿{formatNumber(round.discountAmount)}</p>
-                          </TableCell>
-                          <TableCell className="text-right font-medium text-amber-400">
-                            ฿{formatNumber(round.netAmount)}
-                          </TableCell>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>งวดวันที่</TableHead>
+                            <TableHead>ประเภทหวย</TableHead>
+                            <TableHead className="text-center">รายการ</TableHead>
+                            <TableHead className="text-right">ยอดแทง</TableHead>
+                            <TableHead className="text-center">ส่วนลด</TableHead>
+                            <TableHead className="text-right">ยอดสุทธิ</TableHead>
+                            <TableHead className="text-right">จ่ายรางวัล</TableHead>
+                            <TableHead className="text-right">กำไร</TableHead>
+                            <TableHead className="text-center">ผลออก</TableHead>
+                            <TableHead className="text-center">สถานะ</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {roundData.map((round) => (
+                            <TableRow key={round.id} className="table-row-hover">
+                              <TableCell>
+                                <div className="font-medium">
+                                  {round.roundDate.toLocaleDateString("th-TH", { 
+                                    day: "numeric", 
+                                    month: "short", 
+                                    year: "2-digit" 
+                                  })}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <span className="flex items-center gap-2">
+                                  <span className="text-lg">{round.flag}</span>
+                                  <span className="font-medium">{round.lotteryName}</span>
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="outline">{round.totalSlips}</Badge>
+                              </TableCell>
+                              <TableCell className="text-right font-medium">
+                                ฿{formatNumber(round.totalBets)}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="secondary">{round.discountPct}%</Badge>
+                                <p className="text-xs text-slate-400 mt-1">-฿{formatNumber(round.discountAmount)}</p>
+                              </TableCell>
+                              <TableCell className="text-right font-medium text-amber-400">
+                                ฿{formatNumber(round.netAmount)}
+                              </TableCell>
                           <TableCell className="text-right text-red-400">
-                            {round.payout > 0 ? `-฿${formatNumber(round.payout)}` : "-"}
-                          </TableCell>
-                          <TableCell className="text-right text-emerald-400 font-bold">
-                            ฿{formatNumber(round.profit)}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {round.result ? (
-                              <span className="font-mono text-amber-400">{round.result.top3}</span>
-                            ) : (
-                              <span className="text-slate-500">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {round.status === "PENDING" ? (
-                              <Badge variant="outline" className="text-amber-400 border-amber-400/50">
-                                รอผล
-                              </Badge>
-                            ) : (
-                              <Badge variant="success">ออกผลแล้ว</Badge>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {/* Total Row */}
-                      <TableRow className="bg-slate-800/50 font-bold">
-                        <TableCell colSpan={2}>รวมทั้งหมด ({roundSummary.length} งวด)</TableCell>
-                        <TableCell className="text-center">
-                          {roundSummary.reduce((sum, r) => sum + r.totalSlips, 0)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          ฿{formatNumber(roundSummary.reduce((sum, r) => sum + r.totalBets, 0))}
-                        </TableCell>
-                        <TableCell className="text-center text-slate-400">
-                          -฿{formatNumber(roundSummary.reduce((sum, r) => sum + r.discountAmount, 0))}
-                        </TableCell>
-                        <TableCell className="text-right text-amber-400">
-                          ฿{formatNumber(roundSummary.reduce((sum, r) => sum + r.netAmount, 0))}
-                        </TableCell>
-                        <TableCell className="text-right text-red-400">
-                          -฿{formatNumber(roundSummary.reduce((sum, r) => sum + r.payout, 0))}
-                        </TableCell>
-                        <TableCell className="text-right text-emerald-400">
-                          ฿{formatNumber(roundSummary.reduce((sum, r) => sum + r.profit, 0))}
-                        </TableCell>
-                        <TableCell></TableCell>
-                        <TableCell></TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
+                                {round.payout > 0 ? `-฿${formatNumber(round.payout)}` : "-"}
+                              </TableCell>
+                              <TableCell className={`text-right font-bold ${round.profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                ฿{formatNumber(round.profit)}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {round.result ? (
+                                  <span className="font-mono text-amber-400">{round.result.threeTop}</span>
+                                ) : (
+                                  <span className="text-slate-500">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {round.status === "OPEN" || round.status === "PENDING" ? (
+                                  <Badge variant="outline" className="text-amber-400 border-amber-400/50">
+                                    รอผล
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-400">ออกผลแล้ว</Badge>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          {/* Total Row */}
+                          <TableRow className="bg-slate-800/50 font-bold">
+                            <TableCell colSpan={2}>รวมทั้งหมด ({roundData.length} งวด)</TableCell>
+                            <TableCell className="text-center">
+                              {roundData.reduce((sum, r) => sum + r.totalSlips, 0)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              ฿{formatNumber(roundData.reduce((sum, r) => sum + r.totalBets, 0))}
+                            </TableCell>
+                            <TableCell className="text-center text-slate-400">
+                              -฿{formatNumber(roundData.reduce((sum, r) => sum + r.discountAmount, 0))}
+                            </TableCell>
+                            <TableCell className="text-right text-amber-400">
+                              ฿{formatNumber(roundData.reduce((sum, r) => sum + r.netAmount, 0))}
+                            </TableCell>
+                            <TableCell className="text-right text-red-400">
+                              -฿{formatNumber(roundData.reduce((sum, r) => sum + r.payout, 0))}
+                            </TableCell>
+                            <TableCell className="text-right text-emerald-400">
+                              ฿{formatNumber(roundData.reduce((sum, r) => sum + r.profit, 0))}
+                            </TableCell>
+                            <TableCell></TableCell>
+                            <TableCell></TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -896,41 +951,47 @@ export default function ReportsPage() {
                   <Calendar className="w-5 h-5 text-amber-400" />
                   รายการล่าสุด
                 </CardTitle>
-                <CardDescription>รายการรับ-จ่ายล่าสุด</CardDescription>
+                <CardDescription>รายการรับ-จ่ายล่าสุด (50 รายการ)</CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>วันที่</TableHead>
-                      <TableHead>ประเภท</TableHead>
-                      <TableHead>Agent</TableHead>
-                      <TableHead>รายละเอียด</TableHead>
-                      <TableHead className="text-right">จำนวน</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentTransactions.map((tx) => (
-                      <TableRow key={tx.id}>
-                        <TableCell className="text-slate-400">{tx.date}</TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={tx.type === "BET" ? "default" : tx.type === "PAYOUT" ? "destructive" : "secondary"}
-                          >
-                            {tx.type === "BET" ? "รับแทง" : tx.type === "PAYOUT" ? "จ่ายรางวัล" : "ค่าคอมฯ"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-mono text-amber-400">{tx.agent}</span>
-                        </TableCell>
-                        <TableCell>{tx.description}</TableCell>
-                        <TableCell className={`text-right font-medium ${tx.amount >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                          {tx.amount >= 0 ? "+" : ""}฿{formatNumber(Math.abs(tx.amount))}
-                        </TableCell>
+                {recentBetsData.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400">
+                    <p>ไม่มีข้อมูลในช่วงเวลาที่เลือก</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>วันที่</TableHead>
+                        <TableHead>ประเภท</TableHead>
+                        <TableHead>Agent</TableHead>
+                        <TableHead>รายละเอียด</TableHead>
+                        <TableHead className="text-right">จำนวน</TableHead>
                       </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {recentBetsData.map((tx) => (
+                        <TableRow key={tx.id}>
+                          <TableCell className="text-slate-400">{tx.date}</TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={tx.type === "BET" ? "default" : tx.type === "PAYOUT" ? "destructive" : "secondary"}
+                            >
+                              {tx.type === "BET" ? "รับแทง" : tx.type === "PAYOUT" ? "จ่ายรางวัล" : "ค่าคอมฯ"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-mono text-amber-400">{tx.agent}</span>
+                          </TableCell>
+                          <TableCell>{tx.description}</TableCell>
+                          <TableCell className={`text-right font-medium ${tx.amount >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                            {tx.amount >= 0 ? "+" : ""}฿{formatNumber(Math.abs(tx.amount))}
+                          </TableCell>
+                        </TableRow>
                     ))}
-                  </TableBody>
-                </Table>
+                      </TableBody>
+                    </Table>
+                  )}
               </CardContent>
             </Card>
           </TabsContent>

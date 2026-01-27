@@ -144,6 +144,73 @@ export async function GET(request: NextRequest) {
       summary.profit = summary.totalNetAmount - summary.totalWinAmount;
     }
 
+    // Aggregate by round
+    const roundSummary = new Map<string, {
+      roundId: string;
+      roundDate: string;
+      lotteryCode: string;
+      lotteryName: string;
+      status: string;
+      result: { threeTop?: string; twoBottom?: string } | null;
+      totalSlips: number;
+      totalAmount: number;
+      totalDiscount: number;
+      totalNetAmount: number;
+      totalWinAmount: number;
+      profit: number;
+    }>();
+
+    for (const bet of bets) {
+      const key = bet.roundId;
+      
+      if (!roundSummary.has(key)) {
+        roundSummary.set(key, {
+          roundId: bet.roundId,
+          roundDate: bet.round.roundDate.toISOString(),
+          lotteryCode: bet.round.lotteryType.code,
+          lotteryName: bet.round.lotteryType.name,
+          status: bet.round.status,
+          result: bet.round.result3Top ? { 
+            threeTop: bet.round.result3Top, 
+            twoBottom: bet.round.result2Bottom || undefined 
+          } : null,
+          totalSlips: 0,
+          totalAmount: 0,
+          totalDiscount: 0,
+          totalNetAmount: 0,
+          totalWinAmount: 0,
+          profit: 0,
+        });
+      }
+
+      const summary = roundSummary.get(key)!;
+      summary.totalSlips += 1;
+      summary.totalAmount += bet.amount;
+      summary.totalDiscount += bet.discountAmt;
+      summary.totalNetAmount += bet.netAmount;
+      summary.totalWinAmount += bet.winAmount || 0;
+      summary.profit = summary.totalNetAmount - summary.totalWinAmount;
+    }
+
+    // Get recent bets (last 50)
+    const recentBets = bets
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, 50)
+      .map(bet => ({
+        id: bet.id,
+        createdAt: bet.createdAt.toISOString(),
+        agentCode: bet.agent.code,
+        agentName: bet.agent.name,
+        lotteryCode: bet.round.lotteryType.code,
+        number: bet.number,
+        betType: bet.betType,
+        amount: bet.amount,
+        netAmount: bet.netAmount,
+        winAmount: bet.winAmount,
+        isWin: bet.isWin,
+        status: bet.status,
+      }));
+
     // Calculate totals
     const totalAmount = bets.reduce((sum, bet) => sum + bet.amount, 0);
     const totalDiscount = bets.reduce((sum, bet) => sum + bet.discountAmt, 0);
@@ -163,6 +230,8 @@ export async function GET(request: NextRequest) {
       byAgent: Array.from(agentSummary.values()).sort((a, b) => b.profit - a.profit),
       byLottery: Array.from(lotterySummary.values()).sort((a, b) => b.profit - a.profit),
       byDate: Array.from(dailySummary.values()).sort((a, b) => b.date.localeCompare(a.date)),
+      byRound: Array.from(roundSummary.values()).sort((a, b) => new Date(b.roundDate).getTime() - new Date(a.roundDate).getTime()),
+      recentBets,
     });
   } catch (error) {
     console.error("Get reports error:", error);
