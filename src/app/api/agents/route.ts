@@ -13,12 +13,21 @@ export async function GET() {
           where: { isActive: true },
           orderBy: [{ lotteryType: "asc" }, { isDefault: "desc" }, { isFullPay: "asc" }, { createdAt: "asc" }],
         },
+        bets: {
+          where: { status: { not: "CANCELLED" } },
+          select: {
+            netAmount: true,
+            winAmount: true,
+            isWin: true,
+          },
+        },
       },
       orderBy: { code: "asc" },
     });
 
-    // Convert payRates array to customPayRates object for frontend compatibility
-    const agentsWithCustomPayRates = agents.map((agent) => {
+    // Convert payRates array to customPayRates object and calculate stats
+    const agentsWithStats = agents.map((agent) => {
+      // Calculate customPayRates
       const customPayRates: Record<string, Record<string, number>> = {};
       for (const pr of agent.payRates) {
         if (!customPayRates[pr.lotteryType]) {
@@ -26,13 +35,28 @@ export async function GET() {
         }
         customPayRates[pr.lotteryType][pr.betType] = pr.payRate;
       }
+
+      // Calculate totalBets (sum of netAmount)
+      const totalBets = agent.bets.reduce((sum, bet) => sum + (bet.netAmount || 0), 0);
+      
+      // Calculate winAmount paid out
+      const totalWinAmount = agent.bets.reduce((sum, bet) => sum + (bet.winAmount || 0), 0);
+      
+      // Balance = totalBets - winAmount (positive = profit for house, negative = owed to agent)
+      const balance = totalBets - totalWinAmount;
+
+      // Remove bets from response
+      const { bets, ...agentWithoutBets } = agent;
+
       return {
-        ...agent,
+        ...agentWithoutBets,
         customPayRates: Object.keys(customPayRates).length > 0 ? customPayRates : null,
+        totalBets,
+        balance,
       };
     });
 
-    return NextResponse.json({ agents: agentsWithCustomPayRates });
+    return NextResponse.json({ agents: agentsWithStats });
   } catch (error) {
     console.error("Get agents error:", error);
     return NextResponse.json(
