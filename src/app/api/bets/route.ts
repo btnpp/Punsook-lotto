@@ -53,11 +53,34 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Helper function to get discount by bet type from preset
+function getDiscountFromPreset(preset: { 
+  discount3Top: number;
+  discount3Tod: number;
+  discount2Top: number;
+  discount2Bottom: number;
+  discountRunTop: number;
+  discountRunBottom: number;
+  isFullPay: boolean;
+} | null, betType: string): number {
+  if (!preset || preset.isFullPay) return 0;
+  
+  switch (betType) {
+    case "THREE_TOP": return preset.discount3Top;
+    case "THREE_TOD": return preset.discount3Tod;
+    case "TWO_TOP": return preset.discount2Top;
+    case "TWO_BOTTOM": return preset.discount2Bottom;
+    case "RUN_TOP": return preset.discountRunTop;
+    case "RUN_BOTTOM": return preset.discountRunBottom;
+    default: return 0;
+  }
+}
+
 // POST - Create new bet(s)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { roundId, agentId, bets: betItems, note, userId } = body;
+    const { roundId, agentId, discountPresetId, isFullPay, bets: betItems, note, userId } = body;
 
     if (!roundId || !agentId || !betItems || !Array.isArray(betItems)) {
       return NextResponse.json(
@@ -99,6 +122,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get discount preset if provided
+    let discountPreset = null;
+    if (discountPresetId) {
+      discountPreset = await prisma.discountPreset.findUnique({
+        where: { id: discountPresetId },
+      });
+    }
+
     // Get pay rates for this lottery type
     const payRates = await prisma.payRate.findMany({
       where: { lotteryTypeId: round.lotteryTypeId },
@@ -109,29 +140,19 @@ export async function POST(request: NextRequest) {
       payRateMap.set(pr.betType, pr.payRate);
     }
 
-    // Get discount for this lottery type
-    let discountPct = 0;
-    for (const d of agent.discounts) {
-      if (d.lotteryType === round.lotteryType.code) {
-        discountPct = d.discount;
-        break;
-      }
-    }
-
-    // Create BetSession if note is provided
-    let sessionId: string | undefined;
-    if (note) {
-      const session = await prisma.betSession.create({
-        data: {
-          agentId,
-          note,
-        },
-      });
-      sessionId = session.id;
-    }
+    // Create BetSession with discountPresetId
+    const session = await prisma.betSession.create({
+      data: {
+        agentId,
+        discountPresetId: discountPresetId || undefined,
+        note: note || undefined,
+      },
+    });
+    const sessionId = session.id;
 
     // Create bets
     const createdBets = [];
+    const useFullPay = isFullPay || discountPreset?.isFullPay || false;
 
     for (const item of betItems) {
       const { number, betType, amount } = item;
@@ -139,6 +160,21 @@ export async function POST(request: NextRequest) {
       if (!number || !betType || !amount) continue;
 
       const payRate = payRateMap.get(betType) || 0;
+      
+      // Get discount from preset per bet type, or fallback to agent discount
+      let discountPct = 0;
+      if (discountPreset) {
+        discountPct = getDiscountFromPreset(discountPreset, betType);
+      } else {
+        // Fallback to old agent discount by lottery type
+        for (const d of agent.discounts) {
+          if (d.lotteryType === round.lotteryType.code) {
+            discountPct = d.discount;
+            break;
+          }
+        }
+      }
+
       const discountAmt = (amount * discountPct) / 100;
       const netAmount = amount - discountAmt;
 
@@ -154,6 +190,7 @@ export async function POST(request: NextRequest) {
           discountAmt,
           netAmount,
           payRate,
+          isFullPay: useFullPay,
           status: "ACTIVE",
           createdById: userId || undefined,
         },

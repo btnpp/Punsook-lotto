@@ -9,6 +9,10 @@ export async function GET() {
         discounts: true,
         quotas: true,
         payRates: true,
+        discountPresets: {
+          where: { isActive: true },
+          orderBy: [{ isDefault: "desc" }, { isFullPay: "asc" }, { createdAt: "asc" }],
+        },
       },
       orderBy: { code: "asc" },
     });
@@ -48,7 +52,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create agent with discounts
+    // Create agent with discounts and default presets
     const agent = await prisma.agent.create({
       data: {
         code,
@@ -63,9 +67,37 @@ export async function POST(request: NextRequest) {
               })),
             }
           : undefined,
+        // Create default presets for every new agent
+        discountPresets: {
+          create: [
+            {
+              name: "Default",
+              discount3Top: discounts?.find((d: { lotteryType: string }) => d.lotteryType === "THREE_TOP")?.discount || 15,
+              discount3Tod: discounts?.find((d: { lotteryType: string }) => d.lotteryType === "THREE_TOD")?.discount || 15,
+              discount2Top: discounts?.find((d: { lotteryType: string }) => d.lotteryType === "TWO_TOP")?.discount || 10,
+              discount2Bottom: discounts?.find((d: { lotteryType: string }) => d.lotteryType === "TWO_BOTTOM")?.discount || 10,
+              discountRunTop: discounts?.find((d: { lotteryType: string }) => d.lotteryType === "RUN_TOP")?.discount || 10,
+              discountRunBottom: discounts?.find((d: { lotteryType: string }) => d.lotteryType === "RUN_BOTTOM")?.discount || 10,
+              isDefault: true,
+              isFullPay: false,
+            },
+            {
+              name: "จ่ายเต็ม",
+              discount3Top: 0,
+              discount3Tod: 0,
+              discount2Top: 0,
+              discount2Bottom: 0,
+              discountRunTop: 0,
+              discountRunBottom: 0,
+              isDefault: false,
+              isFullPay: true,
+            },
+          ],
+        },
       },
       include: {
         discounts: true,
+        discountPresets: true,
       },
     });
 

@@ -31,11 +31,25 @@ import { formatNumber, formatCurrency, parseBulkBet, calculateNetAmount } from "
 import { LOTTERY_TYPES, BET_TYPES, DEFAULT_PAY_RATES } from "@/lib/constants";
 import { useAuth } from "@/lib/auth-context";
 
+interface DiscountPreset {
+  id: string;
+  name: string;
+  discount3Top: number;
+  discount3Tod: number;
+  discount2Top: number;
+  discount2Bottom: number;
+  discountRunTop: number;
+  discountRunBottom: number;
+  isFullPay: boolean;
+  isDefault: boolean;
+}
+
 interface Agent {
   id: string;
   code: string;
   name: string;
   discounts: Array<{ lotteryType: string; discount: number }>;
+  discountPresets: DiscountPreset[];
 }
 
 interface Round {
@@ -103,6 +117,7 @@ export default function BetsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState("");
+  const [selectedPresetId, setSelectedPresetId] = useState("");
   const [selectedLottery, setSelectedLottery] = useState("THAI");
   const [selectedRoundId, setSelectedRoundId] = useState("");
   const [selectedBetTypes, setSelectedBetTypes] = useState<string[]>(["TWO_TOP"]);
@@ -125,6 +140,22 @@ export default function BetsPage() {
       setSelectedRoundId(openRound.id);
     }
   }, [selectedLottery, rounds]);
+
+  // Auto-select default preset when agent changes
+  useEffect(() => {
+    if (selectedAgent) {
+      const agentData = agents.find(a => a.id === selectedAgent);
+      const presets = agentData?.discountPresets;
+      if (presets && presets.length > 0) {
+        const defaultPreset = presets.find(p => p.isDefault) || presets[0];
+        setSelectedPresetId(defaultPreset.id);
+      } else {
+        setSelectedPresetId("");
+      }
+    } else {
+      setSelectedPresetId("");
+    }
+  }, [selectedAgent, agents]);
 
   const fetchAgents = async () => {
     try {
@@ -150,12 +181,33 @@ export default function BetsPage() {
     }
   };
 
-  // Helper to get agent discount
-  const getAgentDiscount = (agentId: string, lotteryCode: string): number => {
-    const agent = agents.find(a => a.id === agentId);
-    if (!agent) return 0;
-    const discountEntry = agent.discounts?.find(d => d.lotteryType === lotteryCode);
-    return discountEntry?.discount || 0;
+  // Helper to get preset by id
+  const getSelectedPreset = (): DiscountPreset | null => {
+    if (!selectedAgent || !selectedPresetId) return null;
+    const agent = agents.find(a => a.id === selectedAgent);
+    return agent?.discountPresets?.find(p => p.id === selectedPresetId) || null;
+  };
+
+  // Helper to get discount by bet type from selected preset
+  const getDiscountByBetType = (betType: string): number => {
+    const preset = getSelectedPreset();
+    if (!preset || preset.isFullPay) return 0;
+    
+    switch (betType) {
+      case "THREE_TOP": return preset.discount3Top;
+      case "THREE_TOD": return preset.discount3Tod;
+      case "TWO_TOP": return preset.discount2Top;
+      case "TWO_BOTTOM": return preset.discount2Bottom;
+      case "RUN_TOP": return preset.discountRunTop;
+      case "RUN_BOTTOM": return preset.discountRunBottom;
+      default: return 0;
+    }
+  };
+
+  // Check if selected preset is full pay
+  const isFullPay = (): boolean => {
+    const preset = getSelectedPreset();
+    return preset?.isFullPay || false;
   };
 
   // ฟังก์ชันแปลง input เป็นหลายเลข
@@ -181,7 +233,7 @@ export default function BetsPage() {
   };
 
   const agent = agents.find((a) => a.id === selectedAgent);
-  const discount = getAgentDiscount(selectedAgent, selectedLottery);
+  const selectedPreset = getSelectedPreset();
 
   // Toggle bet type selection
   const toggleBetType = (betType: string) => {
@@ -218,6 +270,7 @@ export default function BetsPage() {
         // ตรวจสอบว่าเลขตรงกับประเภท
         if (number.length === betTypeInfo.digits) {
           const payRate = DEFAULT_PAY_RATES[selectedLottery as keyof typeof DEFAULT_PAY_RATES]?.[betType as keyof typeof DEFAULT_PAY_RATES.THAI] || 0;
+          const discount = getDiscountByBetType(betType);
           const netAmount = calculateNetAmount(amount, discount);
 
           newBets.push({
@@ -271,6 +324,7 @@ export default function BetsPage() {
         const betTypeInfo = BET_TYPES[betType as keyof typeof BET_TYPES];
         if (bet.number.length === betTypeInfo.digits) {
           const payRate = DEFAULT_PAY_RATES[selectedLottery as keyof typeof DEFAULT_PAY_RATES]?.[betType as keyof typeof DEFAULT_PAY_RATES.THAI] || 0;
+          const discount = getDiscountByBetType(betType);
           
           newBets.push({
             id: `${Date.now()}-${index}-${betType}`,
@@ -316,6 +370,8 @@ export default function BetsPage() {
         body: JSON.stringify({
           roundId: selectedRoundId,
           agentId: selectedAgent,
+          discountPresetId: selectedPresetId || undefined,
+          isFullPay: isFullPay(),
           note: slipNote || undefined,
           userId: user?.id,
           bets: betItems.map(bet => ({
@@ -406,12 +462,76 @@ export default function BetsPage() {
                   </div>
                 </div>
 
-                {agent && (
-                  <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-300">ส่วนลด Agent นี้:</span>
-                      <span className="text-lg font-bold text-amber-400">{discount}%</span>
+                {/* Preset Selection */}
+                {agent && agent.discountPresets?.length > 0 && (
+                  <div className="mt-4 space-y-3">
+                    <div className="space-y-2">
+                      <Label>รูปแบบส่วนลด</Label>
+                      <Select value={selectedPresetId} onValueChange={setSelectedPresetId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="เลือกรูปแบบส่วนลด" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {agent.discountPresets.map((preset) => (
+                            <SelectItem key={preset.id} value={preset.id}>
+                              <span className="flex items-center gap-2">
+                                {preset.isFullPay && <span>💰</span>}
+                                {preset.isDefault && <span className="text-amber-400">★</span>}
+                                <span>{preset.name}</span>
+                                {!preset.isFullPay && (
+                                  <span className="text-xs text-slate-400">
+                                    ({preset.discount3Top}%/{preset.discount2Top}%/{preset.discountRunTop}%)
+                                  </span>
+                                )}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+                    
+                    {/* Show selected preset info */}
+                    {selectedPreset && (
+                      <div className={`p-3 rounded-lg border ${
+                        selectedPreset.isFullPay 
+                          ? "bg-emerald-500/10 border-emerald-500/30" 
+                          : "bg-amber-500/10 border-amber-500/30"
+                      }`}>
+                        {selectedPreset.isFullPay ? (
+                          <div className="text-center">
+                            <p className="text-lg font-bold text-emerald-400">💰 จ่ายเต็ม</p>
+                            <p className="text-xs text-slate-400">ไม่ลดส่วนลด และจ่ายรางวัลเต็มอัตราแม้ถูกเลขอั้น</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-6 gap-2 text-center text-xs">
+                            <div>
+                              <p className="text-slate-500">3บน</p>
+                              <p className="text-amber-400 font-bold">{selectedPreset.discount3Top}%</p>
+                            </div>
+                            <div>
+                              <p className="text-slate-500">3โต๊ด</p>
+                              <p className="text-amber-400 font-bold">{selectedPreset.discount3Tod}%</p>
+                            </div>
+                            <div>
+                              <p className="text-slate-500">2บน</p>
+                              <p className="text-amber-400 font-bold">{selectedPreset.discount2Top}%</p>
+                            </div>
+                            <div>
+                              <p className="text-slate-500">2ล่าง</p>
+                              <p className="text-amber-400 font-bold">{selectedPreset.discount2Bottom}%</p>
+                            </div>
+                            <div>
+                              <p className="text-slate-500">วิ่งบน</p>
+                              <p className="text-amber-400 font-bold">{selectedPreset.discountRunTop}%</p>
+                            </div>
+                            <div>
+                              <p className="text-slate-500">วิ่งล่าง</p>
+                              <p className="text-amber-400 font-bold">{selectedPreset.discountRunBottom}%</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -707,7 +827,7 @@ export default function BetsPage() {
                         <span className="text-slate-100">฿{formatNumber(totalAmount)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">ส่วนลด ({discount}%)</span>
+                        <span className="text-slate-400">ส่วนลด ({selectedPreset?.name || "-"})</span>
                         <span className="text-emerald-400">-฿{formatNumber(totalDiscount)}</span>
                       </div>
                       <div className="flex justify-between text-lg font-bold border-t border-slate-700 pt-2">
@@ -759,8 +879,10 @@ export default function BetsPage() {
                   );
                 })}
                 <div className="flex justify-between pt-2 border-t border-slate-700">
-                  <span className="text-slate-400">ส่วนลด</span>
-                  <span className="text-emerald-400">{discount}%</span>
+                  <span className="text-slate-400">รูปแบบ</span>
+                  <span className={selectedPreset?.isFullPay ? "text-emerald-400" : "text-amber-400"}>
+                    {selectedPreset?.name || "-"}
+                  </span>
                 </div>
               </CardContent>
             </Card>

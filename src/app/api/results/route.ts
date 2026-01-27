@@ -107,6 +107,20 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Get number restrictions for this round
+    const restrictions = await prisma.numberRestriction.findMany({
+      where: { roundId },
+    });
+
+    // Create a map for quick lookup: key = "number-betType"
+    const restrictionMap = new Map<string, { type: string; value: number | null }>();
+    for (const r of restrictions) {
+      restrictionMap.set(`${r.number}-${r.betType}`, {
+        type: r.restrictionType,
+        value: r.value,
+      });
+    }
+
     let winnersCount = 0;
     let totalWinAmount = 0;
 
@@ -156,6 +170,31 @@ export async function POST(request: NextRequest) {
             winAmount = bet.amount * bet.payRate;
           }
           break;
+      }
+
+      // Apply number restriction if applicable
+      // Only apply if bet is NOT full pay
+      if (isWin && !bet.isFullPay) {
+        const restrictionKey = `${bet.number}-${bet.betType}`;
+        const restriction = restrictionMap.get(restrictionKey);
+        
+        if (restriction) {
+          switch (restriction.type) {
+            case "BLOCKED":
+              // Should not have been accepted - but if it was, pay 0
+              winAmount = 0;
+              break;
+            case "REDUCED_PAYOUT":
+              // Use reduced payout rate instead
+              if (restriction.value && restriction.value > 0) {
+                winAmount = bet.amount * restriction.value;
+              }
+              break;
+            case "REDUCED_LIMIT":
+              // Limit doesn't affect payout calculation
+              break;
+          }
+        }
       }
 
       // Update bet status

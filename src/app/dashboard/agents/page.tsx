@@ -27,7 +27,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Edit, Settings, Eye, DollarSign, Percent, Loader2, Trash2 } from "lucide-react";
+import { Plus, Search, Edit, Settings, DollarSign, Percent, Trash2, Tag, Check, X } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { formatNumber } from "@/lib/utils";
 import { fetcher } from "@/lib/fetcher";
@@ -39,6 +39,21 @@ interface AgentDiscount {
   discount: number;
 }
 
+interface DiscountPreset {
+  id: string;
+  agentId: string;
+  name: string;
+  discount3Top: number;
+  discount3Tod: number;
+  discount2Top: number;
+  discount2Bottom: number;
+  discountRunTop: number;
+  discountRunBottom: number;
+  isFullPay: boolean;
+  isDefault: boolean;
+  isActive: boolean;
+}
+
 interface Agent {
   id: string;
   code: string;
@@ -47,6 +62,7 @@ interface Agent {
   note: string | null;
   isActive: boolean;
   discounts: AgentDiscount[];
+  discountPresets: DiscountPreset[];
   customPayRates: Record<string, Record<string, number>> | null;
   totalBets?: number;
   balance?: number;
@@ -97,6 +113,18 @@ export default function AgentsPage() {
     createEmptyPayRates()
   );
   const [selectedLottery, setSelectedLottery] = useState("THAI");
+  const [presets, setPresets] = useState<DiscountPreset[]>([]);
+  const [isAddingPreset, setIsAddingPreset] = useState(false);
+  const [newPresetData, setNewPresetData] = useState({
+    name: "",
+    discount3Top: 0,
+    discount3Tod: 0,
+    discount2Top: 0,
+    discount2Bottom: 0,
+    discountRunTop: 0,
+    discountRunBottom: 0,
+    isDefault: false,
+  });
 
   // Helper to get discount value from agent
   const getAgentDiscounts = (agent: Agent): { THAI: number; LAO: number; HANOI: number } => {
@@ -133,7 +161,7 @@ export default function AgentsPage() {
     setIsDialogOpen(true);
   };
 
-  const handleOpenSettings = (agent: Agent) => {
+  const handleOpenSettings = async (agent: Agent) => {
     setSelectedAgent(agent);
     setDiscountData(getAgentDiscounts(agent));
     
@@ -147,7 +175,112 @@ export default function AgentsPage() {
       });
     }
     setPayRateData(rates);
+    
+    // โหลด presets
+    setPresets(agent.discountPresets || []);
+    setIsAddingPreset(false);
+    setNewPresetData({
+      name: "",
+      discount3Top: 0,
+      discount3Tod: 0,
+      discount2Top: 0,
+      discount2Bottom: 0,
+      discountRunTop: 0,
+      discountRunBottom: 0,
+      isDefault: false,
+    });
+    
     setIsSettingsDialogOpen(true);
+  };
+
+  const handleAddPreset = async () => {
+    if (!selectedAgent || !newPresetData.name) return;
+    
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/agents/${selectedAgent.id}/presets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPresetData),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setPresets([...presets, data.preset]);
+        setIsAddingPreset(false);
+        setNewPresetData({
+          name: "",
+          discount3Top: 0,
+          discount3Tod: 0,
+          discount2Top: 0,
+          discount2Bottom: 0,
+          discountRunTop: 0,
+          discountRunBottom: 0,
+          isDefault: false,
+        });
+        toast.success("เพิ่ม Preset สำเร็จ");
+        mutate();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "ไม่สามารถเพิ่ม Preset ได้");
+      }
+    } catch (error) {
+      console.error("Add preset error:", error);
+      toast.error("เกิดข้อผิดพลาด");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeletePreset = async (presetId: string) => {
+    const preset = presets.find(p => p.id === presetId);
+    if (!preset) return;
+    
+    if (preset.isFullPay && preset.name === "จ่ายเต็ม") {
+      toast.error("ไม่สามารถลบ Preset จ่ายเต็มได้");
+      return;
+    }
+    
+    if (!confirm(`ต้องการลบ Preset "${preset.name}" หรือไม่?`)) return;
+    
+    try {
+      const res = await fetch(`/api/presets/${presetId}`, {
+        method: "DELETE",
+      });
+      
+      if (res.ok) {
+        setPresets(presets.filter(p => p.id !== presetId));
+        toast.success("ลบ Preset สำเร็จ");
+        mutate();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "ไม่สามารถลบ Preset ได้");
+      }
+    } catch (error) {
+      console.error("Delete preset error:", error);
+      toast.error("เกิดข้อผิดพลาด");
+    }
+  };
+
+  const handleSetDefaultPreset = async (presetId: string) => {
+    try {
+      const res = await fetch(`/api/presets/${presetId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isDefault: true }),
+      });
+      
+      if (res.ok) {
+        setPresets(presets.map(p => ({
+          ...p,
+          isDefault: p.id === presetId,
+        })));
+        toast.success("ตั้งเป็น Default สำเร็จ");
+        mutate();
+      }
+    } catch (error) {
+      console.error("Set default preset error:", error);
+    }
   };
 
   const handleSaveAgent = async () => {
@@ -534,17 +667,225 @@ export default function AgentsPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs defaultValue="discount" className="mt-4">
-            <TabsList className="grid w-full grid-cols-2">
+          <Tabs defaultValue="presets" className="mt-4">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="presets" className="gap-2">
+                <Tag className="w-4 h-4" />
+                Presets
+              </TabsTrigger>
               <TabsTrigger value="discount" className="gap-2">
                 <Percent className="w-4 h-4" />
-                ส่วนลด
+                ส่วนลด (เก่า)
               </TabsTrigger>
               <TabsTrigger value="payrate" className="gap-2">
                 <DollarSign className="w-4 h-4" />
                 อัตราจ่าย
               </TabsTrigger>
             </TabsList>
+
+            {/* Presets Tab */}
+            <TabsContent value="presets" className="space-y-4 py-4">
+              {/* Info Box */}
+              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-sm">
+                <p className="text-emerald-400 font-medium mb-1">📋 Preset ส่วนลด</p>
+                <p className="text-slate-400">
+                  กำหนดรูปแบบส่วนลดหลายแบบ เพื่อเลือกใช้ตอนคีย์หวย ทุก Agent จะมี &quot;จ่ายเต็ม&quot; อัตโนมัติ
+                </p>
+              </div>
+
+              {/* Preset List */}
+              <div className="space-y-2">
+                {presets.map((preset) => (
+                  <div
+                    key={preset.id}
+                    className={`p-3 rounded-lg border ${
+                      preset.isDefault
+                        ? "bg-amber-500/10 border-amber-500/30"
+                        : preset.isFullPay
+                        ? "bg-emerald-500/10 border-emerald-500/30"
+                        : "bg-slate-800/50 border-slate-700"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-100">{preset.name}</span>
+                        {preset.isDefault && (
+                          <span className="px-2 py-0.5 text-xs bg-amber-500/20 text-amber-400 rounded">Default</span>
+                        )}
+                        {preset.isFullPay && (
+                          <span className="px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded">💰 จ่ายเต็ม</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {!preset.isDefault && !preset.isFullPay && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSetDefaultPreset(preset.id)}
+                            className="text-xs h-7"
+                          >
+                            ตั้งเป็น Default
+                          </Button>
+                        )}
+                        {!preset.isFullPay && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeletePreset(preset.id)}
+                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-7 w-7"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    {!preset.isFullPay && (
+                      <div className="grid grid-cols-6 gap-2 text-xs">
+                        <div className="text-center">
+                          <p className="text-slate-500">3บน</p>
+                          <p className="text-amber-400">{preset.discount3Top}%</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-slate-500">3โต๊ด</p>
+                          <p className="text-amber-400">{preset.discount3Tod}%</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-slate-500">2บน</p>
+                          <p className="text-amber-400">{preset.discount2Top}%</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-slate-500">2ล่าง</p>
+                          <p className="text-amber-400">{preset.discount2Bottom}%</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-slate-500">วิ่งบน</p>
+                          <p className="text-amber-400">{preset.discountRunTop}%</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-slate-500">วิ่งล่าง</p>
+                          <p className="text-amber-400">{preset.discountRunBottom}%</p>
+                        </div>
+                      </div>
+                    )}
+                    {preset.isFullPay && (
+                      <p className="text-xs text-slate-400">ไม่ลดส่วนลด และถ้าถูกเลขอั้นจะจ่ายรางวัลเต็มอัตรา</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Add New Preset Form */}
+              {isAddingPreset ? (
+                <div className="p-4 rounded-lg border border-slate-700 bg-slate-800/50 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-slate-100">เพิ่ม Preset ใหม่</h4>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setIsAddingPreset(false)}
+                      className="h-7 w-7"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>ชื่อ Preset</Label>
+                    <Input
+                      placeholder="เช่น VIP, Premium, ลูกค้าประจำ"
+                      value={newPresetData.name}
+                      onChange={(e) => setNewPresetData({ ...newPresetData, name: e.target.value })}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">3 ตัวบน (%)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={newPresetData.discount3Top}
+                        onChange={(e) => setNewPresetData({ ...newPresetData, discount3Top: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">3 ตัวโต๊ด (%)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={newPresetData.discount3Tod}
+                        onChange={(e) => setNewPresetData({ ...newPresetData, discount3Tod: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">2 ตัวบน (%)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={newPresetData.discount2Top}
+                        onChange={(e) => setNewPresetData({ ...newPresetData, discount2Top: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">2 ตัวล่าง (%)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={newPresetData.discount2Bottom}
+                        onChange={(e) => setNewPresetData({ ...newPresetData, discount2Bottom: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">วิ่งบน (%)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={newPresetData.discountRunTop}
+                        onChange={(e) => setNewPresetData({ ...newPresetData, discountRunTop: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">วิ่งล่าง (%)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={newPresetData.discountRunBottom}
+                        onChange={(e) => setNewPresetData({ ...newPresetData, discountRunBottom: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={newPresetData.isDefault}
+                      onCheckedChange={(checked) => setNewPresetData({ ...newPresetData, isDefault: checked })}
+                    />
+                    <Label>ตั้งเป็น Default</Label>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setIsAddingPreset(false)} className="flex-1">
+                      ยกเลิก
+                    </Button>
+                    <Button onClick={handleAddPreset} disabled={!newPresetData.name || isSaving} className="flex-1">
+                      <Check className="w-4 h-4 mr-2" />
+                      บันทึก
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button variant="outline" onClick={() => setIsAddingPreset(true)} className="w-full gap-2">
+                  <Plus className="w-4 h-4" />
+                  เพิ่ม Preset ใหม่
+                </Button>
+              )}
+            </TabsContent>
 
             {/* Discount Tab */}
             <TabsContent value="discount" className="space-y-4 py-4">

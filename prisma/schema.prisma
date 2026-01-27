@@ -63,11 +63,35 @@ model Agent {
   updatedAt DateTime @updatedAt
 
   // Relations
-  discounts   AgentDiscount[]
-  payRates    AgentPayRate[]
-  quotas      AgentQuota[]
-  bets        Bet[]
+  discounts       AgentDiscount[]
+  payRates        AgentPayRate[]
+  quotas          AgentQuota[]
+  bets            Bet[]
+  betSessions     BetSession[]
+  discountPresets DiscountPreset[]
+}
+
+// Discount Preset - รูปแบบส่วนลดของ Agent (Master กำหนด)
+model DiscountPreset {
+  id              String   @id @default(cuid())
+  agentId         String
+  name            String   // ชื่อ Preset เช่น "VIP", "Premium", "ลูกค้าประจำ"
+  discount3Top    Float    @default(0) // % ส่วนลด 3 ตัวบน
+  discount3Tod    Float    @default(0) // % ส่วนลด 3 ตัวโต๊ด
+  discount2Top    Float    @default(0) // % ส่วนลด 2 ตัวบน
+  discount2Bottom Float    @default(0) // % ส่วนลด 2 ตัวล่าง
+  discountRunTop  Float    @default(0) // % ส่วนลด วิ่งบน
+  discountRunBottom Float  @default(0) // % ส่วนลด วิ่งล่าง
+  isFullPay       Boolean  @default(false) // จ่ายเต็ม (ไม่ลด%, ถูกเลขอั้นก็จ่ายเต็ม)
+  isDefault       Boolean  @default(false) // เป็น preset หลัก
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  agent       Agent        @relation(fields: [agentId], references: [id], onDelete: Cascade)
   betSessions BetSession[]
+
+  @@unique([agentId, name])
 }
 
 // ส่วนลด Agent แยกตามประเภทหวย
@@ -214,13 +238,15 @@ model LotteryRound {
 // =============================================
 
 model BetSession {
-  id        String   @id @default(cuid())
-  agentId   String
-  note      String?
-  createdAt DateTime @default(now())
+  id               String   @id @default(cuid())
+  agentId          String
+  discountPresetId String?  // Preset ที่เลือกใช้
+  note             String?
+  createdAt        DateTime @default(now())
 
-  agent Agent @relation(fields: [agentId], references: [id])
-  bets  Bet[]
+  agent          Agent           @relation(fields: [agentId], references: [id])
+  discountPreset DiscountPreset? @relation(fields: [discountPresetId], references: [id])
+  bets           Bet[]
 }
 
 model Bet {
@@ -235,6 +261,7 @@ model Bet {
   discountAmt   Float    @default(0) // จำนวนส่วนลด
   netAmount     Float    // ยอดสุทธิหลังหักส่วนลด
   payRate       Float    // อัตราจ่าย ณ ขณะแทง
+  isFullPay     Boolean  @default(false) // จ่ายเต็ม (ไม่สนเลขอั้น)
   isWin         Boolean?
   winAmount     Float?   // ยอดถูกรางวัล
   status        String   @default("ACTIVE") // ACTIVE, CANCELLED, WON, LOST
