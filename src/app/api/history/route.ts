@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const roundId = searchParams.get("roundId");
     const agentId = searchParams.get("agentId");
     const status = searchParams.get("status");
-    const limit = parseInt(searchParams.get("limit") || "100");
+    const limit = parseInt(searchParams.get("limit") || "1000");
 
     const where: Record<string, unknown> = {};
     

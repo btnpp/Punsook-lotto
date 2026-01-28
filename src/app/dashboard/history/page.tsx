@@ -226,14 +226,34 @@ export default function HistoryPage() {
   const toast = useToast();
   const { user } = useAuth();
   
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterLottery, setFilterLottery] = useState("ALL");
+  const [filterRound, setFilterRound] = useState("ALL");
+  const [filterAgent, setFilterAgent] = useState("ALL");
+  const [filterStatus, setFilterStatus] = useState("ALL");
+  
+  // Build API URL with filters for better performance
+  // Note: Only send roundId to API, other filters are applied on frontend
+  const buildHistoryUrl = () => {
+    const params = new URLSearchParams();
+    if (filterRound !== "ALL") params.set("roundId", filterRound);
+    // Don't filter by agent/status on API - need full data for dropdown options
+    return `/api/history?${params.toString()}`;
+  };
+  
   // Use SWR for data fetching
   const { data: historyData, isLoading: isLoadingHistory, mutate: mutateHistory } = useSWR<{ slips: Slip[] }>(
-    "/api/history",
+    buildHistoryUrl(),
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 30000 }
   );
   const { data: roundsData } = useSWR<{ rounds: Array<{ id: string; roundDate: string; lotteryType: { code: string; name: string } }> }>(
     "/api/rounds",
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 60000 }
+  );
+  const { data: agentsData } = useSWR<{ agents: Array<{ id: string; code: string; name: string }> }>(
+    "/api/agents",
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 60000 }
   );
@@ -249,13 +269,8 @@ export default function HistoryPage() {
     lottery: r.lotteryType.code,
     name: r.lotteryType.name,
   }));
+  const agents = agentsData?.agents || [];
   const isLoading = isLoadingHistory;
-  
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterLottery, setFilterLottery] = useState("ALL");
-  const [filterRound, setFilterRound] = useState("ALL");
-  const [filterAgent, setFilterAgent] = useState("ALL");
-  const [filterStatus, setFilterStatus] = useState("ALL");
   const [selectedSlip, setSelectedSlip] = useState<Slip | null>(null);
 
   const handleCancelBet = async (betId: string) => {
