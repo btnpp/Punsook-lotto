@@ -756,16 +756,16 @@ export default function BetsPage() {
                 {/* Single Mode - คีย์เดี่ยว */}
                 {mode === "single" && (
                   <div className="space-y-4">
-                    {/* ช่องใส่เลข */}
+                    {/* ช่องใส่เลข + ปุ่มกลับเลข + ประเภทการแทง */}
                     <div className="space-y-2">
                       <Label>เลข (พิมพ์หลายเลขคั่นด้วย , หรือ เว้นวรรค)</Label>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Input
                           type="text"
                           placeholder={`เช่น 12, 34, 56 หรือ 1`}
                           value={singleNumbers}
                           onChange={(e) => setSingleNumbers(e.target.value)}
-                          className="text-lg font-mono tracking-wide flex-1"
+                          className="text-lg font-mono tracking-wide flex-1 min-w-[120px]"
                         />
                         {/* ปุ่มกลับเลข */}
                         <Button
@@ -773,27 +773,32 @@ export default function BetsPage() {
                           onClick={handleReverseNumbers}
                           disabled={getValidNumbersFromInput().length === 0}
                           title="เพิ่มเลขกลับ"
+                          className="shrink-0"
                         >
                           <RefreshCw className="w-4 h-4" />
                         </Button>
-                        {/* เลือกประเภทการแทง */}
-                        <Select 
-                          value={selectedBetTypes[0] || "TWO_TOP"} 
-                          onValueChange={(v) => setSelectedBetTypes([v])}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="THREE_TOP">3ตัวบน</SelectItem>
-                            <SelectItem value="THREE_TOD">3ตัวโต๊ด</SelectItem>
-                            <SelectItem value="THREE_BOTTOM">3ตัวล่าง</SelectItem>
-                            <SelectItem value="TWO_TOP">2ตัวบน</SelectItem>
-                            <SelectItem value="TWO_BOTTOM">2ตัวล่าง</SelectItem>
-                            <SelectItem value="RUN_TOP">วิ่งบน</SelectItem>
-                            <SelectItem value="RUN_BOTTOM">วิ่งล่าง</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        {/* ประเภทการแทง - กดเลือกได้หลายตัว */}
+                        {[
+                          { key: "THREE_TOP", label: "3บ" },
+                          { key: "THREE_TOD", label: "3ด" },
+                          { key: "THREE_BOTTOM", label: "3ล" },
+                          { key: "TWO_TOP", label: "2บ" },
+                          { key: "TWO_BOTTOM", label: "2ล" },
+                          { key: "RUN_TOP", label: "วบ" },
+                          { key: "RUN_BOTTOM", label: "วล" },
+                        ].map(({ key, label }) => (
+                          <button
+                            key={key}
+                            onClick={() => toggleBetType(key)}
+                            className={`px-2 py-1.5 rounded text-xs font-medium transition-all shrink-0 ${
+                              selectedBetTypes.includes(key)
+                                ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white"
+                                : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
                       </div>
                     </div>
 
