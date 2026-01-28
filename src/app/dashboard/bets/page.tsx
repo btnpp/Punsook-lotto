@@ -762,7 +762,7 @@ export default function BetsPage() {
                       <div className="flex gap-2">
                         <Input
                           type="text"
-                          placeholder={`เช่น 12, 34, 56 หรือ 12 34 56`}
+                          placeholder={`เช่น 12, 34, 56 หรือ 1`}
                           value={singleNumbers}
                           onChange={(e) => setSingleNumbers(e.target.value)}
                           className="text-lg font-mono tracking-wide flex-1"
@@ -776,6 +776,24 @@ export default function BetsPage() {
                         >
                           <RefreshCw className="w-4 h-4" />
                         </Button>
+                        {/* เลือกประเภทการแทง */}
+                        <Select 
+                          value={selectedBetTypes[0] || "TWO_TOP"} 
+                          onValueChange={(v) => setSelectedBetTypes([v])}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="THREE_TOP">3ตัวบน</SelectItem>
+                            <SelectItem value="THREE_TOD">3ตัวโต๊ด</SelectItem>
+                            <SelectItem value="THREE_BOTTOM">3ตัวล่าง</SelectItem>
+                            <SelectItem value="TWO_TOP">2ตัวบน</SelectItem>
+                            <SelectItem value="TWO_BOTTOM">2ตัวล่าง</SelectItem>
+                            <SelectItem value="RUN_TOP">วิ่งบน</SelectItem>
+                            <SelectItem value="RUN_BOTTOM">วิ่งล่าง</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
