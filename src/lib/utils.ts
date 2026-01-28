@@ -98,24 +98,32 @@ function getAllPermutations(str: string): string[] {
 // Parse bulk bet input (โพย)
 // Supports:
 // - 12=100 → เลข=จำนวนเงิน (ประเภทตาม digit)
+// - 123=100/ → กลับเลข (6 กลับ หรือ 2 กลับ)
 // - 603=100x100 → 3ตัวบน x 3ตัวโต๊ด (สัญลักษณ์ x, *, - ใช้แทนกันได้)
 // - 603=100x100x100 → 3ตัวบน x 3ตัวโต๊ด x 3ตัวล่าง
-// - 603=0*0*100 → 3ตัวล่าง 100 เท่านั้น (0 = ไม่แทง)
+// - 603=0*0*100 หรือ 603=.*.*.100 → 3ตัวล่าง 100 เท่านั้น (0 หรือ . = ไม่แทง)
 // - 12=100x100 → 2ตัวบน x 2ตัวล่าง
 // - 603/ → กลับเลข (ใช้ยอดจากบรรทัดก่อนหน้า)
 // - 456=100*100*100/ → 6 กลับ บน+โต๊ด+ล่าง
-// - 456=0*0*100/ → 6 กลับ เฉพาะ 3ตัวล่าง
+// - 456=0*0*100/ หรือ 456=.*.*100/ → 6 กลับ เฉพาะ 3ตัวล่าง
 export function parseBulkBet(input: string): Array<{ number: string; amount: number; betType?: string }> {
   const lines = input.trim().split("\n");
   const bets: Array<{ number: string; amount: number; betType?: string }> = [];
   let lastAmount = 100; // default amount for reverse
 
-  // Regex for separators: x, ×, *, -
-  const SEP = /[×x*\-]/i;
+  // Helper: parse amount (. or 0 = 0, otherwise parse as int)
+  const parseAmount = (val: string): number => {
+    if (val === "." || val === "0") return 0;
+    return parseInt(val, 10) || 0;
+  };
 
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
+
+    // Check if ends with / (reverse)
+    const hasReverse = trimmed.endsWith("/");
+    const lineWithoutSlash = hasReverse ? trimmed.slice(0, -1) : trimmed;
 
     // Pattern 1: กลับเลข อย่างเดียว - "603/" or "12/"
     const reverseOnlyMatch = trimmed.match(/^(\d+)\/$/);
@@ -131,18 +139,14 @@ export function parseBulkBet(input: string): Array<{ number: string; amount: num
       continue;
     }
 
-    // Pattern 2: Multi-amount with optional reverse - "603=100x100", "603=100*100*100/", "12=100-100"
-    // Check if ends with / (reverse)
-    const hasReverse = trimmed.endsWith("/");
-    const lineWithoutSlash = hasReverse ? trimmed.slice(0, -1) : trimmed;
-    
-    // Match: number=amount1[sep]amount2[sep]amount3
-    const multiMatch = lineWithoutSlash.match(/^(\d+)=(\d+)(?:[×x*\-])(\d+)(?:[×x*\-](\d+))?$/i);
+    // Pattern 2: Multi-amount with optional reverse - "603=100x100", "603=100*100*100/", "603=.*.*100/"
+    // Match: number=amount1[sep]amount2[sep]amount3 (amount can be number or .)
+    const multiMatch = lineWithoutSlash.match(/^(\d+)=([\d.]+)(?:[×x*\-])([\d.]+)(?:[×x*\-]([\d.]+))?$/i);
     if (multiMatch) {
       const num = multiMatch[1];
-      const amount1 = parseInt(multiMatch[2], 10);
-      const amount2 = parseInt(multiMatch[3], 10);
-      const amount3 = multiMatch[4] ? parseInt(multiMatch[4], 10) : null;
+      const amount1 = parseAmount(multiMatch[2]);
+      const amount2 = parseAmount(multiMatch[3]);
+      const amount3 = multiMatch[4] ? parseAmount(multiMatch[4]) : null;
       
       // Set lastAmount to first non-zero amount
       if (amount1 > 0) lastAmount = amount1;
@@ -177,7 +181,7 @@ export function parseBulkBet(input: string): Array<{ number: string; amount: num
       continue;
     }
 
-    // Pattern 3: Simple with optional reverse - "12=100" or "12=100/"
+    // Pattern 3: Simple with optional reverse - "12=100" or "123=100/"
     const simpleWithReverseMatch = lineWithoutSlash.match(/^(\d+)[=\s]+(\d+)$/);
     if (simpleWithReverseMatch) {
       const num = simpleWithReverseMatch[1];
