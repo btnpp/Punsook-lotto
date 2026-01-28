@@ -824,7 +824,7 @@ export default function BetsPage() {
                   </div>
                 )}
 
-                {mode === "single" ? (
+                {mode === "single" && (
                   <div className="space-y-4">
                     {/* ช่องใส่เลข */}
                     <div className="space-y-2">
@@ -900,7 +900,9 @@ export default function BetsPage() {
                       เพิ่มรายการ ({getValidNumbersFromInput().length} เลข)
                     </Button>
                   </div>
-                ) : (
+                )}
+
+                {mode === "bulk" && (
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>วางโพย (รูปแบบ: เลข=จำนวนเงิน)</Label>
