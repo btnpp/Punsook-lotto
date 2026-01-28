@@ -534,69 +534,58 @@ export default function HistoryPage() {
           </CardContent>
         </Card>
 
-        {/* Summary */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4">
+        {/* Summary - Single Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 lg:gap-3">
           <Card>
-            <CardContent className="p-3 lg:p-4">
-              <p className="text-xs lg:text-sm text-slate-400">จำนวนโพย</p>
-              <p className="text-xl lg:text-2xl font-bold text-slate-100">{totalSlips}</p>
-              <p className="text-xs text-red-400 mt-1">ยกเลิก {cancelledSlips} โพย</p>
+            <CardContent className="p-3">
+              <p className="text-xs text-slate-400">จำนวนโพย</p>
+              <p className="text-lg lg:text-xl font-bold text-slate-100">{totalSlips}</p>
+              <p className="text-xs text-red-400">ยกเลิก {cancelledSlips}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-3 lg:p-4">
-              <p className="text-xs lg:text-sm text-slate-400">จำนวนรายการ</p>
-              <p className="text-xl lg:text-2xl font-bold text-slate-100">{totalItems}</p>
-              <p className="text-xs text-red-400 mt-1">ยกเลิก {cancelledItems} รายการ</p>
+            <CardContent className="p-3">
+              <p className="text-xs text-slate-400">รายการ</p>
+              <p className="text-lg lg:text-xl font-bold text-slate-100">{totalItems}</p>
+              <p className="text-xs text-red-400">ยกเลิก {cancelledItems}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-3 lg:p-4">
-              <p className="text-xs lg:text-sm text-slate-400">ยอดรวม</p>
-              <p className="text-xl lg:text-2xl font-bold text-amber-400">฿{formatNumber(totalAmount)}</p>
+            <CardContent className="p-3">
+              <p className="text-xs text-slate-400">ยอดรวม</p>
+              <p className="text-lg lg:text-xl font-bold text-amber-400">฿{formatNumber(totalAmount)}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-3 lg:p-4">
-              <p className="text-xs lg:text-sm text-slate-400">ส่วนลด</p>
-              <p className="text-xl lg:text-2xl font-bold text-purple-400">-฿{formatNumber(totalDiscount)}</p>
+            <CardContent className="p-3">
+              <p className="text-xs text-slate-400">ส่วนลด</p>
+              <p className="text-lg lg:text-xl font-bold text-purple-400">-฿{formatNumber(totalDiscount)}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-3 lg:p-4">
-              <p className="text-xs lg:text-sm text-slate-400">ยอดสุทธิ</p>
-              <p className="text-xl lg:text-2xl font-bold text-emerald-400">฿{formatNumber(totalNetAmount)}</p>
+            <CardContent className="p-3">
+              <p className="text-xs text-slate-400">ยอดสุทธิ</p>
+              <p className="text-lg lg:text-xl font-bold text-emerald-400">฿{formatNumber(totalNetAmount)}</p>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Summary Row 2 - Win & Profit */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-4">
           <Card>
-            <CardContent className="p-3 lg:p-4">
-              <p className="text-xs lg:text-sm text-slate-400">ยอดถูกรางวัล</p>
-              <p className="text-xl lg:text-2xl font-bold text-red-400">-฿{formatNumber(totalWinAmount)}</p>
+            <CardContent className="p-3">
+              <p className="text-xs text-slate-400">ยอดถูก</p>
+              <p className="text-lg lg:text-xl font-bold text-red-400">-฿{formatNumber(totalWinAmount)}</p>
             </CardContent>
           </Card>
           <Card className={profit >= 0 ? "bg-emerald-500/10 border-emerald-500/30" : "bg-red-500/10 border-red-500/30"}>
-            <CardContent className="p-3 lg:p-4">
-              <p className="text-xs lg:text-sm text-slate-400">กำไร/ขาดทุน</p>
-              <p className={`text-xl lg:text-2xl font-bold ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            <CardContent className="p-3">
+              <p className="text-xs text-slate-400">กำไร</p>
+              <p className={`text-lg lg:text-xl font-bold ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                 {profit >= 0 ? "+" : ""}฿{formatNumber(profit)}
               </p>
             </CardContent>
           </Card>
-          <Card className={cancelledAmount > 0 ? "bg-red-500/10 border-red-500/30" : ""}>
-            <CardContent className="p-3 lg:p-4">
-              <p className="text-xs lg:text-sm text-red-400">ยอดที่ยกเลิก</p>
-              <p className="text-xl lg:text-2xl font-bold text-red-400">฿{formatNumber(cancelledAmount)}</p>
-              <p className="text-xs text-red-400/70 mt-1">{cancelledItems} รายการ</p>
-            </CardContent>
-          </Card>
           <Card className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30">
-            <CardContent className="p-3 lg:p-4">
-              <p className="text-xs lg:text-sm text-slate-400">% กำไร</p>
-              <p className={`text-xl lg:text-2xl font-bold ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            <CardContent className="p-3">
+              <p className="text-xs text-slate-400">% กำไร</p>
+              <p className={`text-lg lg:text-xl font-bold ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                 {totalNetAmount > 0 ? ((profit / totalNetAmount) * 100).toFixed(1) : 0}%
               </p>
             </CardContent>
