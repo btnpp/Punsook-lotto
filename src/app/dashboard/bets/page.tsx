@@ -122,8 +122,15 @@ export default function BetsPage() {
   const [singleAmount, setSingleAmount] = useState("");
   const [bulkInput, setBulkInput] = useState("");
   const [betItems, setBetItems] = useState<BetItem[]>([]);
-  const [mode, setMode] = useState<"single" | "bulk">("single");
+  const [mode, setMode] = useState<"quick" | "single" | "bulk">("quick");
   const [slipNote, setSlipNote] = useState(""); // หมายเหตุโพย
+  
+  // Quick mode states
+  const [quickNumber, setQuickNumber] = useState("");
+  const [quickAmountTop, setQuickAmountTop] = useState("");
+  const [quickAmountTod, setQuickAmountTod] = useState("");
+  const [quickAmountBottom, setQuickAmountBottom] = useState("");
+  const [quickReverse, setQuickReverse] = useState(false);
 
   // SWR for agents and rounds
   interface AgentsResponse { agents: Agent[] }
@@ -602,14 +609,221 @@ export default function BetsPage() {
             {/* Input Mode */}
             <Card>
               <CardHeader>
-                <Tabs value={mode} onValueChange={(v) => setMode(v as "single" | "bulk")}>
+                <Tabs value={mode} onValueChange={(v) => setMode(v as "quick" | "single" | "bulk")}>
                   <TabsList>
+                    <TabsTrigger value="quick">คีย์ด่วน</TabsTrigger>
                     <TabsTrigger value="single">คีย์เดี่ยว</TabsTrigger>
                     <TabsTrigger value="bulk">คีย์โพย</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </CardHeader>
               <CardContent>
+                {/* Quick Mode - แบบใส่เลขแล้วเลือกบน/โต๊ด/ล่าง */}
+                {mode === "quick" && (
+                  <div className="space-y-4">
+                    {/* ช่องใส่เลข */}
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <span className="text-lg">🔢</span> เลข
+                      </Label>
+                      <Input
+                        type="text"
+                        placeholder="เช่น 14, 256, 7"
+                        value={quickNumber}
+                        onChange={(e) => {
+                          // กรองเฉพาะตัวเลข
+                          const val = e.target.value.replace(/[^0-9]/g, "");
+                          if (val.length <= 3) {
+                            setQuickNumber(val);
+                          }
+                        }}
+                        className="text-3xl font-mono text-center tracking-widest h-16"
+                        maxLength={3}
+                      />
+                    </div>
+
+                    {/* ช่องใส่จำนวนเงิน แยกตามประเภท */}
+                    <div className="grid grid-cols-3 gap-3">
+                      {/* บน */}
+                      <div className="space-y-2">
+                        <Label className="text-center block text-slate-400">บน</Label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={quickAmountTop}
+                          onChange={(e) => setQuickAmountTop(e.target.value)}
+                          className="text-xl font-mono text-center h-14"
+                        />
+                      </div>
+                      
+                      {/* โต๊ด */}
+                      <div className="space-y-2">
+                        <Label className="text-center block text-slate-400">โต๊ด</Label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={quickAmountTod}
+                          onChange={(e) => setQuickAmountTod(e.target.value)}
+                          className="text-xl font-mono text-center h-14"
+                          disabled={quickNumber.length !== 3}
+                        />
+                      </div>
+                      
+                      {/* ล่าง */}
+                      <div className="space-y-2">
+                        <Label className="text-center block text-slate-400">ล่าง</Label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={quickAmountBottom}
+                          onChange={(e) => setQuickAmountBottom(e.target.value)}
+                          className="text-xl font-mono text-center h-14"
+                          disabled={quickNumber.length === 1}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Checkbox กลับเลข */}
+                    {quickNumber.length >= 2 && (
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50 border border-slate-700">
+                        <Checkbox
+                          id="quickReverse"
+                          checked={quickReverse}
+                          onCheckedChange={(checked) => setQuickReverse(checked === true)}
+                        />
+                        <Label htmlFor="quickReverse" className="cursor-pointer">
+                          {quickNumber.length === 2 ? "2กลับ" : "6กลับ"} (เพิ่มเลขกลับอัตโนมัติ)
+                        </Label>
+                      </div>
+                    )}
+
+                    {/* Preview */}
+                    {quickNumber && (parseFloat(quickAmountTop) > 0 || parseFloat(quickAmountTod) > 0 || parseFloat(quickAmountBottom) > 0) && (
+                      <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                        <div className="space-y-1 text-sm">
+                          {parseFloat(quickAmountTop) > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">
+                                {quickNumber.length === 3 ? "3ตัวบน" : quickNumber.length === 2 ? "2ตัวบน" : "วิ่งบน"}
+                                {quickReverse && quickNumber.length >= 2 && ` (${quickNumber.length === 2 ? 2 : 6} เลข)`}
+                              </span>
+                              <span className="font-bold text-amber-400">฿{formatNumber(parseFloat(quickAmountTop) * (quickReverse && quickNumber.length >= 2 ? (quickNumber.length === 2 ? 2 : 6) : 1))}</span>
+                            </div>
+                          )}
+                          {parseFloat(quickAmountTod) > 0 && quickNumber.length === 3 && (
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">3ตัวโต๊ด</span>
+                              <span className="font-bold text-amber-400">฿{formatNumber(parseFloat(quickAmountTod))}</span>
+                            </div>
+                          )}
+                          {parseFloat(quickAmountBottom) > 0 && quickNumber.length >= 2 && (
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">
+                                {quickNumber.length === 3 ? "3ตัวล่าง" : "2ตัวล่าง"}
+                                {quickReverse && quickNumber.length === 2 && " (2 เลข)"}
+                              </span>
+                              <span className="font-bold text-amber-400">฿{formatNumber(parseFloat(quickAmountBottom) * (quickReverse && quickNumber.length === 2 ? 2 : 1))}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ปุ่มเพิ่มรายการ */}
+                    <Button
+                      onClick={() => {
+                        if (!quickNumber) return;
+                        
+                        const newBets: BetItem[] = [];
+                        const numbers = [quickNumber];
+                        
+                        // ถ้าเลือกกลับเลข
+                        if (quickReverse && quickNumber.length >= 2) {
+                          const reversed = getAllReversedNumbers(quickNumber);
+                          numbers.push(...reversed);
+                        }
+                        
+                        let itemIndex = 0;
+                        for (const num of numbers) {
+                          // บน
+                          if (parseFloat(quickAmountTop) > 0) {
+                            const betType = num.length === 3 ? "THREE_TOP" : num.length === 2 ? "TWO_TOP" : "RUN_TOP";
+                            const payRate = DEFAULT_PAY_RATES[selectedLottery as keyof typeof DEFAULT_PAY_RATES]?.[betType as keyof typeof DEFAULT_PAY_RATES.THAI] || 0;
+                            const discount = getDiscountByBetType(betType);
+                            const amount = parseFloat(quickAmountTop);
+                            newBets.push({
+                              id: `${Date.now()}-${itemIndex++}-${betType}`,
+                              number: num,
+                              betType,
+                              amount,
+                              discount,
+                              netAmount: calculateNetAmount(amount, discount),
+                              payRate,
+                            });
+                          }
+                          
+                          // ล่าง (ไม่รวม 1 ตัว)
+                          if (parseFloat(quickAmountBottom) > 0 && num.length >= 2) {
+                            const betType = num.length === 3 ? "THREE_BOTTOM" : "TWO_BOTTOM";
+                            const payRate = DEFAULT_PAY_RATES[selectedLottery as keyof typeof DEFAULT_PAY_RATES]?.[betType as keyof typeof DEFAULT_PAY_RATES.THAI] || 0;
+                            const discount = getDiscountByBetType(betType);
+                            const amount = parseFloat(quickAmountBottom);
+                            newBets.push({
+                              id: `${Date.now()}-${itemIndex++}-${betType}`,
+                              number: num,
+                              betType,
+                              amount,
+                              discount,
+                              netAmount: calculateNetAmount(amount, discount),
+                              payRate,
+                            });
+                          }
+                        }
+                        
+                        // โต๊ด (แค่เลขแรก ไม่ต้องกลับ)
+                        if (parseFloat(quickAmountTod) > 0 && quickNumber.length === 3) {
+                          const betType = "THREE_TOD";
+                          const payRate = DEFAULT_PAY_RATES[selectedLottery as keyof typeof DEFAULT_PAY_RATES]?.[betType as keyof typeof DEFAULT_PAY_RATES.THAI] || 0;
+                          const discount = getDiscountByBetType(betType);
+                          const amount = parseFloat(quickAmountTod);
+                          newBets.push({
+                            id: `${Date.now()}-${itemIndex++}-${betType}`,
+                            number: quickNumber,
+                            betType,
+                            amount,
+                            discount,
+                            netAmount: calculateNetAmount(amount, discount),
+                            payRate,
+                          });
+                        }
+                        
+                        // ลบ duplicate
+                        const existingKeys = new Set(betItems.map(b => `${b.number}-${b.betType}`));
+                        const uniqueNewBets = newBets.filter(item => !existingKeys.has(`${item.number}-${item.betType}`));
+                        
+                        if (uniqueNewBets.length > 0) {
+                          setBetItems([...betItems, ...uniqueNewBets]);
+                          toast.success(`เพิ่ม ${uniqueNewBets.length} รายการ`);
+                        } else {
+                          toast.error("รายการซ้ำทั้งหมด");
+                        }
+                        
+                        // Reset
+                        setQuickNumber("");
+                        setQuickAmountTop("");
+                        setQuickAmountTod("");
+                        setQuickAmountBottom("");
+                        setQuickReverse(false);
+                      }}
+                      disabled={!quickNumber || (parseFloat(quickAmountTop) <= 0 && parseFloat(quickAmountTod) <= 0 && parseFloat(quickAmountBottom) <= 0)}
+                      className="w-full h-12 text-lg"
+                    >
+                      <Plus className="w-5 h-5 mr-2" />
+                      เพิ่มรายการ
+                    </Button>
+                  </div>
+                )}
+
                 {mode === "single" ? (
                   <div className="space-y-4">
                     {/* ช่องใส่เลข */}
