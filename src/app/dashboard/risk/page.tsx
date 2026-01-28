@@ -53,6 +53,12 @@ interface RiskData {
   rounds: Round[];
   currentRound: Round | null;
   riskNumbers: RiskNumber[];
+  summary: {
+    totalBetAmount: number;
+    totalPotentialPayout: number;
+    totalBets: number;
+    uniqueNumbers: number;
+  };
 }
 
 interface SettingsData {
@@ -83,6 +89,7 @@ export default function RiskPage() {
   const riskNumbers = riskApiData?.riskNumbers || [];
   const rounds = riskApiData?.rounds || [];
   const currentRound = riskApiData?.currentRound || null;
+  const apiSummary = riskApiData?.summary || { totalBetAmount: 0, totalPotentialPayout: 0, totalBets: 0, uniqueNumbers: 0 };
 
   // Auto-select first open round
   useEffect(() => {
@@ -143,7 +150,8 @@ export default function RiskPage() {
   const overLimitCount = riskData.filter((r) => r.percentage >= 100).length;
   const highRiskCount = riskData.filter((r) => r.percentage >= 80 && r.percentage < 100).length;
   const overCapitalCount = riskData.filter((r) => r.isOverCapital).length;
-  const totalBetAmount = riskData.reduce((sum, r) => sum + r.totalAmount, 0);
+  // Use totalBetAmount from API summary (correctly sums all bets, not aggregated)
+  const totalBetAmount = apiSummary.totalBetAmount;
   const worstCasePayout = riskData.length > 0 ? Math.max(...riskData.map((r) => r.potentialPayout)) : 0;
 
   if (isLoading) {
