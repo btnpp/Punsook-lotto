@@ -68,14 +68,13 @@ interface SettingsData {
 export default function RiskPage() {
   const [selectedLottery, setSelectedLottery] = useState("ALL");
   const [selectedRound, setSelectedRound] = useState<string>("");
-  const [showHistory, setShowHistory] = useState(false);
 
   // Build API URL with params
   const buildRiskUrl = () => {
     const params = new URLSearchParams();
     if (selectedLottery !== "ALL") params.append("lotteryType", selectedLottery);
     if (selectedRound) params.append("roundId", selectedRound);
-    if (showHistory) params.append("includeHistory", "true");
+    params.append("includeHistory", "true"); // Always include all rounds
     return `/api/risk?${params.toString()}`;
   };
 
@@ -259,7 +258,7 @@ export default function RiskPage() {
           </div>
           <div className="flex gap-2 items-center">
             <Select value={selectedRound} onValueChange={setSelectedRound}>
-              <SelectTrigger className="w-[220px]">
+              <SelectTrigger className="w-[200px]">
                 <Calendar className="w-4 h-4 mr-2" />
                 <SelectValue placeholder="เลือกงวด" />
               </SelectTrigger>
@@ -268,7 +267,7 @@ export default function RiskPage() {
                   <SelectItem key={round.id} value={round.id}>
                     <span className="flex items-center gap-2">
                       <span>{LOTTERY_TYPES[round.lotteryType.code as keyof typeof LOTTERY_TYPES]?.flag}</span>
-                      <span>
+                      <span className="whitespace-nowrap">
                         {new Date(round.roundDate).toLocaleDateString("th-TH", { 
                           day: "numeric", 
                           month: "short", 
@@ -276,23 +275,13 @@ export default function RiskPage() {
                         })}
                       </span>
                       {round.status === "OPEN" && (
-                        <Badge variant="outline" className="text-emerald-400 border-emerald-400/50 text-xs">เปิด</Badge>
-                      )}
-                      {round.status === "RESULTED" && (
-                        <Badge variant="secondary" className="text-xs">ออกผลแล้ว</Badge>
+                        <Badge variant="outline" className="text-emerald-400 border-emerald-400/50 text-xs px-1">เปิด</Badge>
                       )}
                     </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Button 
-              variant={showHistory ? "default" : "outline"} 
-              onClick={() => setShowHistory(!showHistory)}
-              className="gap-2"
-            >
-              {showHistory ? "ซ่อนประวัติ" : "ดูงวดย้อนหลัง"}
-            </Button>
             <Button variant="outline" className="gap-2" onClick={() => mutate()}>
               <RefreshCw className="w-4 h-4" />
               รีเฟรช
