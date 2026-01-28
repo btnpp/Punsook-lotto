@@ -80,6 +80,17 @@ export async function PUT(
             discount: d.discount,
           },
         });
+
+        // Sync to preset "ปกติ" for this lottery type
+        await prisma.discountPreset.updateMany({
+          where: {
+            agentId: id,
+            lotteryType: d.lotteryType,
+            name: "ปกติ",
+            isFullPay: false,
+          },
+          data: { discount: d.discount },
+        });
       }
     }
 
