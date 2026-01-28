@@ -458,21 +458,22 @@ export default function BetsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>ประเภทหวย</Label>
-                    <Select value={selectedLottery} onValueChange={setSelectedLottery}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(LOTTERY_TYPES).map(([key, lottery]) => (
-                          <SelectItem key={key} value={key}>
-                            <span className="flex items-center gap-2">
-                              <span>{lottery.flag}</span>
-                              <span>{lottery.name}</span>
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(LOTTERY_TYPES).map(([key, lottery]) => (
+                        <button
+                          key={key}
+                          onClick={() => setSelectedLottery(key)}
+                          className={`px-3 py-2 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                            selectedLottery === key
+                              ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
+                              : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                          }`}
+                        >
+                          <span>{lottery.flag}</span>
+                          <span className="text-sm">{lottery.name}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
