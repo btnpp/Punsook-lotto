@@ -118,6 +118,8 @@ export default function AgentsPage() {
   const [selectedLottery, setSelectedLottery] = useState("THAI");
   const [presets, setPresets] = useState<DiscountPreset[]>([]);
   const [isAddingPreset, setIsAddingPreset] = useState(false);
+  const [editingPresetId, setEditingPresetId] = useState<string | null>(null);
+  const [editingPresetDiscount, setEditingPresetDiscount] = useState<number>(0);
   const [selectedPresetLottery, setSelectedPresetLottery] = useState("THAI");
   const [newPresetData, setNewPresetData] = useState({
     lotteryType: "THAI",
@@ -179,6 +181,8 @@ export default function AgentsPage() {
     // โหลด presets
     setPresets(agent.discountPresets || []);
     setIsAddingPreset(false);
+    setEditingPresetId(null);
+    setEditingPresetDiscount(0);
     setSelectedPresetLottery("THAI");
     setNewPresetData({
       lotteryType: "THAI",
@@ -273,6 +277,43 @@ export default function AgentsPage() {
       }
     } catch (error) {
       console.error("Set default preset error:", error);
+    }
+  };
+
+  const handleStartEditPreset = (preset: DiscountPreset) => {
+    setEditingPresetId(preset.id);
+    setEditingPresetDiscount(preset.discount);
+  };
+
+  const handleCancelEditPreset = () => {
+    setEditingPresetId(null);
+    setEditingPresetDiscount(0);
+  };
+
+  const handleUpdatePresetDiscount = async (presetId: string) => {
+    try {
+      const res = await fetch(`/api/presets/${presetId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ discount: editingPresetDiscount }),
+      });
+      
+      if (res.ok) {
+        setPresets(presets.map(p => 
+          p.id === presetId 
+            ? { ...p, discount: editingPresetDiscount }
+            : p
+        ));
+        toast.success("อัพเดทส่วนลดสำเร็จ");
+        setEditingPresetId(null);
+        mutate();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "ไม่สามารถอัพเดทได้");
+      }
+    } catch (error) {
+      console.error("Update preset discount error:", error);
+      toast.error("เกิดข้อผิดพลาด");
     }
   };
 
@@ -727,8 +768,43 @@ export default function AgentsPage() {
                               <span className="px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded">💰 จ่ายเต็ม</span>
                             )}
                           </div>
-                          {!preset.isFullPay && (
-                            <p className="text-lg font-bold text-amber-400">ลด {preset.discount}%</p>
+                          {!preset.isFullPay && editingPresetId === preset.id ? (
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-slate-400">ลด</span>
+                              <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={editingPresetDiscount}
+                                onChange={(e) => setEditingPresetDiscount(parseInt(e.target.value) || 0)}
+                                className="w-20 h-8 text-center font-bold"
+                              />
+                              <span className="text-slate-400">%</span>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => handleUpdatePresetDiscount(preset.id)}
+                                className="h-7"
+                              >
+                                <Check className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleCancelEditPreset}
+                                className="h-7"
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ) : !preset.isFullPay && (
+                            <button 
+                              onClick={() => handleStartEditPreset(preset)}
+                              className="text-lg font-bold text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1"
+                            >
+                              ลด {preset.discount}%
+                              <Edit className="w-3 h-3 opacity-50" />
+                            </button>
                           )}
                           {preset.isFullPay && (
                             <p className="text-xs text-slate-400">ไม่ลดส่วนลด จ่ายรางวัลเต็มอัตรา</p>
