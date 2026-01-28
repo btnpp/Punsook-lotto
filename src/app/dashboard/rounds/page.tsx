@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Plus, 
   Ban, 
@@ -169,6 +170,7 @@ export default function RoundsPage() {
   const [selectedBetTypes, setSelectedBetTypes] = useState<string[]>(["TWO_TOP"]);
   const [restrictionType, setRestrictionType] = useState("BLOCKED");
   const [restrictionValue, setRestrictionValue] = useState<number | undefined>(undefined);
+  const [includeReversed, setIncludeReversed] = useState(true); // อั้นทั้งไปและกลับ
 
   // Handle input change and parse numbers
   const handleNumbersInputChange = (value: string) => {
@@ -176,25 +178,22 @@ export default function RoundsPage() {
     setParsedNumbers(parseNumbers(value));
   };
 
-  // ฟังก์ชันกลับเลข
-  const reverseNumber = (num: string): string | null => {
-    if (num.length < 2) return null;
-    const reversed = num.split("").reverse().join("");
-    return reversed !== num ? reversed : null;
-  };
-
-  // เพิ่มเลขกลับ
-  const handleAddReversedNumbers = () => {
-    const newNumbers = new Set(parsedNumbers);
-    parsedNumbers.forEach((num) => {
-      const reversed = reverseNumber(num);
-      if (reversed) {
-        newNumbers.add(reversed);
+  // ฟังก์ชันกลับเลข - ได้ทุก permutations
+  const getAllPermutations = (str: string): string[] => {
+    if (str.length <= 1) return [str];
+    
+    const result: Set<string> = new Set();
+    
+    for (let i = 0; i < str.length; i++) {
+      const char = str[i];
+      const remaining = str.slice(0, i) + str.slice(i + 1);
+      const perms = getAllPermutations(remaining);
+      for (const perm of perms) {
+        result.add(char + perm);
       }
-    });
-    const updatedNumbers = Array.from(newNumbers);
-    setParsedNumbers(updatedNumbers);
-    setNumbersInput(updatedNumbers.join(" "));
+    }
+    
+    return Array.from(result);
   };
 
   // Toggle bet type selection
@@ -209,16 +208,34 @@ export default function RoundsPage() {
   const handleAddRestriction = () => {
     if (!selectedRound || parsedNumbers.length === 0 || selectedBetTypes.length === 0) return;
 
+    // รวบรวมเลขทั้งหมด (รวม permutations ถ้าติ๊กอั้นทั้งไปและกลับ)
+    const allNumbers: Set<string> = new Set();
+    parsedNumbers.forEach((num) => {
+      if (includeReversed && num.length >= 2) {
+        // เพิ่มทุก permutations
+        const perms = getAllPermutations(num);
+        perms.forEach((p) => allNumbers.add(p));
+      } else {
+        allNumbers.add(num);
+      }
+    });
+
     // สร้าง restrictions จากทุกเลขและทุกประเภทที่เลือก
     const newRestrictions: Restriction[] = [];
-    parsedNumbers.forEach((num) => {
+    allNumbers.forEach((num) => {
       selectedBetTypes.forEach((betType) => {
-        newRestrictions.push({
-          number: num,
-          betType,
-          type: restrictionType,
-          value: restrictionValue,
-        });
+        // ตรวจสอบว่ามี restriction นี้อยู่แล้วหรือไม่
+        const exists = selectedRound.restrictions?.some(
+          (r) => r.number === num && r.betType === betType
+        );
+        if (!exists) {
+          newRestrictions.push({
+            number: num,
+            betType,
+            type: restrictionType,
+            value: restrictionValue,
+          });
+        }
       });
     });
 
@@ -232,11 +249,13 @@ export default function RoundsPage() {
           : r
       )
     );
+    toast.success(`เพิ่มเลขอั้น ${newRestrictions.length} รายการสำเร็จ`);
     setNumbersInput("");
     setParsedNumbers([]);
     setSelectedBetTypes(["TWO_TOP"]);
     setRestrictionType("BLOCKED");
     setRestrictionValue(undefined);
+    setIncludeReversed(true);
     setIsRestrictionDialogOpen(false);
   };
 
@@ -589,6 +608,8 @@ export default function RoundsPage() {
                                             ? "destructive"
                                             : res.type === "REDUCED_LIMIT"
                                             ? "warning"
+                                            : res.type === "HALF_PAYOUT"
+                                            ? "warning"
                                             : "secondary"
                                         }
                                       >
@@ -600,6 +621,8 @@ export default function RoundsPage() {
                                         <span className="text-red-400">ปิดรับ</span>
                                       ) : res.type === "REDUCED_LIMIT" ? (
                                         <span>Limit: ฿{formatNumber(res.value || 0)}</span>
+                                      ) : res.type === "HALF_PAYOUT" ? (
+                                        <span className="text-amber-400">จ่ายครึ่งราคา</span>
                                       ) : (
                                         <span>จ่าย: ×{res.value}</span>
                                       )}
@@ -761,25 +784,24 @@ export default function RoundsPage() {
                 onChange={(e) => handleNumbersInputChange(e.target.value)}
                 className="w-full min-h-[80px] p-3 rounded-lg bg-slate-800 border border-slate-700 text-lg font-mono focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none resize-none"
               />
-              {/* ปุ่มกลับเลข */}
-              {parsedNumbers.length > 0 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddReversedNumbers}
-                  className="gap-2"
-                >
-                  🔄 กลับเลข
-                </Button>
-              )}
+              {/* Checkbox อั้นทั้งไปและกลับ */}
+              <div className="flex items-center gap-2 mt-2">
+                <Checkbox
+                  id="includeReversed"
+                  checked={includeReversed}
+                  onCheckedChange={(checked) => setIncludeReversed(checked as boolean)}
+                />
+                <label htmlFor="includeReversed" className="text-sm text-slate-300 cursor-pointer">
+                  🔄 อั้นทั้งไปและกลับ (รวม permutations ทั้งหมด)
+                </label>
+              </div>
               {/* Preview */}
               {parsedNumbers.length > 0 && (
                 <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
                   <p className="text-sm text-amber-400 mb-2">
-                    จะเพิ่ม {parsedNumbers.length} เลข:
+                    เลขที่ใส่ ({parsedNumbers.length} เลข):
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mb-2">
                     {parsedNumbers.map((num, idx) => (
                       <span
                         key={idx}
@@ -789,6 +811,16 @@ export default function RoundsPage() {
                       </span>
                     ))}
                   </div>
+                  {includeReversed && (
+                    <p className="text-xs text-slate-400">
+                      รวม permutations ทั้งหมด ~{" "}
+                      {parsedNumbers.reduce((sum, num) => {
+                        const perms = new Set(getAllPermutations(num));
+                        return sum + perms.size;
+                      }, 0)}{" "}
+                      เลข
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -860,7 +892,12 @@ export default function RoundsPage() {
               onClick={handleAddRestriction} 
               disabled={parsedNumbers.length === 0 || selectedBetTypes.length === 0}
             >
-              เพิ่มเลขอั้น ({parsedNumbers.length * selectedBetTypes.length} รายการ)
+              เพิ่มเลขอั้น ({(() => {
+                const totalNumbers = includeReversed
+                  ? parsedNumbers.reduce((sum, num) => sum + new Set(getAllPermutations(num)).size, 0)
+                  : parsedNumbers.length;
+                return totalNumbers * selectedBetTypes.length;
+              })()} รายการ)
             </Button>
           </DialogFooter>
         </DialogContent>

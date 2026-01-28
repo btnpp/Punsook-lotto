@@ -195,6 +195,11 @@ export const RESTRICTION_TYPES = {
     name: "อั้นลดราคาจ่าย",
     description: "รับได้แต่ลดอัตราจ่าย",
   },
+  HALF_PAYOUT: {
+    code: "HALF_PAYOUT",
+    name: "จ่ายครึ่งราคา",
+    description: "จ่ายครึ่งราคาตามอัตราจ่ายของแต่ละคน",
+  },
 } as const;
 
 // =============================================
