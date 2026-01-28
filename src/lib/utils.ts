@@ -77,18 +77,95 @@ export function validateLotteryNumber(number: string, betType: string): boolean 
   }
 }
 
+// Helper: Get all permutations of a number string
+function getAllPermutations(str: string): string[] {
+  if (str.length <= 1) return [str];
+  
+  const result: Set<string> = new Set();
+  
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+    const remaining = str.slice(0, i) + str.slice(i + 1);
+    const perms = getAllPermutations(remaining);
+    for (const perm of perms) {
+      result.add(char + perm);
+    }
+  }
+  
+  return Array.from(result);
+}
+
 // Parse bulk bet input (โพย)
-export function parseBulkBet(input: string): Array<{ number: string; amount: number }> {
+// Supports:
+// - 12=100 → เลข=จำนวนเงิน (ประเภทตาม digit)
+// - 603=100x100 → 3ตัวบน x 3ตัวโต๊ด
+// - 603=100x100x100 → 3ตัวบน x 3ตัวโต๊ด x 3ตัวล่าง
+// - 12=100x100 → 2ตัวบน x 2ตัวล่าง
+// - 603/ → กลับเลข (ใช้ยอดจากบรรทัดก่อนหน้า หรือ default 100)
+export function parseBulkBet(input: string): Array<{ number: string; amount: number; betType?: string }> {
   const lines = input.trim().split("\n");
-  const bets: Array<{ number: string; amount: number }> = [];
+  const bets: Array<{ number: string; amount: number; betType?: string }> = [];
+  let lastAmount = 100; // default amount for reverse
 
   for (const line of lines) {
-    // Format: "12=100" or "12 100" or "12x100"
-    const match = line.trim().match(/^(\d+)[=\sx]+(\d+)$/);
-    if (match) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    // Pattern 1: กลับเลข - "603/" or "12/"
+    const reverseMatch = trimmed.match(/^(\d+)\/$/);
+    if (reverseMatch) {
+      const num = reverseMatch[1];
+      const permutations = getAllPermutations(num);
+      for (const perm of permutations) {
+        bets.push({
+          number: perm,
+          amount: lastAmount,
+        });
+      }
+      continue;
+    }
+
+    // Pattern 2: Multi-amount - "603=100x100" or "603=100x100x100" or "12=100x100"
+    const multiMatch = trimmed.match(/^(\d+)=(\d+)[×x](\d+)(?:[×x](\d+))?$/i);
+    if (multiMatch) {
+      const num = multiMatch[1];
+      const amount1 = parseInt(multiMatch[2], 10);
+      const amount2 = parseInt(multiMatch[3], 10);
+      const amount3 = multiMatch[4] ? parseInt(multiMatch[4], 10) : null;
+      
+      lastAmount = amount1;
+
+      if (num.length === 3) {
+        // 3 ตัว: บน, โต๊ด, [ล่าง]
+        if (amount1 > 0) {
+          bets.push({ number: num, amount: amount1, betType: "THREE_TOP" });
+        }
+        if (amount2 > 0) {
+          bets.push({ number: num, amount: amount2, betType: "THREE_TOD" });
+        }
+        if (amount3 && amount3 > 0) {
+          bets.push({ number: num, amount: amount3, betType: "THREE_BOTTOM" });
+        }
+      } else if (num.length === 2) {
+        // 2 ตัว: บน, ล่าง
+        if (amount1 > 0) {
+          bets.push({ number: num, amount: amount1, betType: "TWO_TOP" });
+        }
+        if (amount2 > 0) {
+          bets.push({ number: num, amount: amount2, betType: "TWO_BOTTOM" });
+        }
+      }
+      continue;
+    }
+
+    // Pattern 3: Simple - "12=100" or "12 100"
+    const simpleMatch = trimmed.match(/^(\d+)[=\s]+(\d+)$/);
+    if (simpleMatch) {
+      const amount = parseInt(simpleMatch[2], 10);
+      lastAmount = amount;
       bets.push({
-        number: match[1],
-        amount: parseInt(match[2], 10),
+        number: simpleMatch[1],
+        amount: amount,
       });
     }
   }

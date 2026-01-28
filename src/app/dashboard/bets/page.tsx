@@ -315,23 +315,41 @@ export default function BetsPage() {
     const newBets: BetItem[] = [];
 
     parsed.forEach((bet, index) => {
-      selectedBetTypes.forEach((betType) => {
-        const betTypeInfo = BET_TYPES[betType as keyof typeof BET_TYPES];
-        if (bet.number.length === betTypeInfo.digits) {
-          const payRate = DEFAULT_PAY_RATES[selectedLottery as keyof typeof DEFAULT_PAY_RATES]?.[betType as keyof typeof DEFAULT_PAY_RATES.THAI] || 0;
-          const discount = getDiscountByBetType(betType);
-          
-          newBets.push({
-            id: `${Date.now()}-${index}-${betType}`,
-            number: bet.number,
-            betType,
-            amount: bet.amount,
-            discount,
-            netAmount: calculateNetAmount(bet.amount, discount),
-            payRate,
-          });
-        }
-      });
+      // ถ้า bet มี betType ระบุมาแล้ว (จาก pattern พิเศษ) ให้ใช้เลย
+      if (bet.betType) {
+        const betType = bet.betType;
+        const payRate = DEFAULT_PAY_RATES[selectedLottery as keyof typeof DEFAULT_PAY_RATES]?.[betType as keyof typeof DEFAULT_PAY_RATES.THAI] || 0;
+        const discount = getDiscountByBetType(betType);
+        
+        newBets.push({
+          id: `${Date.now()}-${index}-${betType}`,
+          number: bet.number,
+          betType,
+          amount: bet.amount,
+          discount,
+          netAmount: calculateNetAmount(bet.amount, discount),
+          payRate,
+        });
+      } else {
+        // ไม่มี betType → ใช้ selectedBetTypes ตามปกติ
+        selectedBetTypes.forEach((betType) => {
+          const betTypeInfo = BET_TYPES[betType as keyof typeof BET_TYPES];
+          if (bet.number.length === betTypeInfo.digits) {
+            const payRate = DEFAULT_PAY_RATES[selectedLottery as keyof typeof DEFAULT_PAY_RATES]?.[betType as keyof typeof DEFAULT_PAY_RATES.THAI] || 0;
+            const discount = getDiscountByBetType(betType);
+            
+            newBets.push({
+              id: `${Date.now()}-${index}-${betType}`,
+              number: bet.number,
+              betType,
+              amount: bet.amount,
+              discount,
+              netAmount: calculateNetAmount(bet.amount, discount),
+              payRate,
+            });
+          }
+        });
+      }
     });
 
     setBetItems([...betItems, ...newBets]);
