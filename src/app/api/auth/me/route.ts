@@ -35,6 +35,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get permissions - use customPermissions if set, otherwise use role permissions
+    const rolePermissions = JSON.parse(user.role.permissions);
+    const userPermissions = user.customPermissions 
+      ? (user.customPermissions as string[])
+      : rolePermissions;
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -42,7 +48,7 @@ export async function GET(request: NextRequest) {
         name: user.name,
         email: user.email,
         role: user.role.code,
-        permissions: JSON.parse(user.role.permissions),
+        permissions: userPermissions,
       },
     });
   } catch (error) {

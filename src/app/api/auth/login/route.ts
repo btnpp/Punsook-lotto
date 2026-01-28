@@ -63,6 +63,12 @@ export async function POST(request: NextRequest) {
       { expiresIn: "7d" }
     );
 
+    // Get permissions - use customPermissions if set, otherwise use role permissions
+    const rolePermissions = JSON.parse(user.role.permissions);
+    const userPermissions = user.customPermissions 
+      ? (user.customPermissions as string[])
+      : rolePermissions;
+
     // Create response with cookie
     const response = NextResponse.json({
       success: true,
@@ -72,7 +78,7 @@ export async function POST(request: NextRequest) {
         name: user.name,
         email: user.email,
         role: user.role.code,
-        permissions: JSON.parse(user.role.permissions),
+        permissions: userPermissions,
       },
     });
 
