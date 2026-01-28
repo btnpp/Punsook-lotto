@@ -302,6 +302,46 @@ export default function ResultsPage() {
         return;
       }
 
+      // Auto-create next round if enabled
+      if (autoCreateNextRound) {
+        const lotteryCode = selectedRound.lotteryCode || selectedRound.lotteryType?.code || "THAI";
+        const nextDate = getNextDrawDate(lotteryCode, selectedRound.roundDate);
+        const closeTime = getDefaultCloseTime(lotteryCode);
+        
+        try {
+          const createRes = await fetch("/api/rounds", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              lotteryTypeCode: lotteryCode,
+              roundDate: nextDate.toISOString(),
+              closeTime: closeTime,
+            }),
+          });
+
+          if (createRes.ok) {
+            const newRound = await createRes.json();
+            setLastCreatedRound({
+              lotteryType: lotteryCode,
+              date: nextDate,
+              closeTime: closeTime,
+            });
+            toast.success(`สร้างงวดถัดไป ${nextDate.toLocaleDateString("th-TH")} สำเร็จ`);
+          } else {
+            // Round might already exist, that's okay
+            const err = await createRes.json();
+            if (err.error?.includes("มีงวดนี้อยู่แล้ว") || err.error?.includes("already exists")) {
+              // Already exists - don't show error
+              setLastCreatedRound(null);
+            } else {
+              console.log("Create next round response:", err);
+            }
+          }
+        } catch (createError) {
+          console.error("Create next round error:", createError);
+        }
+      }
+
       // Refresh rounds
       await fetchRounds();
       setIsResultDialogOpen(false);
