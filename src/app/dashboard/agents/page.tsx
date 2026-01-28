@@ -55,6 +55,7 @@ interface DiscountPreset {
   isFullPay: boolean;
   isDefault: boolean;
   isActive: boolean;
+  payRates?: Record<string, number> | null;
 }
 
 interface Agent {
@@ -121,12 +122,20 @@ export default function AgentsPage() {
   const [editingPresetId, setEditingPresetId] = useState<string | null>(null);
   const [editingPresetDiscount, setEditingPresetDiscount] = useState<number>(0);
   const [selectedPresetLottery, setSelectedPresetLottery] = useState("THAI");
-  const [newPresetData, setNewPresetData] = useState({
+  const [newPresetData, setNewPresetData] = useState<{
+    lotteryType: string;
+    name: string;
+    discount: number;
+    isDefault: boolean;
+    payRates: Record<string, number | undefined>;
+  }>({
     lotteryType: "THAI",
     name: "",
     discount: 0,
     isDefault: false,
+    payRates: {},
   });
+  const [showPayRatesForm, setShowPayRatesForm] = useState(false);
 
   // Helper to get discount value from agent
   const getAgentDiscounts = (agent: Agent): { THAI: number; LAO: number; HANOI: number } => {
@@ -189,7 +198,9 @@ export default function AgentsPage() {
       name: "",
       discount: 0,
       isDefault: false,
+      payRates: {},
     });
+    setShowPayRatesForm(false);
     
     setIsSettingsDialogOpen(true);
   };
@@ -199,10 +210,19 @@ export default function AgentsPage() {
     
     setIsSaving(true);
     try {
+      // กรอง payRates ที่มีค่าจริงๆ
+      const filteredPayRates = Object.fromEntries(
+        Object.entries(newPresetData.payRates).filter(([, v]) => v !== undefined && v !== null && !isNaN(v))
+      );
+      const dataToSend = {
+        ...newPresetData,
+        payRates: Object.keys(filteredPayRates).length > 0 ? filteredPayRates : null,
+      };
+      
       const res = await fetch(`/api/agents/${selectedAgent.id}/presets`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newPresetData),
+        body: JSON.stringify(dataToSend),
       });
       
       if (res.ok) {
@@ -214,7 +234,9 @@ export default function AgentsPage() {
           name: "",
           discount: 0,
           isDefault: false,
+          payRates: {},
         });
+        setShowPayRatesForm(false);
         toast.success("เพิ่ม Preset สำเร็จ");
         mutate();
       } else {
@@ -806,6 +828,16 @@ export default function AgentsPage() {
                               <Edit className="w-3 h-3 opacity-50" />
                             </button>
                           )}
+                          {/* แสดงอัตราจ่ายพิเศษ */}
+                          {preset.payRates && Object.keys(preset.payRates).length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {Object.entries(preset.payRates).map(([betType, rate]) => (
+                                <span key={betType} className="text-xs px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded">
+                                  {BET_TYPES[betType as keyof typeof BET_TYPES]?.shortName}: ×{rate}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                           {preset.isFullPay && (
                             <p className="text-xs text-slate-400">ไม่ลดส่วนลด จ่ายรางวัลเต็มอัตรา</p>
                           )}
@@ -905,6 +937,51 @@ export default function AgentsPage() {
                       onCheckedChange={(checked) => setNewPresetData({ ...newPresetData, isDefault: checked })}
                     />
                     <Label>ตั้งเป็น Default สำหรับหวยนี้</Label>
+                  </div>
+
+                  {/* อัตราจ่ายพิเศษ */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={showPayRatesForm}
+                        onCheckedChange={setShowPayRatesForm}
+                      />
+                      <Label>กำหนดอัตราจ่ายพิเศษ</Label>
+                    </div>
+                    
+                    {showPayRatesForm && (
+                      <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700 space-y-3">
+                        <p className="text-xs text-slate-400">
+                          ถ้าไม่กำหนด จะใช้อัตราจ่ายกลาง (เว้นว่างเพื่อใช้ค่าเดิม)
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {Object.entries(BET_TYPES).map(([betKey, betType]) => (
+                            <div key={betKey} className="space-y-1">
+                              <Label className="text-xs">{betType.name}</Label>
+                              <div className="flex items-center gap-1">
+                                <span className="text-slate-400 text-sm">×</span>
+                                <Input
+                                  type="number"
+                                  placeholder="—"
+                                  value={newPresetData.payRates[betKey] || ""}
+                                  onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    setNewPresetData({
+                                      ...newPresetData,
+                                      payRates: {
+                                        ...newPresetData.payRates,
+                                        [betKey]: val || undefined,
+                                      },
+                                    });
+                                  }}
+                                  className="font-mono text-sm h-8"
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex gap-2">

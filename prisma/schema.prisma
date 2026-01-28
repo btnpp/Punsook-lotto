@@ -87,6 +87,7 @@ model DiscountPreset {
   isFullPay   Boolean  @default(false) // จ่ายเต็ม (ไม่ลด%, ถูกเลขอั้นก็จ่ายเต็ม)
   isDefault   Boolean  @default(false) // เป็น preset หลัก
   isActive    Boolean  @default(true)
+  payRates    Json?    // อัตราจ่ายพิเศษ เช่น { "THREE_TOP": 850, "TWO_TOP": 85 }
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

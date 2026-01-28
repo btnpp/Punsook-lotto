@@ -50,6 +50,7 @@ export async function POST(
       discount = 0,
       isFullPay = false,
       isDefault = false,
+      payRates = null,
     } = body;
 
     if (!name) {
@@ -91,6 +92,7 @@ export async function POST(
         discount,
         isFullPay,
         isDefault,
+        payRates: payRates || undefined,
       },
     });
 

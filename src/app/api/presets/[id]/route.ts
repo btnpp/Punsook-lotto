@@ -45,6 +45,7 @@ export async function PUT(
       isFullPay,
       isDefault,
       isActive,
+      payRates,
     } = body;
 
     // Find existing preset
@@ -79,6 +80,7 @@ export async function PUT(
         isFullPay: isFullPay ?? existingPreset.isFullPay,
         isDefault: isDefault ?? existingPreset.isDefault,
         isActive: isActive ?? existingPreset.isActive,
+        payRates: payRates !== undefined ? payRates : undefined,
       },
     });
 
