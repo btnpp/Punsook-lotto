@@ -360,6 +360,10 @@ export default function BetsPage() {
     setBetItems(betItems.filter((b) => b.id !== id));
   };
 
+  const handleRemoveByType = (betType: string) => {
+    setBetItems(betItems.filter((b) => b.betType !== betType));
+  };
+
   const handleClearAll = () => {
     setBetItems([]);
   };
@@ -914,13 +918,24 @@ export default function BetsPage() {
                       ).map(([betType, bets]) => (
                         <div key={betType} className="space-y-1">
                           {/* Section Header */}
-                          <div className="flex items-center gap-2 px-2 py-1 bg-slate-700/50 rounded-md">
-                            <Badge variant="outline" className="text-amber-400 border-amber-400/50">
-                              {BET_TYPES[betType as keyof typeof BET_TYPES]?.name || betType}
-                            </Badge>
-                            <span className="text-xs text-slate-400">
-                              ({bets.length} รายการ)
-                            </span>
+                          <div className="flex items-center justify-between px-2 py-1 bg-slate-700/50 rounded-md">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-amber-400 border-amber-400/50">
+                                {BET_TYPES[betType as keyof typeof BET_TYPES]?.name || betType}
+                              </Badge>
+                              <span className="text-xs text-slate-400">
+                                ({bets.length} รายการ)
+                              </span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                              onClick={() => handleRemoveByType(betType)}
+                              title={`ลบ ${BET_TYPES[betType as keyof typeof BET_TYPES]?.name} ทั้งหมด`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
                           </div>
                           {/* Bets in this section */}
                           <div className="space-y-1 pl-2">
