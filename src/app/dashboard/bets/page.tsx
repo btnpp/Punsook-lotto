@@ -122,7 +122,7 @@ export default function BetsPage() {
   const [singleAmount, setSingleAmount] = useState("");
   const [bulkInput, setBulkInput] = useState("");
   const [betItems, setBetItems] = useState<BetItem[]>([]);
-  const [mode, setMode] = useState<"quick" | "single" | "bulk">("quick");
+  const [mode, setMode] = useState<"quick" | "bulk">("quick");
   const [slipNote, setSlipNote] = useState(""); // หมายเหตุโพย
   
   // Quick mode states
@@ -533,104 +533,14 @@ export default function BetsPage() {
               </CardContent>
             </Card>
 
-            {/* Bet Type Selection - Multi Select */}
-            <Card>
-              <CardContent className="p-4 lg:p-6">
-                <Label className="mb-3 lg:mb-4 block text-sm lg:text-base">ประเภทการแทง (เลือกได้หลายประเภท)</Label>
-                
-                {/* 3 ตัว */}
-                <div className="mb-3 lg:mb-4">
-                  <p className="text-xs text-slate-400 mb-2">3 ตัว</p>
-                  <div className="flex flex-wrap gap-2">
-                    {threeDigitTypes.map((key) => {
-                      const type = BET_TYPES[key as keyof typeof BET_TYPES];
-                      const isSelected = selectedBetTypes.includes(key);
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => toggleBetType(key)}
-                          className={`px-3 lg:px-4 py-2.5 lg:py-2 rounded-lg font-medium transition-all text-sm lg:text-base touch-manipulation ${
-                            isSelected
-                              ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
-                              : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-                          }`}
-                        >
-                          {type.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 2 ตัว */}
-                <div className="mb-3 lg:mb-4">
-                  <p className="text-xs text-slate-400 mb-2">2 ตัว</p>
-                  <div className="flex flex-wrap gap-2">
-                    {twoDigitTypes.map((key) => {
-                      const type = BET_TYPES[key as keyof typeof BET_TYPES];
-                      const isSelected = selectedBetTypes.includes(key);
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => toggleBetType(key)}
-                          className={`px-3 lg:px-4 py-2.5 lg:py-2 rounded-lg font-medium transition-all text-sm lg:text-base touch-manipulation ${
-                            isSelected
-                              ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
-                              : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-                          }`}
-                        >
-                          {type.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* วิ่ง */}
-                <div>
-                  <p className="text-xs text-slate-400 mb-2">วิ่ง</p>
-                  <div className="flex flex-wrap gap-2">
-                    {oneDigitTypes.map((key) => {
-                      const type = BET_TYPES[key as keyof typeof BET_TYPES];
-                      const isSelected = selectedBetTypes.includes(key);
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => toggleBetType(key)}
-                          className={`px-3 lg:px-4 py-2.5 lg:py-2 rounded-lg font-medium transition-all text-sm lg:text-base touch-manipulation ${
-                            isSelected
-                              ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
-                              : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-                          }`}
-                        >
-                          {type.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* แสดงประเภทที่เลือก */}
-                {selectedBetTypes.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <span className="text-sm text-slate-400">เลือกแล้ว:</span>
-                    {selectedBetTypes.map((type) => (
-                      <Badge key={type} variant="default">
-                        {BET_TYPES[type as keyof typeof BET_TYPES]?.name}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {/* Bet Type Selection removed - now auto-determined by digit count and amount fields */}
 
             {/* Input Mode */}
             <Card>
               <CardHeader>
-                <Tabs value={mode} onValueChange={(v) => setMode(v as "quick" | "single" | "bulk")}>
+                <Tabs value={mode} onValueChange={(v) => setMode(v as "quick" | "bulk")}>
                   <TabsList>
                     <TabsTrigger value="quick">คีย์ด่วน</TabsTrigger>
-                    <TabsTrigger value="single">คีย์เดี่ยว</TabsTrigger>
                     <TabsTrigger value="bulk">คีย์โพย</TabsTrigger>
                   </TabsList>
                 </Tabs>
@@ -842,83 +752,7 @@ export default function BetsPage() {
                   </div>
                 )}
 
-                {mode === "single" && (
-                  <div className="space-y-4">
-                    {/* ช่องใส่เลข */}
-                    <div className="space-y-2">
-                      <Label>เลข (พิมพ์หลายเลขคั่นด้วย , หรือ เว้นวรรค)</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          type="text"
-                          placeholder={`เช่น 12, 34, 56 หรือ 12 34 56`}
-                          value={singleNumbers}
-                          onChange={(e) => setSingleNumbers(e.target.value)}
-                          className="text-lg font-mono tracking-wide flex-1"
-                        />
-                        {/* ปุ่มกลับเลข */}
-                        <Button
-                          variant="outline"
-                          onClick={handleReverseNumbers}
-                          disabled={getValidNumbersFromInput().length === 0}
-                          title="เพิ่มเลขกลับ"
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* แสดง Preview เลขที่พิมพ์ */}
-                    {getValidNumbersFromInput().length > 0 && (
-                      <div className="p-3 rounded-lg bg-slate-800/70 border border-slate-700">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm text-slate-400">เลขที่จะเพิ่ม:</span>
-                          {getValidNumbersFromInput().map((num) => (
-                            <span
-                              key={num}
-                              className="px-2 py-1 rounded bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 font-mono font-bold text-amber-400"
-                            >
-                              {num}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* จำนวนเงิน */}
-                    <div className="space-y-2">
-                      <Label>จำนวนเงิน (ต่อเลข)</Label>
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        value={singleAmount}
-                        onChange={(e) => setSingleAmount(e.target.value)}
-                        className="text-2xl font-mono text-center"
-                      />
-                    </div>
-                    
-                    {/* Preview ยอดรวม */}
-                    {getValidNumbersFromInput().length > 0 && singleAmount && (
-                      <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-slate-300">ยอดรวม ({getValidNumbersFromInput().length} เลข × ฿{formatNumber(parseFloat(singleAmount) || 0)})</span>
-                          <span className="font-bold text-emerald-400">
-                            ฿{formatNumber(getValidNumbersFromInput().length * (parseFloat(singleAmount) || 0))}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <Button
-                      className="w-full gap-2"
-                      size="lg"
-                      onClick={handleAddSingleBet}
-                      disabled={getValidNumbersFromInput().length === 0 || !singleAmount || !selectedAgent}
-                    >
-                      <Plus className="w-4 h-4" />
-                      เพิ่มรายการ ({getValidNumbersFromInput().length} เลข)
-                    </Button>
-                  </div>
-                )}
+                {/* Single mode removed - use quick mode or bulk mode */}
 
                 {mode === "bulk" && (
                   <div className="space-y-4">
