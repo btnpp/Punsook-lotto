@@ -378,7 +378,20 @@ export default function BetsPage() {
       return;
     }
 
+    // Optimistic update - clear immediately for better UX
+    const itemsCount = betItems.length;
+    const netAmount = totalNetAmount;
+    const betsToSubmit = betItems.map(bet => ({
+      number: bet.number,
+      betType: bet.betType,
+      amount: bet.amount,
+    }));
+    
+    // Clear UI immediately (optimistic)
+    setBetItems([]);
+    setSlipNote("");
     setIsSubmitting(true);
+    
     try {
       // Submit all bets at once
       const res = await fetch("/api/bets", {
@@ -391,22 +404,17 @@ export default function BetsPage() {
           isFullPay: isFullPay(),
           note: slipNote || undefined,
           userId: user?.id,
-          bets: betItems.map(bet => ({
-            number: bet.number,
-            betType: bet.betType,
-            amount: bet.amount,
-          })),
+          bets: betsToSubmit,
         }),
       });
       
       if (res.ok) {
         const data = await res.json();
-        toast.success(`ส่งโพยสำเร็จ! จำนวน ${data.count} รายการ ยอดรวม ${formatCurrency(totalNetAmount)}`);
-        setBetItems([]);
-        setSlipNote(""); // Reset note
+        toast.success(`ส่งโพยสำเร็จ! จำนวน ${data.count} รายการ ยอดรวม ${formatCurrency(netAmount)}`);
       } else {
         const data = await res.json();
         toast.error(data.error || "ไม่สามารถส่งโพยได้");
+        // Could restore betItems here if needed, but usually not worth it
       }
     } catch (error) {
       console.error("Submit error:", error);

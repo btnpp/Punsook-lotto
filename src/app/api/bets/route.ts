@@ -127,71 +127,97 @@ export async function POST(request: NextRequest) {
       payRateMap.set(pr.betType, pr.payRate);
     }
 
-    // Create BetSession with discountPresetId
-    const session = await prisma.betSession.create({
-      data: {
-        agentId,
-        discountPresetId: discountPresetId || undefined,
-        note: note || undefined,
-      },
-    });
-    const sessionId = session.id;
-
-    // Create bets
-    const createdBets = [];
+    // Prepare all bets data first (no DB calls in loop)
     const useFullPay = isFullPay || discountPreset?.isFullPay || false;
+    
+    // Calculate agent discount once (fallback)
+    let agentDiscount = 0;
+    for (const d of agent.discounts) {
+      if (d.lotteryType === round.lotteryType.code) {
+        agentDiscount = d.discount;
+        break;
+      }
+    }
 
+    // Prepare bet data array
+    const betsToCreate: Array<{
+      roundId: string;
+      agentId: string;
+      number: string;
+      betType: string;
+      amount: number;
+      discountPct: number;
+      discountAmt: number;
+      netAmount: number;
+      payRate: number;
+      isFullPay: boolean;
+      status: string;
+      createdById: string | undefined;
+    }> = [];
     for (const item of betItems) {
       const { number, betType, amount } = item;
-
       if (!number || !betType || !amount) continue;
 
       const payRate = payRateMap.get(betType) || 0;
       
-      // Get discount from preset per bet type, or fallback to agent discount
-      let discountPct = 0;
-      if (discountPreset) {
-        discountPct = getDiscountFromPreset(discountPreset, betType);
-      } else {
-        // Fallback to old agent discount by lottery type
-        for (const d of agent.discounts) {
-          if (d.lotteryType === round.lotteryType.code) {
-            discountPct = d.discount;
-            break;
-          }
-        }
-      }
+      // Get discount from preset or fallback to agent discount
+      const discountPct = discountPreset 
+        ? getDiscountFromPreset(discountPreset, betType)
+        : agentDiscount;
 
       const discountAmt = (amount * discountPct) / 100;
       const netAmount = amount - discountAmt;
 
-      const bet = await prisma.bet.create({
+      betsToCreate.push({
+        roundId,
+        agentId,
+        number,
+        betType,
+        amount,
+        discountPct,
+        discountAmt,
+        netAmount,
+        payRate,
+        isFullPay: useFullPay,
+        status: "ACTIVE",
+        createdById: userId || undefined,
+      });
+    }
+
+    if (betsToCreate.length === 0) {
+      return NextResponse.json(
+        { error: "ไม่มีรายการแทง" },
+        { status: 400 }
+      );
+    }
+
+    // Use transaction for atomic operation - much faster than individual creates
+    const result = await prisma.$transaction(async (tx) => {
+      // Create session
+      const session = await tx.betSession.create({
         data: {
-          sessionId,
-          roundId,
           agentId,
-          number,
-          betType,
-          amount,
-          discountPct,
-          discountAmt,
-          netAmount,
-          payRate,
-          isFullPay: useFullPay,
-          status: "ACTIVE",
-          createdById: userId || undefined,
+          discountPresetId: discountPresetId || undefined,
+          note: note || undefined,
         },
       });
 
-      createdBets.push(bet);
-    }
+      // Batch create all bets with createMany (single query)
+      await tx.bet.createMany({
+        data: betsToCreate.map(bet => ({
+          ...bet,
+          sessionId: session.id,
+        })),
+      });
+
+      return { sessionId: session.id, count: betsToCreate.length };
+    });
 
     return NextResponse.json(
       {
         success: true,
-        count: createdBets.length,
-        sessionId,
-        bets: createdBets,
+        count: result.count,
+        sessionId: result.sessionId,
       },
       { status: 201 }
     );
