@@ -825,7 +825,7 @@ export default function UsersPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserCog className="w-5 h-5 text-amber-400" />
-              {isCreateDialogOpen ? "เพิ่ม Admin ใหม่" : "แก้ไข Admin"}
+              {isCreateDialogOpen ? "เพิ่ม Admin ใหม่" : `แก้ไข ${selectedUser?.name || "Admin"}`}
             </DialogTitle>
           </DialogHeader>
 
