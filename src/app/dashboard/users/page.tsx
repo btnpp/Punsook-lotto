@@ -266,7 +266,11 @@ export default function UsersPage() {
 
   // SWR for users and roles
   interface UsersResponse {
-    users: Array<UserData & { createdAt: string; lastLogin: string | null }>;
+    users: Array<Omit<UserData, "role"> & { 
+      role: { id: string; code: string; name: string };
+      createdAt: string; 
+      lastLogin: string | null;
+    }>;
   }
   interface RolesResponse {
     roles: Array<{ code: string; name: string }>;
@@ -280,6 +284,7 @@ export default function UsersPage() {
     if (usersData?.users) {
       setUsers(usersData.users.map((u) => ({
         ...u,
+        role: u.role.code, // Extract role code from role object
         createdAt: new Date(u.createdAt),
         lastLogin: u.lastLogin ? new Date(u.lastLogin) : null,
       })));
@@ -330,12 +335,14 @@ export default function UsersPage() {
         fetchUsers();
         setIsCreateDialogOpen(false);
         resetForm();
+        toast.success("เพิ่ม Admin สำเร็จ");
       } else {
         const data = await res.json();
         toast.error(data.error || "เกิดข้อผิดพลาด");
       }
     } catch (error) {
       console.error("Create user error:", error);
+      toast.error("เกิดข้อผิดพลาดในการเพิ่ม Admin");
     } finally {
       setIsSaving(false);
     }
@@ -360,9 +367,14 @@ export default function UsersPage() {
         fetchUsers();
         setIsEditDialogOpen(false);
         resetForm();
+        toast.success("แก้ไขข้อมูล Admin สำเร็จ");
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "ไม่สามารถแก้ไขข้อมูลได้");
       }
     } catch (error) {
       console.error("Edit user error:", error);
+      toast.error("เกิดข้อผิดพลาดในการแก้ไขข้อมูล");
     } finally {
       setIsSaving(false);
     }
@@ -379,9 +391,14 @@ export default function UsersPage() {
         fetchUsers();
         setIsDeleteDialogOpen(false);
         setSelectedUser(null);
+        toast.success("ลบ Admin สำเร็จ");
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "ไม่สามารถลบได้");
       }
     } catch (error) {
       console.error("Delete user error:", error);
+      toast.error("เกิดข้อผิดพลาดในการลบ");
     } finally {
       setIsSaving(false);
     }
