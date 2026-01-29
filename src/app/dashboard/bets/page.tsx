@@ -584,42 +584,42 @@ export default function BetsPage() {
                       />
                     </div>
 
-                    {/* ช่องใส่จำนวนเงิน แยกตามประเภท */}
-                    <div className="grid grid-cols-3 gap-3">
+                    {/* ช่องใส่จำนวนเงิน แยกตามประเภท - อยู่บรรทัดเดียว */}
+                    <div className="flex gap-2 items-center">
                       {/* บน */}
-                      <div className="space-y-2">
-                        <Label className="text-center block text-slate-400">บน</Label>
+                      <div className="flex-1 flex items-center gap-2">
+                        <Label className="text-slate-400 whitespace-nowrap">บน</Label>
                         <Input
                           type="number"
                           placeholder="0"
                           value={quickAmountTop}
                           onChange={(e) => setQuickAmountTop(e.target.value)}
-                          className="text-xl font-mono text-center h-14"
+                          className="text-lg font-mono text-center h-12"
                         />
                       </div>
                       
                       {/* โต๊ด */}
-                      <div className="space-y-2">
-                        <Label className="text-center block text-slate-400">โต๊ด</Label>
+                      <div className="flex-1 flex items-center gap-2">
+                        <Label className="text-slate-400 whitespace-nowrap">โต๊ด</Label>
                         <Input
                           type="number"
                           placeholder="0"
                           value={quickAmountTod}
                           onChange={(e) => setQuickAmountTod(e.target.value)}
-                          className="text-xl font-mono text-center h-14"
+                          className="text-lg font-mono text-center h-12"
                           disabled={quickNumber.length !== 3}
                         />
                       </div>
                       
                       {/* ล่าง */}
-                      <div className="space-y-2">
-                        <Label className="text-center block text-slate-400">ล่าง</Label>
+                      <div className="flex-1 flex items-center gap-2">
+                        <Label className="text-slate-400 whitespace-nowrap">ล่าง</Label>
                         <Input
                           type="number"
                           placeholder="0"
                           value={quickAmountBottom}
                           onChange={(e) => setQuickAmountBottom(e.target.value)}
-                          className="text-xl font-mono text-center h-14"
+                          className="text-lg font-mono text-center h-12"
                           disabled={quickNumber.length === 1}
                         />
                       </div>
