@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, User, Ticket, Info } from "lucide-react";
+import { Lock, User, Ticket } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 export default function LoginPage() {
@@ -124,17 +124,6 @@ export default function LoginPage() {
               )}
             </Button>
 
-            {/* Demo Account */}
-            <div className="space-y-2 p-4 rounded-lg bg-slate-800/50 border border-slate-700">
-              <div className="flex items-center gap-2 text-sm text-slate-400 mb-2">
-                <Info className="w-4 h-4" />
-                <span>Demo Account:</span>
-              </div>
-              <div className="p-2 rounded bg-blue-500/10 border border-blue-500/30 text-center">
-                <p className="text-blue-400 font-medium">Admin</p>
-                <p className="text-slate-400">admin / admin</p>
-              </div>
-            </div>
           </form>
         </CardContent>
       </Card>
