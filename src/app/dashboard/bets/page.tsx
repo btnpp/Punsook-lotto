@@ -563,32 +563,29 @@ export default function BetsPage() {
                 {/* Quick Mode - แบบใส่เลขแล้วเลือกบน/โต๊ด/ล่าง */}
                 {mode === "quick" && (
                   <div className="space-y-4">
-                    {/* ช่องใส่เลข */}
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <span className="text-lg">🔢</span> เลข
-                      </Label>
-                      <Input
-                        type="text"
-                        placeholder="เช่น 14, 256, 7"
-                        value={quickNumber}
-                        onChange={(e) => {
-                          // กรองเฉพาะตัวเลข
-                          const val = e.target.value.replace(/[^0-9]/g, "");
-                          if (val.length <= 3) {
-                            setQuickNumber(val);
-                          }
-                        }}
-                        className="text-3xl font-mono text-center tracking-widest h-16"
-                        maxLength={3}
-                      />
-                    </div>
-
-                    {/* ช่องใส่จำนวนเงิน แยกตามประเภท - อยู่บรรทัดเดียว */}
-                    <div className="flex gap-2 items-center">
+                    {/* ช่องใส่เลขและจำนวนเงิน - อยู่แถวเดียวกัน */}
+                    <div className="flex gap-3 items-end">
+                      {/* เลข */}
+                      <div className="space-y-1">
+                        <Label className="text-xs text-slate-400">🔢 เลข</Label>
+                        <Input
+                          type="text"
+                          placeholder="123"
+                          value={quickNumber}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, "");
+                            if (val.length <= 3) {
+                              setQuickNumber(val);
+                            }
+                          }}
+                          className="text-2xl font-mono text-center tracking-widest h-12 w-24"
+                          maxLength={3}
+                        />
+                      </div>
+                      
                       {/* บน */}
-                      <div className="flex-1 flex items-center gap-2">
-                        <Label className="text-slate-400 whitespace-nowrap">บน</Label>
+                      <div className="flex-1 space-y-1">
+                        <Label className="text-xs text-slate-400 text-center block">บน</Label>
                         <Input
                           type="number"
                           placeholder="0"
@@ -599,8 +596,8 @@ export default function BetsPage() {
                       </div>
                       
                       {/* โต๊ด */}
-                      <div className="flex-1 flex items-center gap-2">
-                        <Label className="text-slate-400 whitespace-nowrap">โต๊ด</Label>
+                      <div className="flex-1 space-y-1">
+                        <Label className="text-xs text-slate-400 text-center block">โต๊ด</Label>
                         <Input
                           type="number"
                           placeholder="0"
@@ -612,8 +609,8 @@ export default function BetsPage() {
                       </div>
                       
                       {/* ล่าง */}
-                      <div className="flex-1 flex items-center gap-2">
-                        <Label className="text-slate-400 whitespace-nowrap">ล่าง</Label>
+                      <div className="flex-1 space-y-1">
+                        <Label className="text-xs text-slate-400 text-center block">ล่าง</Label>
                         <Input
                           type="number"
                           placeholder="0"
