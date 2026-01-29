@@ -34,6 +34,7 @@ import { formatNumber } from "@/lib/utils";
 import { fetcher } from "@/lib/fetcher";
 import { LOTTERY_TYPES, BET_TYPES } from "@/lib/constants";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { useAuth } from "@/lib/auth-context";
 
 // Interface สำหรับ bet item
@@ -224,6 +225,7 @@ function getSlipStatusBadge(status: string, items: BetItem[]) {
 
 export default function HistoryPage() {
   const toast = useToast();
+  const { confirm } = useConfirm();
   const { user } = useAuth();
   
   const [searchTerm, setSearchTerm] = useState("");
@@ -274,7 +276,14 @@ export default function HistoryPage() {
   const [selectedSlip, setSelectedSlip] = useState<Slip | null>(null);
 
   const handleCancelBet = async (betId: string) => {
-    if (!confirm("ยืนยันการยกเลิกรายการนี้?")) return;
+    const confirmed = await confirm({
+      title: "ยืนยันการยกเลิก",
+      message: "คุณต้องการยกเลิกรายการนี้ใช่หรือไม่?",
+      type: "danger",
+      confirmText: "ยกเลิกรายการ",
+      cancelText: "ไม่ใช่",
+    });
+    if (!confirmed) return;
     
     try {
       const res = await fetch(`/api/bets/${betId}`, {
@@ -309,7 +318,14 @@ export default function HistoryPage() {
   };
 
   const handleCancelAllBets = async (items: BetItem[]) => {
-    if (!confirm(`ยืนยันการยกเลิกทั้งหมด ${items.length} รายการ?`)) return;
+    const confirmed = await confirm({
+      title: "ยืนยันการยกเลิกทั้งหมด",
+      message: `คุณต้องการยกเลิกทั้งหมด ${items.length} รายการใช่หรือไม่?`,
+      type: "danger",
+      confirmText: `ยกเลิก ${items.length} รายการ`,
+      cancelText: "ไม่ใช่",
+    });
+    if (!confirmed) return;
     
     try {
       let successCount = 0;

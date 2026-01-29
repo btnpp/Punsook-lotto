@@ -51,6 +51,7 @@ import { formatNumber } from "@/lib/utils";
 import { RoundsSkeleton } from "@/components/ui/skeleton";
 import { LOTTERY_TYPES, BET_TYPES, RESTRICTION_TYPES } from "@/lib/constants";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 interface Round {
   id: string;
@@ -101,6 +102,7 @@ function parseNumbers(input: string): string[] {
 
 export default function RoundsPage() {
   const toast = useToast();
+  const { confirm } = useConfirm();
   const [rounds, setRounds] = useState<Round[]>([]);
   const [lotteryTypes, setLotteryTypes] = useState<{ id: string; code: string; name: string }[]>([]);
   const [lotterySettings, setLotterySettings] = useState(defaultLotterySettings);
@@ -275,8 +277,15 @@ export default function RoundsPage() {
   };
 
   // ล้างเลขอั้นทั้งหมดในงวดนั้น
-  const handleClearAllRestrictions = (roundId: string) => {
-    if (!confirm("ต้องการล้างเลขอั้นทั้งหมดในงวดนี้หรือไม่?")) return;
+  const handleClearAllRestrictions = async (roundId: string) => {
+    const confirmed = await confirm({
+      title: "ล้างเลขอั้นทั้งหมด",
+      message: "ต้องการล้างเลขอั้นทั้งหมดในงวดนี้หรือไม่?",
+      type: "warning",
+      confirmText: "ล้างทั้งหมด",
+      cancelText: "ยกเลิก",
+    });
+    if (!confirmed) return;
     
     setRounds(
       rounds.map((r) =>
@@ -285,6 +294,7 @@ export default function RoundsPage() {
           : r
       )
     );
+    toast.success("ล้างเลขอั้นทั้งหมดสำเร็จ");
   };
 
   const handleOpenRestrictionDialog = (round: Round) => {

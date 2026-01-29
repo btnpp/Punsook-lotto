@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Search, Edit, Settings, DollarSign, Percent, Trash2, Tag, Check, X } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { formatNumber } from "@/lib/utils";
 import { fetcher } from "@/lib/fetcher";
 import { LOTTERY_TYPES, BET_TYPES, DEFAULT_PAY_RATES } from "@/lib/constants";
@@ -86,6 +87,7 @@ const createEmptyPayRates = () => {
 
 export default function AgentsPage() {
   const toast = useToast();
+  const { confirm } = useConfirm();
   
   // Use SWR for data fetching with caching
   const { data: agentsData, isLoading, mutate } = useSWR<{ agents: Agent[] }>(
@@ -260,7 +262,14 @@ export default function AgentsPage() {
       return;
     }
     
-    if (!confirm(`ต้องการลบ Preset "${preset.name}" หรือไม่?`)) return;
+    const confirmed = await confirm({
+      title: "ลบ Preset",
+      message: `ต้องการลบ Preset "${preset.name}" หรือไม่?`,
+      type: "danger",
+      confirmText: "ลบ",
+      cancelText: "ยกเลิก",
+    });
+    if (!confirmed) return;
     
     try {
       const res = await fetch(`/api/presets/${presetId}`, {
@@ -448,8 +457,14 @@ export default function AgentsPage() {
     const agent = agents.find(a => a.id === agentId);
     if (!agent) return;
 
-    const confirmMsg = `ต้องการลบ Agent "${agent.name}" (${agent.code}) หรือไม่?\n\nถ้า Agent มีประวัติการแทง จะถูกปิดการใช้งานแทนการลบ`;
-    if (!confirm(confirmMsg)) return;
+    const confirmed = await confirm({
+      title: "ลบ Agent",
+      message: `ต้องการลบ Agent "${agent.name}" (${agent.code}) หรือไม่? ถ้า Agent มีประวัติการแทง จะถูกปิดการใช้งานแทนการลบ`,
+      type: "danger",
+      confirmText: "ลบ",
+      cancelText: "ยกเลิก",
+    });
+    if (!confirmed) return;
 
     try {
       const res = await fetch(`/api/agents/${agentId}`, {

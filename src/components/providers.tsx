@@ -2,6 +2,7 @@
 
 import { AuthProvider } from "@/lib/auth-context";
 import { ToastProvider } from "@/components/ui/toast";
+import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 import { ReactNode } from "react";
 import { SWRConfig } from "swr";
 
@@ -20,7 +21,9 @@ export function Providers({ children }: { children: ReactNode }) {
       }}
     >
       <ToastProvider>
-        <AuthProvider>{children}</AuthProvider>
+        <ConfirmProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ConfirmProvider>
       </ToastProvider>
     </SWRConfig>
   );
