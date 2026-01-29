@@ -335,6 +335,10 @@ export default function UsersPage() {
         fetchUsers();
         setIsCreateDialogOpen(false);
         resetForm();
+        // Reset filters to show new user
+        setSearchTerm("");
+        setFilterRole("ALL");
+        setFilterStatus("ALL");
         toast.success("เพิ่ม Admin สำเร็จ");
       } else {
         const data = await res.json();
@@ -367,6 +371,10 @@ export default function UsersPage() {
         fetchUsers();
         setIsEditDialogOpen(false);
         resetForm();
+        // Reset filters to show all users
+        setSearchTerm("");
+        setFilterRole("ALL");
+        setFilterStatus("ALL");
         toast.success("แก้ไขข้อมูล Admin สำเร็จ");
       } else {
         const error = await res.json();
