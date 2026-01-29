@@ -142,6 +142,9 @@ export default function ReportsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [period, setPeriod] = useState("thisMonth");
   const [selectedLottery, setSelectedLottery] = useState("ALL");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [reportData, setReportData] = useState<{
     summary: ReportSummary;
     byAgent: AgentReport[];
@@ -191,6 +194,7 @@ export default function ReportsPage() {
   const reportsUrl = useMemo(() => {
     const now = new Date();
     let startDate: Date;
+    let endDate: Date = now;
     
     switch (period) {
       case "today":
@@ -199,13 +203,23 @@ export default function ReportsPage() {
       case "thisWeek":
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
         break;
+      case "custom":
+        if (customStartDate && customEndDate) {
+          startDate = new Date(customStartDate);
+          endDate = new Date(customEndDate);
+          // Set endDate to end of day
+          endDate.setHours(23, 59, 59, 999);
+        } else {
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        }
+        break;
       case "thisMonth":
       default:
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         break;
     }
-    return `/api/reports?startDate=${startDate.toISOString()}&endDate=${now.toISOString()}`;
-  }, [period]);
+    return `/api/reports?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+  }, [period, customStartDate, customEndDate]);
 
   // SWR for reports
   const { data: fetchedReportData, isLoading: swrLoading } = useSWR(reportsUrl);
@@ -393,24 +407,34 @@ export default function ReportsPage() {
       <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
         {/* Period Selector */}
         <div className="flex flex-wrap gap-4 justify-between items-center">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
             <Button 
               variant={period === "today" ? "default" : "outline"}
-              onClick={() => setPeriod("today")}
+              onClick={() => { setPeriod("today"); setShowDatePicker(false); }}
             >
               วันนี้
             </Button>
             <Button 
               variant={period === "thisWeek" ? "default" : "outline"}
-              onClick={() => setPeriod("thisWeek")}
+              onClick={() => { setPeriod("thisWeek"); setShowDatePicker(false); }}
             >
               สัปดาห์นี้
             </Button>
             <Button 
               variant={period === "thisMonth" ? "default" : "outline"}
-              onClick={() => setPeriod("thisMonth")}
+              onClick={() => { setPeriod("thisMonth"); setShowDatePicker(false); }}
             >
               เดือนนี้
+            </Button>
+            <Button 
+              variant={period === "custom" ? "default" : "outline"}
+              onClick={() => setShowDatePicker(!showDatePicker)}
+              className="gap-2"
+            >
+              <Calendar className="w-4 h-4" />
+              {period === "custom" && customStartDate && customEndDate 
+                ? `${customStartDate} - ${customEndDate}`
+                : "กำหนดเอง"}
             </Button>
           </div>
           <Button variant="outline" className="gap-2">
@@ -418,6 +442,51 @@ export default function ReportsPage() {
             Export Excel
           </Button>
         </div>
+
+        {/* Custom Date Picker */}
+        {showDatePicker && (
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardContent className="p-4">
+              <div className="flex flex-wrap gap-4 items-end">
+                <div className="space-y-2">
+                  <Label>วันเริ่มต้น</Label>
+                  <Input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="w-[180px]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>วันสิ้นสุด</Label>
+                  <Input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="w-[180px]"
+                  />
+                </div>
+                <Button 
+                  onClick={() => {
+                    if (customStartDate && customEndDate) {
+                      setPeriod("custom");
+                      setShowDatePicker(false);
+                    }
+                  }}
+                  disabled={!customStartDate || !customEndDate}
+                >
+                  ค้นหา
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setShowDatePicker(false)}
+                >
+                  ยกเลิก
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
