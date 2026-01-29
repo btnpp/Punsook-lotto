@@ -563,11 +563,11 @@ export default function BetsPage() {
                 {/* Quick Mode - แบบใส่เลขแล้วเลือกบน/โต๊ด/ล่าง */}
                 {mode === "quick" && (
                   <div className="space-y-4">
-                    {/* ช่องใส่เลขและจำนวนเงิน - อยู่แถวเดียวกัน */}
-                    <div className="flex gap-3 items-end">
+                    {/* ช่องใส่เลขและจำนวนเงิน - อยู่แถวเดียวกัน ความกว้างเท่ากัน */}
+                    <div className="grid grid-cols-4 gap-3">
                       {/* เลข */}
                       <div className="space-y-1">
-                        <Label className="text-xs text-slate-400">🔢 เลข</Label>
+                        <Label className="text-xs text-slate-400 text-center block">🔢 เลข</Label>
                         <Input
                           type="text"
                           placeholder="123"
@@ -578,13 +578,13 @@ export default function BetsPage() {
                               setQuickNumber(val);
                             }
                           }}
-                          className="text-2xl font-mono text-center tracking-widest h-12 w-24"
+                          className="text-2xl font-mono text-center tracking-widest h-12"
                           maxLength={3}
                         />
                       </div>
                       
                       {/* บน */}
-                      <div className="flex-1 space-y-1">
+                      <div className="space-y-1">
                         <Label className="text-xs text-slate-400 text-center block">บน</Label>
                         <Input
                           type="number"
@@ -596,7 +596,7 @@ export default function BetsPage() {
                       </div>
                       
                       {/* โต๊ด */}
-                      <div className="flex-1 space-y-1">
+                      <div className="space-y-1">
                         <Label className="text-xs text-slate-400 text-center block">โต๊ด</Label>
                         <Input
                           type="number"
@@ -609,7 +609,7 @@ export default function BetsPage() {
                       </div>
                       
                       {/* ล่าง */}
-                      <div className="flex-1 space-y-1">
+                      <div className="space-y-1">
                         <Label className="text-xs text-slate-400 text-center block">ล่าง</Label>
                         <Input
                           type="number"
