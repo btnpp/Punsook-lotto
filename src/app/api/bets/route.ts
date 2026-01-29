@@ -16,12 +16,42 @@ export async function GET(request: NextRequest) {
     if (agentId) where.agentId = agentId;
     if (status) where.status = status;
 
+    // Use select instead of include for better performance
     const bets = await prisma.bet.findMany({
       where,
-      include: {
-        agent: true,
+      select: {
+        id: true,
+        number: true,
+        betType: true,
+        amount: true,
+        discountPct: true,
+        discountAmt: true,
+        netAmount: true,
+        payRate: true,
+        isFullPay: true,
+        isWin: true,
+        winAmount: true,
+        status: true,
+        createdAt: true,
+        agent: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+          },
+        },
         round: {
-          include: { lotteryType: true },
+          select: {
+            id: true,
+            roundDate: true,
+            status: true,
+            lotteryType: {
+              select: {
+                code: true,
+                name: true,
+              },
+            },
+          },
         },
       },
       orderBy: { createdAt: "desc" },

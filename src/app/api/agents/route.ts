@@ -5,28 +5,51 @@ import { getCacheHeaders } from "@/lib/utils";
 // GET - List all agents
 export async function GET() {
   try {
-    const agents = await prisma.agent.findMany({
-      include: {
-        discounts: true,
-        quotas: true,
-        payRates: true,
-        discountPresets: {
-          where: { isActive: true },
-          orderBy: [{ lotteryType: "asc" }, { isDefault: "desc" }, { isFullPay: "asc" }, { createdAt: "asc" }],
-        },
-        bets: {
-          where: { status: { not: "CANCELLED" } },
-          select: {
-            netAmount: true,
-            winAmount: true,
-            isWin: true,
+    // Fetch agents with only necessary relations (no bets - use aggregate instead)
+    const [agents, betStats] = await Promise.all([
+      prisma.agent.findMany({
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          phone: true,
+          note: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+          discounts: true,
+          quotas: true,
+          payRates: true,
+          discountPresets: {
+            where: { isActive: true },
+            orderBy: [{ lotteryType: "asc" }, { isDefault: "desc" }, { isFullPay: "asc" }, { createdAt: "asc" }],
           },
         },
-      },
-      orderBy: { code: "asc" },
-    });
+        orderBy: { code: "asc" },
+      }),
+      // Use groupBy for efficient aggregation instead of loading all bets
+      prisma.bet.groupBy({
+        by: ["agentId"],
+        where: { status: { not: "CANCELLED" } },
+        _sum: {
+          netAmount: true,
+          winAmount: true,
+        },
+      }),
+    ]);
 
-    // Convert payRates array to customPayRates object and calculate stats
+    // Create lookup map for bet stats
+    const betStatsMap = new Map(
+      betStats.map((stat) => [
+        stat.agentId,
+        {
+          totalBets: stat._sum.netAmount || 0,
+          totalWinAmount: stat._sum.winAmount || 0,
+        },
+      ])
+    );
+
+    // Convert payRates array to customPayRates object and add stats
     const agentsWithStats = agents.map((agent) => {
       // Calculate customPayRates
       const customPayRates: Record<string, Record<string, number>> = {};
@@ -37,22 +60,14 @@ export async function GET() {
         customPayRates[pr.lotteryType][pr.betType] = pr.payRate;
       }
 
-      // Calculate totalBets (sum of netAmount)
-      const totalBets = agent.bets.reduce((sum, bet) => sum + (bet.netAmount || 0), 0);
-      
-      // Calculate winAmount paid out
-      const totalWinAmount = agent.bets.reduce((sum, bet) => sum + (bet.winAmount || 0), 0);
-      
-      // Balance = totalBets - winAmount (positive = profit for house, negative = owed to agent)
-      const balance = totalBets - totalWinAmount;
-
-      // Remove bets from response
-      const { bets, ...agentWithoutBets } = agent;
+      // Get stats from lookup map
+      const stats = betStatsMap.get(agent.id) || { totalBets: 0, totalWinAmount: 0 };
+      const balance = stats.totalBets - stats.totalWinAmount;
 
       return {
-        ...agentWithoutBets,
+        ...agent,
         customPayRates: Object.keys(customPayRates).length > 0 ? customPayRates : null,
-        totalBets,
+        totalBets: stats.totalBets,
         balance,
       };
     });
