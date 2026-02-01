@@ -61,8 +61,17 @@ interface RiskData {
   };
 }
 
+interface GlobalLimit {
+  id: string;
+  betType: string;
+  limitAmount: number;
+  lotteryType: { code: string };
+}
+
 interface SettingsData {
   capitalSettings?: { usableCapital: number };
+  globalLimits?: GlobalLimit[];
+  payRates?: Array<{ betType: string; payRate: number; lotteryType: { code: string } }>;
 }
 
 export default function RiskPage() {
@@ -78,9 +87,11 @@ export default function RiskPage() {
     return `/api/risk?${params.toString()}`;
   };
 
-  // SWR for settings (cached)
+  // SWR for settings (cached) - includes globalLimits and payRates
   const { data: settingsData } = useSWR<SettingsData>("/api/settings");
   const usableCapital = settingsData?.capitalSettings?.usableCapital || 0;
+  const globalLimits = settingsData?.globalLimits || [];
+  const payRatesFromSettings = settingsData?.payRates || [];
 
   // SWR for risk data
   const { data: riskApiData, isLoading, mutate } = useSWR<RiskData>(buildRiskUrl());
@@ -100,10 +111,15 @@ export default function RiskPage() {
     }
   }, [rounds, selectedRound]);
 
-  // usableCapital is now fetched from API
-
-  // Calculate risk for each number  
-  const getLimit = (betType: string) => {
+  // Get limit from settings API (ดึงจาก GlobalLimit ใน database)
+  const getLimit = (betType: string, lotteryCode?: string) => {
+    // Find limit from settings - try specific lottery first, then any
+    const limit = globalLimits.find(
+      (l) => l.betType === betType && (lotteryCode ? l.lotteryType.code === lotteryCode : true)
+    );
+    if (limit) return limit.limitAmount;
+    
+    // Fallback defaults (should not happen if settings are loaded)
     switch (betType) {
       case "THREE_TOP": return 200;
       case "THREE_TOD": return 500;
@@ -115,7 +131,15 @@ export default function RiskPage() {
     }
   };
 
-  const getPayRate = (betType: string) => {
+  // Get pay rate from settings API (ดึงจาก PayRate ใน database)
+  const getPayRate = (betType: string, lotteryCode?: string) => {
+    // Find pay rate from settings
+    const rate = payRatesFromSettings.find(
+      (r) => r.betType === betType && (lotteryCode ? r.lotteryType.code === lotteryCode : true)
+    );
+    if (rate) return rate.payRate;
+    
+    // Fallback defaults
     switch (betType) {
       case "THREE_TOP": return 900;
       case "THREE_TOD": return 150;
@@ -128,9 +152,9 @@ export default function RiskPage() {
   };
 
   const riskData = riskNumbers.map((item) => {
-    const limit = getLimit(item.betType);
-    const percentage = Math.round((item.totalAmount / limit) * 100);
-    const payRate = getPayRate(item.betType);
+    const limit = getLimit(item.betType, item.lottery);
+    const percentage = limit > 0 ? Math.round((item.totalAmount / limit) * 100) : 0;
+    const payRate = getPayRate(item.betType, item.lottery);
     const potentialPayout = item.potentialPayout || item.totalAmount * payRate;
     const isOverCapital = potentialPayout > usableCapital;
     const excessAmount = isOverCapital ? item.totalAmount - Math.floor(usableCapital / payRate) : 0;
