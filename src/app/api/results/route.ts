@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { roundId, threeTop, threeBottom, twoTop, twoBottom } = body;
+    const { roundId, threeTop, threeFront1, threeFront2, threeBack1, threeBack2, twoTop, twoBottom } = body;
 
     if (!roundId) {
       return NextResponse.json(
@@ -93,7 +93,10 @@ export async function POST(request: NextRequest) {
       where: { id: roundId },
       data: {
         result3Top: threeTop,
-        result3Bottom: threeBottom,
+        result3Front1: threeFront1,
+        result3Front2: threeFront2,
+        result3Back1: threeBack1,
+        result3Back2: threeBack2,
         result2Top: twoTop,
         result2Bottom: twoBottom,
         resultedAt: new Date(),
@@ -147,7 +150,9 @@ export async function POST(request: NextRequest) {
           }
           break;
         case "THREE_BOTTOM":
-          if (bet.number === threeBottom) {
+          // Check against all 4 three-digit bottom numbers (front 2 + back 2)
+          const threeBottomNumbers = [threeFront1, threeFront2, threeBack1, threeBack2].filter(Boolean);
+          if (threeBottomNumbers.includes(bet.number)) {
             isWin = true;
             winAmount = bet.amount * bet.payRate;
           }

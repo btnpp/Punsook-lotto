@@ -176,7 +176,10 @@ interface Round {
   roundDate: Date;
   status: string;
   result3Top?: string;
-  result3Bottom?: string;
+  result3Front1?: string;
+  result3Front2?: string;
+  result3Back1?: string;
+  result3Back2?: string;
   result2Top?: string;
   result2Bottom?: string;
   lotteryCode?: string;
@@ -213,7 +216,10 @@ export default function ResultsPage() {
   } | null>(null);
   const [resultInput, setResultInput] = useState({
     result3Top: "",
-    result3Bottom: "",
+    result3Front1: "",
+    result3Front2: "",
+    result3Back1: "",
+    result3Back2: "",
     result2Top: "",
     result2Bottom: "",
   });
@@ -276,7 +282,10 @@ export default function ResultsPage() {
     setSelectedRound(round);
     setResultInput({
       result3Top: "",
-      result3Bottom: "",
+      result3Front1: "",
+      result3Front2: "",
+      result3Back1: "",
+      result3Back2: "",
       result2Top: "",
       result2Bottom: "",
     });
@@ -294,7 +303,10 @@ export default function ResultsPage() {
         body: JSON.stringify({
           roundId: selectedRound.id,
           threeTop: resultInput.result3Top,
-          threeBottom: resultInput.result3Bottom,
+          threeFront1: resultInput.result3Front1,
+          threeFront2: resultInput.result3Front2,
+          threeBack1: resultInput.result3Back1,
+          threeBack2: resultInput.result3Back2,
           twoTop: resultInput.result2Top,
           twoBottom: resultInput.result2Bottom,
         }),
@@ -438,30 +450,54 @@ export default function ResultsPage() {
                     </div>
 
                     {/* Results Display */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                      <div className="text-center p-2 rounded-lg bg-slate-800/50">
-                        <p className="text-xs text-slate-400 mb-1">3 ตัวบน</p>
-                        <p className="text-xl font-mono font-bold text-amber-400">
-                          {round.result3Top || "-"}
-                        </p>
+                    <div className="space-y-2 mb-4">
+                      {/* Row 1: 3 ตัวบน + 2 ตัว */}
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="text-center p-2 rounded-lg bg-slate-800/50">
+                          <p className="text-xs text-slate-400 mb-1">3 ตัวบน</p>
+                          <p className="text-lg font-mono font-bold text-amber-400">
+                            {round.result3Top || "-"}
+                          </p>
+                        </div>
+                        <div className="text-center p-2 rounded-lg bg-slate-800/50">
+                          <p className="text-xs text-slate-400 mb-1">2 ตัวบน</p>
+                          <p className="text-lg font-mono font-bold text-amber-400">
+                            {round.result2Top || "-"}
+                          </p>
+                        </div>
+                        <div className="text-center p-2 rounded-lg bg-slate-800/50">
+                          <p className="text-xs text-slate-400 mb-1">2 ตัวล่าง</p>
+                          <p className="text-lg font-mono font-bold text-amber-400">
+                            {round.result2Bottom || "-"}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-center p-2 rounded-lg bg-slate-800/50">
-                        <p className="text-xs text-slate-400 mb-1">3 ตัวล่าง</p>
-                        <p className="text-xl font-mono font-bold text-amber-400">
-                          {round.result3Bottom || "-"}
-                        </p>
-                      </div>
-                      <div className="text-center p-2 rounded-lg bg-slate-800/50">
-                        <p className="text-xs text-slate-400 mb-1">2 ตัวบน</p>
-                        <p className="text-xl font-mono font-bold text-amber-400">
-                          {round.result2Top || "-"}
-                        </p>
-                      </div>
-                      <div className="text-center p-2 rounded-lg bg-slate-800/50">
-                        <p className="text-xs text-slate-400 mb-1">2 ตัวล่าง</p>
-                        <p className="text-xl font-mono font-bold text-amber-400">
-                          {round.result2Bottom || "-"}
-                        </p>
+                      {/* Row 2: เลขหน้า 3 ตัว + เลขท้าย 3 ตัว */}
+                      <div className="grid grid-cols-4 gap-2">
+                        <div className="text-center p-2 rounded-lg bg-purple-800/30 border border-purple-500/30">
+                          <p className="text-xs text-slate-400 mb-1">หน้า3ตัว</p>
+                          <p className="text-sm font-mono font-bold text-purple-400">
+                            {round.result3Front1 || "-"}
+                          </p>
+                        </div>
+                        <div className="text-center p-2 rounded-lg bg-purple-800/30 border border-purple-500/30">
+                          <p className="text-xs text-slate-400 mb-1">หน้า3ตัว</p>
+                          <p className="text-sm font-mono font-bold text-purple-400">
+                            {round.result3Front2 || "-"}
+                          </p>
+                        </div>
+                        <div className="text-center p-2 rounded-lg bg-cyan-800/30 border border-cyan-500/30">
+                          <p className="text-xs text-slate-400 mb-1">ท้าย3ตัว</p>
+                          <p className="text-sm font-mono font-bold text-cyan-400">
+                            {round.result3Back1 || "-"}
+                          </p>
+                        </div>
+                        <div className="text-center p-2 rounded-lg bg-cyan-800/30 border border-cyan-500/30">
+                          <p className="text-xs text-slate-400 mb-1">ท้าย3ตัว</p>
+                          <p className="text-sm font-mono font-bold text-cyan-400">
+                            {round.result3Back2 || "-"}
+                          </p>
+                        </div>
                       </div>
                     </div>
 
@@ -547,41 +583,91 @@ export default function ResultsPage() {
               </div>
 
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>รางวัลที่ 1 (3 ตัวบน)</Label>
+                {/* รางวัลที่ 1 (3 ตัวบน) */}
+                <div className="space-y-2">
+                  <Label>รางวัลที่ 1 (3 ตัวบน)</Label>
+                  <Input
+                    type="text"
+                    placeholder="xxx"
+                    maxLength={3}
+                    value={resultInput.result3Top}
+                    onChange={(e) =>
+                      setResultInput({
+                        ...resultInput,
+                        result3Top: e.target.value.replace(/\D/g, ""),
+                      })
+                    }
+                    className="text-2xl font-mono text-center tracking-widest"
+                  />
+                </div>
+
+                {/* เลขหน้า 3 ตัว (2 ช่อง) */}
+                <div className="space-y-2">
+                  <Label>เลขหน้า 3 ตัว</Label>
+                  <div className="grid grid-cols-2 gap-3">
                     <Input
                       type="text"
                       placeholder="xxx"
                       maxLength={3}
-                      value={resultInput.result3Top}
+                      value={resultInput.result3Front1}
                       onChange={(e) =>
                         setResultInput({
                           ...resultInput,
-                          result3Top: e.target.value.replace(/\D/g, ""),
+                          result3Front1: e.target.value.replace(/\D/g, ""),
                         })
                       }
-                      className="text-2xl font-mono text-center tracking-widest"
+                      className="text-xl font-mono text-center tracking-widest"
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>3 ตัวล่าง</Label>
                     <Input
                       type="text"
                       placeholder="xxx"
                       maxLength={3}
-                      value={resultInput.result3Bottom}
+                      value={resultInput.result3Front2}
                       onChange={(e) =>
                         setResultInput({
                           ...resultInput,
-                          result3Bottom: e.target.value.replace(/\D/g, ""),
+                          result3Front2: e.target.value.replace(/\D/g, ""),
                         })
                       }
-                      className="text-2xl font-mono text-center tracking-widest"
+                      className="text-xl font-mono text-center tracking-widest"
                     />
                   </div>
                 </div>
 
+                {/* เลขท้าย 3 ตัว (2 ช่อง) */}
+                <div className="space-y-2">
+                  <Label>เลขท้าย 3 ตัว</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      type="text"
+                      placeholder="xxx"
+                      maxLength={3}
+                      value={resultInput.result3Back1}
+                      onChange={(e) =>
+                        setResultInput({
+                          ...resultInput,
+                          result3Back1: e.target.value.replace(/\D/g, ""),
+                        })
+                      }
+                      className="text-xl font-mono text-center tracking-widest"
+                    />
+                    <Input
+                      type="text"
+                      placeholder="xxx"
+                      maxLength={3}
+                      value={resultInput.result3Back2}
+                      onChange={(e) =>
+                        setResultInput({
+                          ...resultInput,
+                          result3Back2: e.target.value.replace(/\D/g, ""),
+                        })
+                      }
+                      className="text-xl font-mono text-center tracking-widest"
+                    />
+                  </div>
+                </div>
+
+                {/* 2 ตัวบน / 2 ตัวล่าง */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>2 ตัวบน</Label>
@@ -596,7 +682,7 @@ export default function ResultsPage() {
                           result2Top: e.target.value.replace(/\D/g, ""),
                         })
                       }
-                      className="text-2xl font-mono text-center tracking-widest"
+                      className="text-xl font-mono text-center tracking-widest"
                     />
                   </div>
                   <div className="space-y-2">
@@ -612,7 +698,7 @@ export default function ResultsPage() {
                           result2Bottom: e.target.value.replace(/\D/g, ""),
                         })
                       }
-                      className="text-2xl font-mono text-center tracking-widest"
+                      className="text-xl font-mono text-center tracking-widest"
                     />
                   </div>
                 </div>
@@ -752,7 +838,7 @@ export default function ResultsPage() {
             <Button onClick={() => {
               setIsSuccessDialogOpen(false);
               setLastCreatedRound(null);
-              setResultInput({ result3Top: "", result3Bottom: "", result2Top: "", result2Bottom: "" });
+              setResultInput({ result3Top: "", result3Front1: "", result3Front2: "", result3Back1: "", result3Back2: "", result2Top: "", result2Bottom: "" });
             }}>
               ตกลง
             </Button>

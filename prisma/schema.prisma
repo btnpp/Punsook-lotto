@@ -221,9 +221,12 @@ model LotteryRound {
   lotteryTypeId String
   roundDate     DateTime  // วันที่งวด
   status        String    @default("OPEN") // OPEN, CLOSED, RESULTED
-  result3Top    String?   // ผล 3 ตัวบน
+  result3Top    String?   // ผล 3 ตัวบน (รางวัลที่ 1)
   result3Tod    String?   // ผล 3 ตัวโต๊ด (comma separated)
-  result3Bottom String?   // ผล 3 ตัวล่าง
+  result3Front1 String?   // เลขหน้า 3 ตัว ตัวที่ 1
+  result3Front2 String?   // เลขหน้า 3 ตัว ตัวที่ 2
+  result3Back1  String?   // เลขท้าย 3 ตัว ตัวที่ 1
+  result3Back2  String?   // เลขท้าย 3 ตัว ตัวที่ 2
   result2Top    String?   // ผล 2 ตัวบน
   result2Bottom String?   // ผล 2 ตัวล่าง
   closedAt      DateTime?
