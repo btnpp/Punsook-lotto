@@ -21,6 +21,7 @@ export async function POST(
     // Check if round exists
     const round = await prisma.lotteryRound.findUnique({
       where: { id: roundId },
+      select: { id: true },
     });
 
     if (!round) {
@@ -30,42 +31,42 @@ export async function POST(
       );
     }
 
-    // Create restrictions (upsert to avoid duplicates)
-    const results = [];
-    for (const restriction of restrictions) {
-      const { number, betType, type, value } = restriction;
-      
-      // Check if already exists
-      const existing = await prisma.numberRestriction.findFirst({
-        where: { roundId, number, betType },
-      });
+    // Batch operation: ดึง existing ทั้งหมดใน 1 query
+    const existingRestrictions = await prisma.numberRestriction.findMany({
+      where: { roundId },
+      select: { number: true, betType: true },
+    });
 
-      if (existing) {
-        // Update existing
-        const updated = await prisma.numberRestriction.update({
-          where: { id: existing.id },
-          data: { restrictionType: type, value },
-        });
-        results.push(updated);
-      } else {
-        // Create new
-        const created = await prisma.numberRestriction.create({
-          data: {
-            roundId,
-            number,
-            betType,
-            restrictionType: type,
-            value,
-          },
-        });
-        results.push(created);
-      }
+    // สร้าง Set เพื่อ check ซ้ำเร็วขึ้น
+    const existingSet = new Set(
+      existingRestrictions.map((r) => `${r.number}-${r.betType}`)
+    );
+
+    // แยกรายการที่ต้อง create (ไม่มีอยู่แล้ว)
+    const toCreate = restrictions
+      .filter((r: { number: string; betType: string }) => !existingSet.has(`${r.number}-${r.betType}`))
+      .map((r: { number: string; betType: string; type: string; value?: number }) => ({
+        roundId,
+        number: r.number,
+        betType: r.betType,
+        restrictionType: r.type,
+        value: r.value,
+      }));
+
+    // Batch create ใน 1 query
+    let createdCount = 0;
+    if (toCreate.length > 0) {
+      const result = await prisma.numberRestriction.createMany({
+        data: toCreate,
+        skipDuplicates: true,
+      });
+      createdCount = result.count;
     }
 
     return NextResponse.json({ 
       success: true, 
-      count: results.length,
-      restrictions: results,
+      count: createdCount,
+      skipped: restrictions.length - createdCount,
     });
   } catch (error) {
     console.error("Add restrictions error:", error);
