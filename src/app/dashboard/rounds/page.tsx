@@ -117,6 +117,7 @@ export default function RoundsPage() {
   const [newRoundLotteryType, setNewRoundLotteryType] = useState("");
   const [newRoundDate, setNewRoundDate] = useState("");
   const [restrictionFilter, setRestrictionFilter] = useState<string>("ALL");
+  const [expandedRounds, setExpandedRounds] = useState<Set<string>>(new Set());
 
   // SWR for rounds and settings
   const { data: roundsData, isLoading: roundsLoading, mutate: mutateRounds } = useSWR<{ rounds: Round[] }>("/api/rounds");
@@ -725,62 +726,98 @@ export default function RoundsPage() {
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {(round.restrictions || [])
-                                  .filter((res) => {
+                                {(() => {
+                                  const filtered = (round.restrictions || []).filter((res) => {
                                     if (restrictionFilter === "ALL") return true;
                                     return res.betType === restrictionFilter;
-                                  })
-                                  .map((res, idx) => (
-                                  <TableRow key={idx}>
-                                    <TableCell>
-                                      <span className="font-mono font-bold text-xl text-amber-400">
-                                        {res.number}
-                                      </span>
-                                    </TableCell>
-                                    <TableCell>
-                                      <Badge variant="secondary">
-                                        {BET_TYPES[res.betType as keyof typeof BET_TYPES]?.shortName}
-                                      </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                      <Badge
-                                        variant={
-                                          res.restrictionType === "BLOCKED"
-                                            ? "destructive"
-                                            : res.restrictionType === "REDUCED_LIMIT"
-                                            ? "warning"
-                                            : res.restrictionType === "HALF_PAYOUT"
-                                            ? "warning"
-                                            : "secondary"
-                                        }
-                                      >
-                                        {RESTRICTION_TYPES[res.restrictionType as keyof typeof RESTRICTION_TYPES]?.name}
-                                      </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                      {res.restrictionType === "BLOCKED" ? (
-                                        <span className="text-red-400">ปิดรับ</span>
-                                      ) : res.restrictionType === "REDUCED_LIMIT" ? (
-                                        <span>Limit: ฿{formatNumber(res.value || 0)}</span>
-                                      ) : res.restrictionType === "HALF_PAYOUT" ? (
-                                        <span className="text-amber-400">จ่ายครึ่งราคา</span>
-                                      ) : (
-                                        <span>จ่าย: ×{res.value}</span>
+                                  });
+                                  const isExpanded = expandedRounds.has(round.id);
+                                  const displayCount = isExpanded ? filtered.length : 5;
+                                  const displayItems = filtered.slice(0, displayCount);
+                                  const hasMore = filtered.length > 5;
+                                  
+                                  return (
+                                    <>
+                                      {displayItems.map((res, idx) => (
+                                        <TableRow key={idx}>
+                                          <TableCell>
+                                            <span className="font-mono font-bold text-xl text-amber-400">
+                                              {res.number}
+                                            </span>
+                                          </TableCell>
+                                          <TableCell>
+                                            <Badge variant="secondary">
+                                              {BET_TYPES[res.betType as keyof typeof BET_TYPES]?.shortName}
+                                            </Badge>
+                                          </TableCell>
+                                          <TableCell>
+                                            <Badge
+                                              variant={
+                                                res.restrictionType === "BLOCKED"
+                                                  ? "destructive"
+                                                  : res.restrictionType === "REDUCED_LIMIT"
+                                                  ? "warning"
+                                                  : res.restrictionType === "HALF_PAYOUT"
+                                                  ? "warning"
+                                                  : "secondary"
+                                              }
+                                            >
+                                              {RESTRICTION_TYPES[res.restrictionType as keyof typeof RESTRICTION_TYPES]?.name}
+                                            </Badge>
+                                          </TableCell>
+                                          <TableCell>
+                                            {res.restrictionType === "BLOCKED" ? (
+                                              <span className="text-red-400">ปิดรับ</span>
+                                            ) : res.restrictionType === "REDUCED_LIMIT" ? (
+                                              <span>Limit: ฿{formatNumber(res.value || 0)}</span>
+                                            ) : res.restrictionType === "HALF_PAYOUT" ? (
+                                              <span className="text-amber-400">จ่ายครึ่งราคา</span>
+                                            ) : (
+                                              <span>จ่าย: ×{res.value}</span>
+                                            )}
+                                          </TableCell>
+                                          <TableCell className="text-right">
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              onClick={() =>
+                                                handleRemoveRestriction(round.id, res.number, res.betType)
+                                              }
+                                            >
+                                              <Trash2 className="w-4 h-4 text-red-400" />
+                                            </Button>
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                      {hasMore && (
+                                        <TableRow>
+                                          <TableCell colSpan={5} className="text-center py-2">
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => {
+                                                const newSet = new Set(expandedRounds);
+                                                if (isExpanded) {
+                                                  newSet.delete(round.id);
+                                                } else {
+                                                  newSet.add(round.id);
+                                                }
+                                                setExpandedRounds(newSet);
+                                              }}
+                                              className="text-amber-400 hover:text-amber-300"
+                                            >
+                                              {isExpanded ? (
+                                                <>ซ่อน</>
+                                              ) : (
+                                                <>ดูทั้งหมด ({filtered.length} รายการ)</>
+                                              )}
+                                            </Button>
+                                          </TableCell>
+                                        </TableRow>
                                       )}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() =>
-                                          handleRemoveRestriction(round.id, res.number, res.betType)
-                                        }
-                                      >
-                                        <Trash2 className="w-4 h-4 text-red-400" />
-                                      </Button>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
+                                    </>
+                                  );
+                                })()}
                               </TableBody>
                             </Table>
                           </div>
