@@ -243,10 +243,26 @@ export default function RoundsPage() {
       }
     });
 
-    // สร้าง restrictions จากทุกเลขและทุกประเภทที่เลือก
+    // Helper: ตรวจสอบว่า betType ตรงกับจำนวนหลักของเลขหรือไม่
+    const isValidBetTypeForNumber = (num: string, betType: string): boolean => {
+      const digits = num.length;
+      if (digits === 3) {
+        return ["THREE_TOP", "THREE_TOD", "THREE_BOTTOM"].includes(betType);
+      } else if (digits === 2) {
+        return ["TWO_TOP", "TWO_BOTTOM"].includes(betType);
+      } else if (digits === 1) {
+        return ["RUN_TOP", "RUN_BOTTOM"].includes(betType);
+      }
+      return false;
+    };
+
+    // สร้าง restrictions จากทุกเลขและทุกประเภทที่เลือก (filter ตามจำนวนหลัก)
     const newRestrictions: Restriction[] = [];
     allNumbers.forEach((num) => {
       selectedBetTypes.forEach((betType) => {
+        // ตรวจสอบว่า betType ตรงกับจำนวนหลักของเลข
+        if (!isValidBetTypeForNumber(num, betType)) return;
+        
         // ตรวจสอบว่ามี restriction นี้อยู่แล้วหรือไม่
         const exists = selectedRound.restrictions?.some(
           (r) => r.number === num && r.betType === betType
