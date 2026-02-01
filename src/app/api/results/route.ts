@@ -126,7 +126,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    let winnersCount = 0;
+    // Pre-calculate winning numbers for quick lookup
+    const threeTopPerms = getPermutations(threeTop || "");
+    const threeBottomNumbers = [threeFront1, threeFront2, threeBack1, threeBack2].filter(Boolean) as string[];
+
+    // Calculate results for all bets
+    const winnerIds: string[] = [];
+    const loserIds: string[] = [];
+    const winnerUpdates: { id: string; winAmount: number }[] = [];
     let totalWinAmount = 0;
 
     for (const bet of bets) {
@@ -142,16 +149,12 @@ export async function POST(request: NextRequest) {
           }
           break;
         case "THREE_TOD":
-          // Check all permutations of three top
-          const threeTopPerms = getPermutations(threeTop);
           if (threeTopPerms.includes(bet.number)) {
             isWin = true;
             winAmount = bet.amount * bet.payRate;
           }
           break;
         case "THREE_BOTTOM":
-          // Check against all 4 three-digit bottom numbers (front 2 + back 2)
-          const threeBottomNumbers = [threeFront1, threeFront2, threeBack1, threeBack2].filter(Boolean);
           if (threeBottomNumbers.includes(bet.number)) {
             isWin = true;
             winAmount = bet.amount * bet.payRate;
@@ -170,14 +173,12 @@ export async function POST(request: NextRequest) {
           }
           break;
         case "RUN_TOP":
-          // Run top: check if bet number appears in threeTop
           if (threeTop && threeTop.includes(bet.number)) {
             isWin = true;
             winAmount = bet.amount * bet.payRate;
           }
           break;
         case "RUN_BOTTOM":
-          // Run bottom: check if bet number appears in twoBottom
           if (twoBottom && twoBottom.includes(bet.number)) {
             isWin = true;
             winAmount = bet.amount * bet.payRate;
@@ -185,50 +186,51 @@ export async function POST(request: NextRequest) {
           break;
       }
 
-      // Apply number restriction if applicable
-      // Only apply if bet is NOT full pay
+      // Apply restriction if applicable
       if (isWin && !bet.isFullPay) {
-        const restrictionKey = `${bet.number}-${bet.betType}`;
-        const restriction = restrictionMap.get(restrictionKey);
-        
+        const restriction = restrictionMap.get(`${bet.number}-${bet.betType}`);
         if (restriction) {
-          switch (restriction.type) {
-            case "BLOCKED":
-              // Should not have been accepted - but if it was, pay 0
-              winAmount = 0;
-              break;
-            case "REDUCED_PAYOUT":
-              // Use reduced payout rate instead
-              if (restriction.value && restriction.value > 0) {
-                winAmount = bet.amount * restriction.value;
-              }
-              break;
-            case "REDUCED_LIMIT":
-              // Limit doesn't affect payout calculation
-              break;
+          if (restriction.type === "BLOCKED") {
+            winAmount = 0;
+          } else if (restriction.type === "REDUCED_PAYOUT" && restriction.value && restriction.value > 0) {
+            winAmount = bet.amount * restriction.value;
           }
         }
       }
 
-      // Update bet status
-      await prisma.bet.update({
-        where: { id: bet.id },
-        data: {
-          isWin,
-          winAmount: isWin ? winAmount : 0,
-          status: isWin ? "WON" : "LOST",
-        },
-      });
-
       if (isWin) {
-        winnersCount++;
+        winnerIds.push(bet.id);
+        winnerUpdates.push({ id: bet.id, winAmount });
         totalWinAmount += winAmount;
+      } else {
+        loserIds.push(bet.id);
       }
+    }
+
+    // Batch update losers (single query)
+    if (loserIds.length > 0) {
+      await prisma.bet.updateMany({
+        where: { id: { in: loserIds } },
+        data: { isWin: false, winAmount: 0, status: "LOST" },
+      });
+    }
+
+    // Batch update winners (need individual updates for different winAmount)
+    // Use transaction for better performance
+    if (winnerUpdates.length > 0) {
+      await prisma.$transaction(
+        winnerUpdates.map((w) =>
+          prisma.bet.update({
+            where: { id: w.id },
+            data: { isWin: true, winAmount: w.winAmount, status: "WON" },
+          })
+        )
+      );
     }
 
     return NextResponse.json({
       success: true,
-      winnersCount,
+      winnersCount: winnerIds.length,
       totalWinAmount,
     });
   } catch (error) {

@@ -223,6 +223,7 @@ export default function ResultsPage() {
     result2Top: "",
     result2Bottom: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // SWR for rounds
   interface ResultsResponse {
@@ -293,8 +294,9 @@ export default function ResultsPage() {
   };
 
   const handleSubmitResult = async () => {
-    if (!selectedRound) return;
+    if (!selectedRound || isSubmitting) return;
 
+    setIsSubmitting(true);
     try {
       // Submit result to API
       const res = await fetch("/api/results", {
@@ -315,6 +317,7 @@ export default function ResultsPage() {
       if (!res.ok) {
         const error = await res.json();
         toast.error(error.error || "เกิดข้อผิดพลาด");
+        setIsSubmitting(false);
         return;
       }
 
@@ -365,6 +368,8 @@ export default function ResultsPage() {
     } catch (error) {
       console.error("Submit result error:", error);
       toast.error("เกิดข้อผิดพลาดในการบันทึกผล");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -749,6 +754,7 @@ export default function ResultsPage() {
             <Button
               onClick={handleSubmitResult}
               disabled={
+                isSubmitting ||
                 !resultInput.result3Top ||
                 !resultInput.result2Top ||
                 !resultInput.result2Bottom ||
@@ -758,8 +764,17 @@ export default function ResultsPage() {
               }
               className="gap-2"
             >
-              <Calculator className="w-4 h-4" />
-              คำนวณผล
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  กำลังคำนวณ...
+                </>
+              ) : (
+                <>
+                  <Calculator className="w-4 h-4" />
+                  คำนวณผล
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
