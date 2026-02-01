@@ -229,7 +229,7 @@ export default function RoundsPage() {
     );
   };
 
-  const handleAddRestriction = () => {
+  const handleAddRestriction = async () => {
     if (!selectedRound || parsedNumbers.length === 0 || selectedBetTypes.length === 0) return;
 
     // รวบรวมเลขทั้งหมด (รวม permutations ถ้าติ๊กอั้นทั้งไปและกลับ)
@@ -279,39 +279,59 @@ export default function RoundsPage() {
       });
     });
 
-    setRounds(
-      rounds.map((r) =>
-        r.id === selectedRound.id
-          ? {
-              ...r,
-              restrictions: [...r.restrictions, ...newRestrictions],
-            }
-          : r
-      )
-    );
-    toast.success(`เพิ่มเลขอั้น ${newRestrictions.length} รายการสำเร็จ`);
-    setNumbersInput("");
-    setParsedNumbers([]);
-    setSelectedBetTypes(["TWO_TOP"]);
-    setRestrictionType("BLOCKED");
-    setRestrictionValue(undefined);
-    setIncludeReversed(true);
-    setIsRestrictionDialogOpen(false);
+    if (newRestrictions.length === 0) {
+      toast.error("ไม่มีเลขอั้นที่จะเพิ่ม");
+      return;
+    }
+
+    // Save to database via API
+    try {
+      const res = await fetch(`/api/rounds/${selectedRound.id}/restrictions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restrictions: newRestrictions }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        toast.error(error.error || "ไม่สามารถเพิ่มเลขอั้นได้");
+        return;
+      }
+
+      // Refresh data from server
+      mutateRounds();
+      toast.success(`เพิ่มเลขอั้น ${newRestrictions.length} รายการสำเร็จ`);
+      setNumbersInput("");
+      setParsedNumbers([]);
+      setSelectedBetTypes(["TWO_TOP"]);
+      setRestrictionType("BLOCKED");
+      setRestrictionValue(undefined);
+      setIncludeReversed(true);
+      setIsRestrictionDialogOpen(false);
+    } catch {
+      toast.error("เกิดข้อผิดพลาดในการเพิ่มเลขอั้น");
+    }
   };
 
-  const handleRemoveRestriction = (roundId: string, number: string, betType: string) => {
-    setRounds(
-      rounds.map((r) =>
-        r.id === roundId
-          ? {
-              ...r,
-              restrictions: (r.restrictions || []).filter(
-                (res) => !(res.number === number && res.betType === betType)
-              ),
-            }
-          : r
-      )
-    );
+  const handleRemoveRestriction = async (roundId: string, number: string, betType: string) => {
+    try {
+      const res = await fetch(
+        `/api/rounds/${roundId}/restrictions?number=${encodeURIComponent(number)}&betType=${encodeURIComponent(betType)}`,
+        { method: "DELETE" }
+      );
+
+      if (!res.ok) {
+        const error = await res.json();
+        toast.error(error.error || "ไม่สามารถลบเลขอั้นได้");
+        return;
+      }
+
+      // Refresh data from server
+      mutateRounds();
+      toast.success("ลบเลขอั้นสำเร็จ");
+    } catch {
+      toast.error("เกิดข้อผิดพลาดในการลบเลขอั้น");
+    }
   };
 
   // ล้างเลขอั้นทั้งหมดในงวดนั้น
@@ -325,14 +345,23 @@ export default function RoundsPage() {
     });
     if (!confirmed) return;
     
-    setRounds(
-      rounds.map((r) =>
-        r.id === roundId
-          ? { ...r, restrictions: [] }
-          : r
-      )
-    );
-    toast.success("ล้างเลขอั้นทั้งหมดสำเร็จ");
+    try {
+      const res = await fetch(`/api/rounds/${roundId}/restrictions?clearAll=true`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        toast.error(error.error || "ไม่สามารถล้างเลขอั้นได้");
+        return;
+      }
+
+      // Refresh data from server
+      mutateRounds();
+      toast.success("ล้างเลขอั้นทั้งหมดสำเร็จ");
+    } catch {
+      toast.error("เกิดข้อผิดพลาดในการล้างเลขอั้น");
+    }
   };
 
   const handleOpenRestrictionDialog = (round: Round) => {
@@ -981,10 +1010,23 @@ export default function RoundsPage() {
               disabled={parsedNumbers.length === 0 || selectedBetTypes.length === 0}
             >
               เพิ่มเลขอั้น ({(() => {
-                const totalNumbers = includeReversed
-                  ? parsedNumbers.reduce((sum, num) => sum + new Set(getAllPermutations(num)).size, 0)
-                  : parsedNumbers.length;
-                return totalNumbers * selectedBetTypes.length;
+                // คำนวณจำนวนที่ถูกต้อง - filter ตามจำนวนหลัก
+                let count = 0;
+                const numbersToCount = includeReversed
+                  ? parsedNumbers.flatMap((num) => Array.from(new Set(getAllPermutations(num))))
+                  : parsedNumbers;
+                
+                numbersToCount.forEach((num) => {
+                  selectedBetTypes.forEach((betType) => {
+                    const digits = num.length;
+                    const isValid = 
+                      (digits === 3 && ["THREE_TOP", "THREE_TOD", "THREE_BOTTOM"].includes(betType)) ||
+                      (digits === 2 && ["TWO_TOP", "TWO_BOTTOM"].includes(betType)) ||
+                      (digits === 1 && ["RUN_TOP", "RUN_BOTTOM"].includes(betType));
+                    if (isValid) count++;
+                  });
+                });
+                return count;
               })()} รายการ)
             </Button>
           </DialogFooter>
