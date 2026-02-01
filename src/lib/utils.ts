@@ -125,18 +125,19 @@ export function parseBulkBet(input: string): Array<{ number: string; amount: num
   };
 
   // Helper: get bet type from context and digit count
+  // ถ้าไม่มี context → default เป็น TOP (บน)
   const getBetTypeFromContext = (digitCount: number, context: "TOP" | "BOTTOM" | "TOD" | null): string | undefined => {
-    if (!context) return undefined;
+    const effectiveContext = context || "TOP"; // default to TOP if no context
     if (digitCount === 3) {
-      if (context === "TOP") return "THREE_TOP";
-      if (context === "BOTTOM") return "THREE_BOTTOM";
-      if (context === "TOD") return "THREE_TOD";
+      if (effectiveContext === "TOP") return "THREE_TOP";
+      if (effectiveContext === "BOTTOM") return "THREE_BOTTOM";
+      if (effectiveContext === "TOD") return "THREE_TOD";
     } else if (digitCount === 2) {
-      if (context === "TOP") return "TWO_TOP";
-      if (context === "BOTTOM") return "TWO_BOTTOM";
+      if (effectiveContext === "TOP") return "TWO_TOP";
+      if (effectiveContext === "BOTTOM") return "TWO_BOTTOM";
     } else if (digitCount === 1) {
-      if (context === "TOP") return "RUN_TOP";
-      if (context === "BOTTOM") return "RUN_BOTTOM";
+      if (effectiveContext === "TOP") return "RUN_TOP";
+      if (effectiveContext === "BOTTOM") return "RUN_BOTTOM";
     }
     return undefined;
   };
