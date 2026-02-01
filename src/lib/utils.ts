@@ -106,10 +106,17 @@ function getAllPermutations(str: string): string[] {
 // - 603/ → กลับเลข (ใช้ยอดจากบรรทัดก่อนหน้า)
 // - 456=100*100*100/ → 6 กลับ บน+โต๊ด+ล่าง
 // - 456=0*0*100/ หรือ 456=.*.*100/ → 6 กลับ เฉพาะ 3ตัวล่าง
+// 
+// === Pattern ใหม่ (โพยแบบมีหัว) ===
+// - บน / ล่าง / โต๊ด → กำหนดประเภทสำหรับบรรทัดถัดไป
+// - 289=350×350 → เลข=จำนวนบน×จำนวนโต๊ด (ใช้ context จากหัว)
+// - 289×6ตัวล่ะ50 → กลับเลข 6 ตัว ตัวละ 50 บาท
+// - 800×3ตัวล่ะ200 → กลับเลข 3 ตัว ตัวละ 200 บาท
 export function parseBulkBet(input: string): Array<{ number: string; amount: number; betType?: string }> {
   const lines = input.trim().split("\n");
   const bets: Array<{ number: string; amount: number; betType?: string }> = [];
   let lastAmount = 100; // default amount for reverse
+  let currentContext: "TOP" | "BOTTOM" | "TOD" | null = null; // context from header line
 
   // Helper: parse amount (. or 0 = 0, otherwise parse as int)
   const parseAmount = (val: string): number => {
@@ -117,9 +124,66 @@ export function parseBulkBet(input: string): Array<{ number: string; amount: num
     return parseInt(val, 10) || 0;
   };
 
+  // Helper: get bet type from context and digit count
+  const getBetTypeFromContext = (digitCount: number, context: "TOP" | "BOTTOM" | "TOD" | null): string | undefined => {
+    if (!context) return undefined;
+    if (digitCount === 3) {
+      if (context === "TOP") return "THREE_TOP";
+      if (context === "BOTTOM") return "THREE_BOTTOM";
+      if (context === "TOD") return "THREE_TOD";
+    } else if (digitCount === 2) {
+      if (context === "TOP") return "TWO_TOP";
+      if (context === "BOTTOM") return "TWO_BOTTOM";
+    } else if (digitCount === 1) {
+      if (context === "TOP") return "RUN_TOP";
+      if (context === "BOTTOM") return "RUN_BOTTOM";
+    }
+    return undefined;
+  };
+
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
+
+    // Pattern 0: Context header - "บน", "ล่าง", "โต๊ด"
+    if (/^บน$/i.test(trimmed)) {
+      currentContext = "TOP";
+      continue;
+    }
+    if (/^ล่าง$/i.test(trimmed)) {
+      currentContext = "BOTTOM";
+      continue;
+    }
+    if (/^โต๊ด$/i.test(trimmed)) {
+      currentContext = "TOD";
+      continue;
+    }
+
+    // Pattern NEW: กลับเลข N ตัว - "289×6ตัวล่ะ50" or "800×3ตัวล่ะ200"
+    // Supports: ×, x, X, *
+    const reverseNMatch = trimmed.match(/^(\d+)[×xX*](\d+)ตัวล่ะ(\d+)$/);
+    if (reverseNMatch) {
+      const num = reverseNMatch[1];
+      const expectedCount = parseInt(reverseNMatch[2], 10);
+      const amountPerNumber = parseInt(reverseNMatch[3], 10);
+      lastAmount = amountPerNumber;
+      
+      // Get all permutations
+      const permutations = getAllPermutations(num);
+      
+      // Use only up to expectedCount permutations (in case of duplicates like 800)
+      const numbersToUse = permutations.slice(0, expectedCount);
+      
+      for (const n of numbersToUse) {
+        const betType = getBetTypeFromContext(n.length, currentContext);
+        bets.push({
+          number: n,
+          amount: amountPerNumber,
+          betType,
+        });
+      }
+      continue;
+    }
 
     // Check if ends with / (reverse)
     const hasReverse = trimmed.endsWith("/");
@@ -131,17 +195,20 @@ export function parseBulkBet(input: string): Array<{ number: string; amount: num
       const num = reverseOnlyMatch[1];
       const permutations = getAllPermutations(num);
       for (const perm of permutations) {
+        const betType = getBetTypeFromContext(perm.length, currentContext);
         bets.push({
           number: perm,
           amount: lastAmount,
+          betType,
         });
       }
       continue;
     }
 
     // Pattern 2: Multi-amount with optional reverse - "603=100x100", "603=100*100*100/", "603=.*.*100/"
+    // Also supports: "289=350×350" (Thai × character)
     // Match: number=amount1[sep]amount2[sep]amount3 (amount can be number or .)
-    const multiMatch = lineWithoutSlash.match(/^(\d+)=([\d.]+)(?:[×x*\-])([\d.]+)(?:[×x*\-]([\d.]+))?$/i);
+    const multiMatch = lineWithoutSlash.match(/^(\d+)=([\d.]+)(?:[×xX*\-])([\d.]+)(?:[×xX*\-]([\d.]+))?$/i);
     if (multiMatch) {
       const num = multiMatch[1];
       const amount1 = parseAmount(multiMatch[2]);
@@ -190,9 +257,11 @@ export function parseBulkBet(input: string): Array<{ number: string; amount: num
       
       const numbersToProcess = hasReverse ? getAllPermutations(num) : [num];
       for (const n of numbersToProcess) {
+        const betType = getBetTypeFromContext(n.length, currentContext);
         bets.push({
           number: n,
           amount: amount,
+          betType,
         });
       }
       continue;
@@ -203,9 +272,11 @@ export function parseBulkBet(input: string): Array<{ number: string; amount: num
     if (simpleSpaceMatch) {
       const amount = parseInt(simpleSpaceMatch[2], 10);
       lastAmount = amount;
+      const betType = getBetTypeFromContext(simpleSpaceMatch[1].length, currentContext);
       bets.push({
         number: simpleSpaceMatch[1],
         amount: amount,
+        betType,
       });
     }
   }

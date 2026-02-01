@@ -870,7 +870,7 @@ export default function BetsPage() {
                     <div className="space-y-2">
                       <Label>วางโพย (รูปแบบ: เลข=จำนวนเงิน)</Label>
                       <Textarea
-                        placeholder={`ตัวอย่าง:\n123=100\n12=100\n5=100\n123=100x50\n123=100x50x30\n12=100x50\n123/\n12/\n123=100/\n123=0x100\n123=.x.x100`}
+                        placeholder={`ตัวอย่าง:\n123=100\n12=100\n123=100x50\n123=100x50x30\n123/\n\nหรือแบบมีหัว:\nบน\n289=350×350\n289×6ตัวล่ะ50\n800×3ตัวล่ะ200`}
                         value={bulkInput}
                         onChange={(e) => setBulkInput(e.target.value)}
                         className="font-mono min-h-[200px]"
