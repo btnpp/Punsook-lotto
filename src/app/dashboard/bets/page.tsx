@@ -282,9 +282,41 @@ export default function BetsPage() {
     });
 
     if (newBets.length > 0) {
-      setBetItems([...betItems, ...newBets]);
+      // รวมยอดเลขซ้ำ
+      const updatedBets = [...betItems];
+      let addedCount = 0;
+      let mergedCount = 0;
+      
+      for (const newBet of newBets) {
+        const existingIndex = updatedBets.findIndex(
+          b => b.number === newBet.number && b.betType === newBet.betType
+        );
+        
+        if (existingIndex >= 0) {
+          // รวมยอดเลขซ้ำ
+          updatedBets[existingIndex] = {
+            ...updatedBets[existingIndex],
+            amount: updatedBets[existingIndex].amount + newBet.amount,
+            netAmount: updatedBets[existingIndex].netAmount + newBet.netAmount,
+          };
+          mergedCount++;
+        } else {
+          updatedBets.push(newBet);
+          addedCount++;
+        }
+      }
+      
+      setBetItems(updatedBets);
       setSingleNumbers("");
       setSingleAmount("");
+      
+      if (mergedCount > 0 && addedCount > 0) {
+        toast.success(`เพิ่ม ${addedCount} รายการ, รวมยอด ${mergedCount} รายการ`);
+      } else if (mergedCount > 0) {
+        toast.success(`รวมยอด ${mergedCount} รายการ`);
+      } else {
+        toast.success(`เพิ่ม ${addedCount} รายการ`);
+      }
     }
   };
 
@@ -352,8 +384,40 @@ export default function BetsPage() {
       }
     });
 
-    setBetItems([...betItems, ...newBets]);
+    // รวมยอดเลขซ้ำ
+    const updatedBets = [...betItems];
+    let addedCount = 0;
+    let mergedCount = 0;
+    
+    for (const newBet of newBets) {
+      const existingIndex = updatedBets.findIndex(
+        b => b.number === newBet.number && b.betType === newBet.betType
+      );
+      
+      if (existingIndex >= 0) {
+        // รวมยอดเลขซ้ำ
+        updatedBets[existingIndex] = {
+          ...updatedBets[existingIndex],
+          amount: updatedBets[existingIndex].amount + newBet.amount,
+          netAmount: updatedBets[existingIndex].netAmount + newBet.netAmount,
+        };
+        mergedCount++;
+      } else {
+        updatedBets.push(newBet);
+        addedCount++;
+      }
+    }
+    
+    setBetItems(updatedBets);
     setBulkInput("");
+    
+    if (mergedCount > 0 && addedCount > 0) {
+      toast.success(`เพิ่ม ${addedCount} รายการ, รวมยอด ${mergedCount} รายการ`);
+    } else if (mergedCount > 0) {
+      toast.success(`รวมยอด ${mergedCount} รายการ`);
+    } else if (addedCount > 0) {
+      toast.success(`เพิ่ม ${addedCount} รายการ`);
+    }
   };
 
   const handleRemoveBet = (id: string) => {
@@ -736,16 +800,39 @@ export default function BetsPage() {
                           });
                         }
                         
-                        // ลบ duplicate
-                        const existingKeys = new Set(betItems.map(b => `${b.number}-${b.betType}`));
-                        const uniqueNewBets = newBets.filter(item => !existingKeys.has(`${item.number}-${item.betType}`));
-                        
-                        if (uniqueNewBets.length > 0) {
-                          setBetItems([...betItems, ...uniqueNewBets]);
-                          toast.success(`เพิ่ม ${uniqueNewBets.length} รายการ`);
-                        } else {
-                          toast.error("รายการซ้ำทั้งหมด");
-                        }
+// รวมยอดเลขซ้ำ
+                                        const updatedBets = [...betItems];
+                                        let addedCount = 0;
+                                        let mergedCount = 0;
+                                        
+                                        for (const newBet of newBets) {
+                                          const existingIndex = updatedBets.findIndex(
+                                            b => b.number === newBet.number && b.betType === newBet.betType
+                                          );
+                                          
+                                          if (existingIndex >= 0) {
+                                            // รวมยอดเลขซ้ำ
+                                            updatedBets[existingIndex] = {
+                                              ...updatedBets[existingIndex],
+                                              amount: updatedBets[existingIndex].amount + newBet.amount,
+                                              netAmount: updatedBets[existingIndex].netAmount + newBet.netAmount,
+                                            };
+                                            mergedCount++;
+                                          } else {
+                                            updatedBets.push(newBet);
+                                            addedCount++;
+                                          }
+                                        }
+                                        
+                                        setBetItems(updatedBets);
+                                        
+                                        if (mergedCount > 0 && addedCount > 0) {
+                                          toast.success(`เพิ่ม ${addedCount} รายการ, รวมยอด ${mergedCount} รายการ`);
+                                        } else if (mergedCount > 0) {
+                                          toast.success(`รวมยอด ${mergedCount} รายการ`);
+                                        } else if (addedCount > 0) {
+                                          toast.success(`เพิ่ม ${addedCount} รายการ`);
+                                        }
                         
                         // Reset
                         setQuickNumber("");
