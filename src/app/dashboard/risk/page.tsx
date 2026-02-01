@@ -271,6 +271,38 @@ export default function RiskPage() {
           </Card>
         </div>
 
+        {/* Summary Card */}
+        <Card className="border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-transparent">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <span className="text-2xl">💰</span>
+              สรุปความเสี่ยง
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <p className="text-sm text-slate-400">ยอดรับรวม</p>
+                <p className="text-xl font-bold text-slate-100">฿{formatNumber(totalBetAmount)}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-slate-400">ทุนที่ใช้ได้</p>
+                <p className="text-xl font-bold text-emerald-400">฿{formatNumber(usableCapital)}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-slate-400">Worst Case (ถ้าเลขอันตรายออก)</p>
+                <p className={`text-xl font-bold ${worstCasePayout > totalBetAmount ? "text-red-400" : "text-amber-400"}`}>
+                  {worstCasePayout > totalBetAmount ? "-" : "+"}฿{formatNumber(Math.abs(totalBetAmount - worstCasePayout))}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-slate-400">Best Case (ไม่มีเลขถูก)</p>
+                <p className="text-xl font-bold text-emerald-400">+฿{formatNumber(totalBetAmount)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Lottery Selector */}
         <div className="flex items-center justify-between">
           <div className="flex gap-2">
