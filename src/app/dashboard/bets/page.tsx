@@ -184,6 +184,26 @@ export default function BetsPage() {
     }
   }, [selectedAgent, selectedLottery, agents]);
 
+  // Recalculate discounts when preset changes
+  useEffect(() => {
+    if (betItems.length === 0) return;
+    
+    // Get current discount from preset
+    const agent = agents.find(a => a.id === selectedAgent);
+    const preset = agent?.discountPresets?.find(p => p.id === selectedPresetId);
+    const discount = preset && !preset.isFullPay ? preset.discount : 0;
+    
+    // Update all bet items with new discount
+    setBetItems(prevItems => 
+      prevItems.map(item => ({
+        ...item,
+        discount,
+        netAmount: calculateNetAmount(item.amount, discount),
+      }))
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPresetId, selectedAgent]);
+
   // Helper to get preset by id
   const getSelectedPreset = (): DiscountPreset | null => {
     if (!selectedAgent || !selectedPresetId) return null;
