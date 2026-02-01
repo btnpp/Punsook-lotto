@@ -115,7 +115,15 @@ function getAllPermutations(str: string): string[] {
 // - 486  50*50 → บน*โต๊ด (หลายเว้นวรรค ไม่มี =)
 // - 114  30*30*30 → บน*โต๊ด*ล่าง
 export function parseBulkBet(input: string): Array<{ number: string; amount: number; betType?: string }> {
-  const lines = input.trim().split("\n");
+  // Normalize input: iOS double-space creates ". " - convert back to space
+  // Also handle trailing dots after = or numbers
+  const normalizedInput = input
+    .replace(/\.\s+/g, " ")        // ". " → " " (iOS double-space)
+    .replace(/=\s*\.(?!\d)/g, "=") // "=." or "= ." without following digit → "="
+    .replace(/(\d)\.\s*$/gm, "$1") // trailing "." after digit at end of line → remove
+    .replace(/(\d)\.(?!\d)/g, "$1 "); // "528." mid-text → "528 " (keep "50.5" as is)
+  
+  const lines = normalizedInput.trim().split("\n");
   const bets: Array<{ number: string; amount: number; betType?: string }> = [];
   let lastAmount = 100; // default amount for reverse
   let currentContext: "TOP" | "BOTTOM" | "TOD" | "TOP_BOTTOM" | null = null; // context from header line
