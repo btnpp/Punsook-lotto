@@ -551,58 +551,58 @@ export default function HistoryPage() {
         </Card>
 
         {/* Summary - Single Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 lg:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8 gap-2">
           <Card>
-            <CardContent className="p-3">
+            <CardContent className="p-2 lg:p-3">
               <p className="text-xs text-slate-400">จำนวนโพย</p>
-              <p className="text-lg lg:text-xl font-bold text-slate-100">{totalSlips}</p>
+              <p className="text-base lg:text-lg font-bold text-slate-100">{totalSlips}</p>
               <p className="text-xs text-red-400">ยกเลิก {cancelledSlips}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-3">
+            <CardContent className="p-2 lg:p-3">
               <p className="text-xs text-slate-400">รายการ</p>
-              <p className="text-lg lg:text-xl font-bold text-slate-100">{totalItems}</p>
+              <p className="text-base lg:text-lg font-bold text-slate-100">{totalItems}</p>
               <p className="text-xs text-red-400">ยกเลิก {cancelledItems}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-3">
+            <CardContent className="p-2 lg:p-3">
               <p className="text-xs text-slate-400">ยอดรวม</p>
-              <p className="text-lg lg:text-xl font-bold text-amber-400">฿{formatNumber(totalAmount)}</p>
+              <p className="text-base lg:text-lg font-bold text-amber-400">฿{formatNumber(Math.round(totalAmount))}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-3">
+            <CardContent className="p-2 lg:p-3">
               <p className="text-xs text-slate-400">ส่วนลด</p>
-              <p className="text-lg lg:text-xl font-bold text-purple-400">-฿{formatNumber(totalDiscount)}</p>
+              <p className="text-base lg:text-lg font-bold text-purple-400">-฿{formatNumber(Math.round(totalDiscount))}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-3">
+            <CardContent className="p-2 lg:p-3">
               <p className="text-xs text-slate-400">ยอดสุทธิ</p>
-              <p className="text-lg lg:text-xl font-bold text-emerald-400">฿{formatNumber(totalNetAmount)}</p>
+              <p className="text-base lg:text-lg font-bold text-emerald-400">฿{formatNumber(Math.round(totalNetAmount))}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-3">
+            <CardContent className="p-2 lg:p-3">
               <p className="text-xs text-slate-400">ยอดถูก</p>
-              <p className="text-lg lg:text-xl font-bold text-red-400">-฿{formatNumber(totalWinAmount)}</p>
+              <p className="text-base lg:text-lg font-bold text-red-400">-฿{formatNumber(Math.round(totalWinAmount))}</p>
             </CardContent>
           </Card>
           <Card className={profit >= 0 ? "bg-emerald-500/10 border-emerald-500/30" : "bg-red-500/10 border-red-500/30"}>
-            <CardContent className="p-3">
+            <CardContent className="p-2 lg:p-3">
               <p className="text-xs text-slate-400">กำไร</p>
-              <p className={`text-lg lg:text-xl font-bold ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                {profit >= 0 ? "+" : ""}฿{formatNumber(profit)}
+              <p className={`text-base lg:text-lg font-bold ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                {profit >= 0 ? "+" : ""}฿{formatNumber(Math.round(profit))}
               </p>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30">
-            <CardContent className="p-3">
+            <CardContent className="p-2 lg:p-3">
               <p className="text-xs text-slate-400">% กำไร</p>
-              <p className={`text-lg lg:text-xl font-bold ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                {totalNetAmount > 0 ? ((profit / totalNetAmount) * 100).toFixed(1) : 0}%
+              <p className={`text-base lg:text-lg font-bold ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                {totalNetAmount > 0 ? Math.round((profit / totalNetAmount) * 100) : 0}%
               </p>
             </CardContent>
           </Card>
