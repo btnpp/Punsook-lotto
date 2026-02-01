@@ -45,11 +45,11 @@ export async function POST(
     // แยกรายการที่ต้อง create (ไม่มีอยู่แล้ว)
     const toCreate = restrictions
       .filter((r: { number: string; betType: string }) => !existingSet.has(`${r.number}-${r.betType}`))
-      .map((r: { number: string; betType: string; type: string; value?: number }) => ({
+      .map((r: { number: string; betType: string; restrictionType: string; value?: number }) => ({
         roundId,
         number: r.number,
         betType: r.betType,
-        restrictionType: r.type,
+        restrictionType: r.restrictionType,
         value: r.value,
       }));
 

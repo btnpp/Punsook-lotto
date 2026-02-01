@@ -87,7 +87,7 @@ const defaultLotterySettings = {
 interface Restriction {
   number: string;
   betType: string;
-  type: string;
+  restrictionType: string;
   value?: number;
 }
 
@@ -116,7 +116,7 @@ export default function RoundsPage() {
   const [editCloseTime, setEditCloseTime] = useState("");
   const [newRoundLotteryType, setNewRoundLotteryType] = useState("");
   const [newRoundDate, setNewRoundDate] = useState("");
-  const [restrictionFilter, setRestrictionFilter] = useState<"ALL" | "3" | "2" | "1">("ALL");
+  const [restrictionFilter, setRestrictionFilter] = useState<string>("ALL");
 
   // SWR for rounds and settings
   const { data: roundsData, isLoading: roundsLoading, mutate: mutateRounds } = useSWR<{ rounds: Round[] }>("/api/rounds");
@@ -272,7 +272,7 @@ export default function RoundsPage() {
           newRestrictions.push({
             number: num,
             betType,
-            type: restrictionType,
+            restrictionType: restrictionType,
             value: restrictionValue,
           });
         }
@@ -655,38 +655,62 @@ export default function RoundsPage() {
                                 เลขอั้น ({round.restrictions?.length || 0} เลข)
                               </p>
                               {/* Filter buttons */}
-                              <div className="flex gap-1">
+                              <div className="flex flex-wrap gap-1">
                                 <Button
                                   size="sm"
                                   variant={restrictionFilter === "ALL" ? "default" : "outline"}
                                   onClick={() => setRestrictionFilter("ALL")}
-                                  className="h-7 px-2 text-xs"
+                                  className="h-6 px-2 text-xs"
                                 >
                                   ทั้งหมด
                                 </Button>
                                 <Button
                                   size="sm"
-                                  variant={restrictionFilter === "3" ? "default" : "outline"}
-                                  onClick={() => setRestrictionFilter("3")}
-                                  className="h-7 px-2 text-xs"
+                                  variant={restrictionFilter === "THREE_TOP" ? "default" : "outline"}
+                                  onClick={() => setRestrictionFilter("THREE_TOP")}
+                                  className="h-6 px-2 text-xs"
                                 >
-                                  3 ตัว ({(round.restrictions || []).filter(r => r.number.length === 3).length})
+                                  3บน ({(round.restrictions || []).filter(r => r.betType === "THREE_TOP").length})
                                 </Button>
                                 <Button
                                   size="sm"
-                                  variant={restrictionFilter === "2" ? "default" : "outline"}
-                                  onClick={() => setRestrictionFilter("2")}
-                                  className="h-7 px-2 text-xs"
+                                  variant={restrictionFilter === "THREE_TOD" ? "default" : "outline"}
+                                  onClick={() => setRestrictionFilter("THREE_TOD")}
+                                  className="h-6 px-2 text-xs"
                                 >
-                                  2 ตัว ({(round.restrictions || []).filter(r => r.number.length === 2).length})
+                                  3โต๊ด ({(round.restrictions || []).filter(r => r.betType === "THREE_TOD").length})
                                 </Button>
                                 <Button
                                   size="sm"
-                                  variant={restrictionFilter === "1" ? "default" : "outline"}
-                                  onClick={() => setRestrictionFilter("1")}
-                                  className="h-7 px-2 text-xs"
+                                  variant={restrictionFilter === "TWO_TOP" ? "default" : "outline"}
+                                  onClick={() => setRestrictionFilter("TWO_TOP")}
+                                  className="h-6 px-2 text-xs"
                                 >
-                                  วิ่ง ({(round.restrictions || []).filter(r => r.number.length === 1).length})
+                                  2บน ({(round.restrictions || []).filter(r => r.betType === "TWO_TOP").length})
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={restrictionFilter === "TWO_BOTTOM" ? "default" : "outline"}
+                                  onClick={() => setRestrictionFilter("TWO_BOTTOM")}
+                                  className="h-6 px-2 text-xs"
+                                >
+                                  2ล่าง ({(round.restrictions || []).filter(r => r.betType === "TWO_BOTTOM").length})
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={restrictionFilter === "RUN_TOP" ? "default" : "outline"}
+                                  onClick={() => setRestrictionFilter("RUN_TOP")}
+                                  className="h-6 px-2 text-xs"
+                                >
+                                  วิ่งบน ({(round.restrictions || []).filter(r => r.betType === "RUN_TOP").length})
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={restrictionFilter === "RUN_BOTTOM" ? "default" : "outline"}
+                                  onClick={() => setRestrictionFilter("RUN_BOTTOM")}
+                                  className="h-6 px-2 text-xs"
+                                >
+                                  วิ่งล่าง ({(round.restrictions || []).filter(r => r.betType === "RUN_BOTTOM").length})
                                 </Button>
                               </div>
                             </div>
@@ -704,7 +728,7 @@ export default function RoundsPage() {
                                 {(round.restrictions || [])
                                   .filter((res) => {
                                     if (restrictionFilter === "ALL") return true;
-                                    return res.number.length === parseInt(restrictionFilter);
+                                    return res.betType === restrictionFilter;
                                   })
                                   .map((res, idx) => (
                                   <TableRow key={idx}>
@@ -721,24 +745,24 @@ export default function RoundsPage() {
                                     <TableCell>
                                       <Badge
                                         variant={
-                                          res.type === "BLOCKED"
+                                          res.restrictionType === "BLOCKED"
                                             ? "destructive"
-                                            : res.type === "REDUCED_LIMIT"
+                                            : res.restrictionType === "REDUCED_LIMIT"
                                             ? "warning"
-                                            : res.type === "HALF_PAYOUT"
+                                            : res.restrictionType === "HALF_PAYOUT"
                                             ? "warning"
                                             : "secondary"
                                         }
                                       >
-                                        {RESTRICTION_TYPES[res.type as keyof typeof RESTRICTION_TYPES]?.name}
+                                        {RESTRICTION_TYPES[res.restrictionType as keyof typeof RESTRICTION_TYPES]?.name}
                                       </Badge>
                                     </TableCell>
                                     <TableCell>
-                                      {res.type === "BLOCKED" ? (
+                                      {res.restrictionType === "BLOCKED" ? (
                                         <span className="text-red-400">ปิดรับ</span>
-                                      ) : res.type === "REDUCED_LIMIT" ? (
+                                      ) : res.restrictionType === "REDUCED_LIMIT" ? (
                                         <span>Limit: ฿{formatNumber(res.value || 0)}</span>
-                                      ) : res.type === "HALF_PAYOUT" ? (
+                                      ) : res.restrictionType === "HALF_PAYOUT" ? (
                                         <span className="text-amber-400">จ่ายครึ่งราคา</span>
                                       ) : (
                                         <span>จ่าย: ×{res.value}</span>
