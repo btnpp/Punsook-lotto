@@ -28,7 +28,10 @@ import {
   Ban,
   RefreshCw,
   Calendar,
+  Search,
+  X,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { formatNumber } from "@/lib/utils";
 import { RiskSkeleton } from "@/components/ui/skeleton";
 import { LOTTERY_TYPES, BET_TYPES } from "@/lib/constants";
@@ -79,6 +82,7 @@ export default function RiskPage() {
   const [selectedLottery, setSelectedLottery] = useState("ALL");
   const [selectedRound, setSelectedRound] = useState<string>("");
   const [selectedBetType, setSelectedBetType] = useState("ALL");
+  const [searchNumber, setSearchNumber] = useState("");
 
   // Build API URL with params
   const buildRiskUrl = () => {
@@ -417,6 +421,29 @@ export default function RiskPage() {
           >
             วิ่งล่าง ({riskData.filter(r => r.betType === "RUN_BOTTOM").length})
           </Button>
+          
+          {/* Search Input */}
+          <div className="ml-auto flex items-center gap-2">
+            <Search className="w-4 h-4 text-slate-400" />
+            <Input
+              type="text"
+              placeholder="ค้นหาเลข..."
+              value={searchNumber}
+              onChange={(e) => setSearchNumber(e.target.value.replace(/\D/g, ""))}
+              className="w-32 h-7 text-sm"
+              maxLength={3}
+            />
+            {searchNumber && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSearchNumber("")}
+                className="h-7 w-7 p-0"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Current Round Info */}
@@ -467,7 +494,13 @@ export default function RiskPage() {
               </TableHeader>
               <TableBody>
                 {riskData
-                  .filter((item) => selectedBetType === "ALL" || item.betType === selectedBetType)
+                  .filter((item) => {
+                    // Filter by bet type
+                    if (selectedBetType !== "ALL" && item.betType !== selectedBetType) return false;
+                    // Filter by search number
+                    if (searchNumber && !item.number.includes(searchNumber)) return false;
+                    return true;
+                  })
                   .map((item, index) => (
                   <TableRow key={index} className="table-row-hover">
                     <TableCell>

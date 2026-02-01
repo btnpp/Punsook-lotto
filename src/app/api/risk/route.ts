@@ -127,9 +127,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Convert to array and sort by potential payout
+    // ไม่จำกัดจำนวน - ส่งทั้งหมด
     const riskNumbers = Array.from(riskMap.values())
-      .sort((a, b) => b.potentialPayout - a.potentialPayout)
-      .slice(0, 100);
+      .sort((a, b) => b.potentialPayout - a.potentialPayout);
 
     // Calculate totals
     const totalBetAmount = bets.reduce((sum, bet) => sum + bet.netAmount, 0);
