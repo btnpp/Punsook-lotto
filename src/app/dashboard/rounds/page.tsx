@@ -116,6 +116,7 @@ export default function RoundsPage() {
   const [editCloseTime, setEditCloseTime] = useState("");
   const [newRoundLotteryType, setNewRoundLotteryType] = useState("");
   const [newRoundDate, setNewRoundDate] = useState("");
+  const [restrictionFilter, setRestrictionFilter] = useState<"ALL" | "3" | "2" | "1">("ALL");
 
   // SWR for rounds and settings
   const { data: roundsData, isLoading: roundsLoading, mutate: mutateRounds } = useSWR<{ rounds: Round[] }>("/api/rounds");
@@ -619,11 +620,46 @@ export default function RoundsPage() {
                         {/* Restrictions List */}
                         {(round.restrictions?.length || 0) > 0 ? (
                           <div className="space-y-2">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
                               <p className="text-sm font-medium text-red-400 flex items-center gap-2">
                                 <AlertTriangle className="w-4 h-4" />
                                 เลขอั้น ({round.restrictions?.length || 0} เลข)
                               </p>
+                              {/* Filter buttons */}
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant={restrictionFilter === "ALL" ? "default" : "outline"}
+                                  onClick={() => setRestrictionFilter("ALL")}
+                                  className="h-7 px-2 text-xs"
+                                >
+                                  ทั้งหมด
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={restrictionFilter === "3" ? "default" : "outline"}
+                                  onClick={() => setRestrictionFilter("3")}
+                                  className="h-7 px-2 text-xs"
+                                >
+                                  3 ตัว ({(round.restrictions || []).filter(r => r.number.length === 3).length})
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={restrictionFilter === "2" ? "default" : "outline"}
+                                  onClick={() => setRestrictionFilter("2")}
+                                  className="h-7 px-2 text-xs"
+                                >
+                                  2 ตัว ({(round.restrictions || []).filter(r => r.number.length === 2).length})
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={restrictionFilter === "1" ? "default" : "outline"}
+                                  onClick={() => setRestrictionFilter("1")}
+                                  className="h-7 px-2 text-xs"
+                                >
+                                  วิ่ง ({(round.restrictions || []).filter(r => r.number.length === 1).length})
+                                </Button>
+                              </div>
                             </div>
                             <Table>
                               <TableHeader>
@@ -636,7 +672,12 @@ export default function RoundsPage() {
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {(round.restrictions || []).map((res, idx) => (
+                                {(round.restrictions || [])
+                                  .filter((res) => {
+                                    if (restrictionFilter === "ALL") return true;
+                                    return res.number.length === parseInt(restrictionFilter);
+                                  })
+                                  .map((res, idx) => (
                                   <TableRow key={idx}>
                                     <TableCell>
                                       <span className="font-mono font-bold text-xl text-amber-400">
