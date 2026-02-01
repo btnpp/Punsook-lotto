@@ -78,6 +78,7 @@ interface SettingsData {
 export default function RiskPage() {
   const [selectedLottery, setSelectedLottery] = useState("ALL");
   const [selectedRound, setSelectedRound] = useState<string>("");
+  const [selectedBetType, setSelectedBetType] = useState("ALL");
 
   // Build API URL with params
   const buildRiskUrl = () => {
@@ -304,8 +305,8 @@ export default function RiskPage() {
         </Card>
 
         {/* Lottery Selector */}
-        <div className="flex items-center justify-between">
-          <div className="flex gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant={selectedLottery === "ALL" ? "default" : "outline"}
               onClick={() => { setSelectedLottery("ALL"); setSelectedRound(""); }}
@@ -358,6 +359,66 @@ export default function RiskPage() {
           </div>
         </div>
 
+        {/* Bet Type Filter */}
+        <div className="flex flex-wrap gap-1">
+          <Button
+            size="sm"
+            variant={selectedBetType === "ALL" ? "default" : "outline"}
+            onClick={() => setSelectedBetType("ALL")}
+            className="h-7 px-3 text-xs"
+          >
+            ทั้งหมด ({riskData.length})
+          </Button>
+          <Button
+            size="sm"
+            variant={selectedBetType === "THREE_TOP" ? "default" : "outline"}
+            onClick={() => setSelectedBetType("THREE_TOP")}
+            className="h-7 px-3 text-xs"
+          >
+            3บน ({riskData.filter(r => r.betType === "THREE_TOP").length})
+          </Button>
+          <Button
+            size="sm"
+            variant={selectedBetType === "THREE_TOD" ? "default" : "outline"}
+            onClick={() => setSelectedBetType("THREE_TOD")}
+            className="h-7 px-3 text-xs"
+          >
+            3โต๊ด ({riskData.filter(r => r.betType === "THREE_TOD").length})
+          </Button>
+          <Button
+            size="sm"
+            variant={selectedBetType === "TWO_TOP" ? "default" : "outline"}
+            onClick={() => setSelectedBetType("TWO_TOP")}
+            className="h-7 px-3 text-xs"
+          >
+            2บน ({riskData.filter(r => r.betType === "TWO_TOP").length})
+          </Button>
+          <Button
+            size="sm"
+            variant={selectedBetType === "TWO_BOTTOM" ? "default" : "outline"}
+            onClick={() => setSelectedBetType("TWO_BOTTOM")}
+            className="h-7 px-3 text-xs"
+          >
+            2ล่าง ({riskData.filter(r => r.betType === "TWO_BOTTOM").length})
+          </Button>
+          <Button
+            size="sm"
+            variant={selectedBetType === "RUN_TOP" ? "default" : "outline"}
+            onClick={() => setSelectedBetType("RUN_TOP")}
+            className="h-7 px-3 text-xs"
+          >
+            วิ่งบน ({riskData.filter(r => r.betType === "RUN_TOP").length})
+          </Button>
+          <Button
+            size="sm"
+            variant={selectedBetType === "RUN_BOTTOM" ? "default" : "outline"}
+            onClick={() => setSelectedBetType("RUN_BOTTOM")}
+            className="h-7 px-3 text-xs"
+          >
+            วิ่งล่าง ({riskData.filter(r => r.betType === "RUN_BOTTOM").length})
+          </Button>
+        </div>
+
         {/* Current Round Info */}
         {currentRound && (
           <Card className="bg-gradient-to-r from-amber-500/10 to-amber-600/5 border-amber-500/30">
@@ -405,7 +466,9 @@ export default function RiskPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {riskData.map((item, index) => (
+                {riskData
+                  .filter((item) => selectedBetType === "ALL" || item.betType === selectedBetType)
+                  .map((item, index) => (
                   <TableRow key={index} className="table-row-hover">
                     <TableCell>
                       <span className="text-2xl font-mono font-bold text-amber-400">
