@@ -40,6 +40,7 @@ interface RiskNumber {
   totalAmount: number;
   betCount: number;
   potentialPayout: number;
+  restriction?: { type: string; value: number | null };
 }
 
 interface Round {
@@ -159,6 +160,16 @@ export default function RiskPage() {
     const isOverCapital = potentialPayout > usableCapital;
     const excessAmount = isOverCapital ? item.totalAmount - Math.floor(usableCapital / payRate) : 0;
     
+    // Determine restriction status
+    const restriction = item.restriction;
+    let restrictionStatus: "BLOCKED" | "HALF_PAYOUT" | "REDUCED_PAYOUT" | "REDUCED_LIMIT" | null = null;
+    if (restriction) {
+      const validTypes = ["BLOCKED", "HALF_PAYOUT", "REDUCED_PAYOUT", "REDUCED_LIMIT"];
+      if (validTypes.includes(restriction.type)) {
+        restrictionStatus = restriction.type as "BLOCKED" | "HALF_PAYOUT" | "REDUCED_PAYOUT" | "REDUCED_LIMIT";
+      }
+    }
+    
     return {
       ...item,
       limit,
@@ -167,6 +178,8 @@ export default function RiskPage() {
       isOverCapital,
       excessAmount,
       safeAmount: Math.floor(usableCapital / payRate),
+      restrictionStatus,
+      restrictionValue: restriction?.value,
     };
   }).sort((a, b) => b.percentage - a.percentage);
 
@@ -419,15 +432,29 @@ export default function RiskPage() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      {item.percentage >= 100 ? (
-                        <Badge variant="destructive">เต็ม</Badge>
-                      ) : item.isOverCapital ? (
-                        <Badge variant="warning">เกินทุน</Badge>
-                      ) : item.percentage >= 80 ? (
-                        <Badge variant="warning">ใกล้เต็ม</Badge>
-                      ) : (
-                        <Badge variant="success">ปกติ</Badge>
-                      )}
+                      <div className="flex flex-wrap gap-1">
+                        {/* Restriction status */}
+                        {item.restrictionStatus === "BLOCKED" ? (
+                          <Badge variant="destructive">ปิดรับ</Badge>
+                        ) : item.restrictionStatus === "HALF_PAYOUT" ? (
+                          <Badge className="bg-purple-600">จ่ายครึ่ง</Badge>
+                        ) : item.restrictionStatus === "REDUCED_PAYOUT" ? (
+                          <Badge className="bg-purple-600">จ่าย×{item.restrictionValue}</Badge>
+                        ) : item.restrictionStatus === "REDUCED_LIMIT" ? (
+                          <Badge className="bg-blue-600">Limit {item.restrictionValue}</Badge>
+                        ) : null}
+                        
+                        {/* Regular status */}
+                        {item.percentage >= 100 ? (
+                          <Badge variant="destructive">เต็ม</Badge>
+                        ) : item.isOverCapital ? (
+                          <Badge variant="warning">เกินทุน</Badge>
+                        ) : item.percentage >= 80 ? (
+                          <Badge variant="warning">ใกล้เต็ม</Badge>
+                        ) : !item.restrictionStatus ? (
+                          <Badge variant="success">ปกติ</Badge>
+                        ) : null}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       {item.excessAmount > 0 ? (

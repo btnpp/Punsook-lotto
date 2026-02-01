@@ -37,14 +37,34 @@ export async function GET(request: NextRequest) {
 
     // Get bets for analysis
     const betsWhere: Record<string, unknown> = { status: { not: "CANCELLED" } };
+    let activeRoundId: string | null = null;
+    
     if (roundId) {
       betsWhere.roundId = roundId;
+      activeRoundId = roundId;
     } else if (availableRounds.length > 0) {
       // Default to first open round or first available round
       const defaultRound = availableRounds.find(r => r.status === "OPEN") || availableRounds[0];
       if (defaultRound) {
         betsWhere.roundId = defaultRound.id;
+        activeRoundId = defaultRound.id;
       }
+    }
+
+    // Get restrictions for the active round
+    const restrictions = activeRoundId
+      ? await prisma.numberRestriction.findMany({
+          where: { roundId: activeRoundId },
+        })
+      : [];
+
+    // Create restriction map for quick lookup
+    const restrictionMap = new Map<string, { type: string; value: number | null }>();
+    for (const r of restrictions) {
+      restrictionMap.set(`${r.number}-${r.betType}`, {
+        type: r.restrictionType,
+        value: r.value,
+      });
     }
 
     const bets = await prisma.bet.findMany({
@@ -62,10 +82,13 @@ export async function GET(request: NextRequest) {
       totalAmount: number;
       betCount: number;
       potentialPayout: number;
+      restriction?: { type: string; value: number | null };
     }>();
 
     for (const bet of bets) {
       const key = `${bet.number}-${bet.betType}-${bet.round.lotteryType.code}`;
+      const restrictionKey = `${bet.number}-${bet.betType}`;
+      const restriction = restrictionMap.get(restrictionKey);
       
       if (!riskMap.has(key)) {
         riskMap.set(key, {
@@ -75,13 +98,32 @@ export async function GET(request: NextRequest) {
           totalAmount: 0,
           betCount: 0,
           potentialPayout: 0,
+          restriction: restriction,
         });
       }
 
       const risk = riskMap.get(key)!;
       risk.totalAmount += bet.netAmount;
       risk.betCount += 1;
-      risk.potentialPayout += bet.amount * bet.payRate;
+      
+      // Calculate potential payout based on restriction
+      let payout = bet.amount * bet.payRate;
+      if (restriction && !bet.isFullPay) {
+        switch (restriction.type) {
+          case "BLOCKED":
+            payout = 0; // Should not payout
+            break;
+          case "REDUCED_PAYOUT":
+          case "HALF_PAYOUT":
+            if (restriction.value && restriction.value > 0) {
+              payout = bet.amount * restriction.value;
+            } else {
+              payout = bet.amount * (bet.payRate / 2); // Default half
+            }
+            break;
+        }
+      }
+      risk.potentialPayout += payout;
     }
 
     // Convert to array and sort by potential payout
