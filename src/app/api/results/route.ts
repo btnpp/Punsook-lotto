@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { roundId, threeTop, twoTop, twoBottom } = body;
+    const { roundId, threeTop, threeBottom, twoTop, twoBottom } = body;
 
     if (!roundId) {
       return NextResponse.json(
@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
       where: { id: roundId },
       data: {
         result3Top: threeTop,
+        result3Bottom: threeBottom,
         result2Top: twoTop,
         result2Bottom: twoBottom,
         resultedAt: new Date(),
@@ -141,6 +142,12 @@ export async function POST(request: NextRequest) {
           // Check all permutations of three top
           const threeTopPerms = getPermutations(threeTop);
           if (threeTopPerms.includes(bet.number)) {
+            isWin = true;
+            winAmount = bet.amount * bet.payRate;
+          }
+          break;
+        case "THREE_BOTTOM":
+          if (bet.number === threeBottom) {
             isWin = true;
             winAmount = bet.amount * bet.payRate;
           }

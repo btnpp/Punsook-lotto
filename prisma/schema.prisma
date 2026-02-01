@@ -223,6 +223,7 @@ model LotteryRound {
   status        String    @default("OPEN") // OPEN, CLOSED, RESULTED
   result3Top    String?   // ผล 3 ตัวบน
   result3Tod    String?   // ผล 3 ตัวโต๊ด (comma separated)
+  result3Bottom String?   // ผล 3 ตัวล่าง
   result2Top    String?   // ผล 2 ตัวบน
   result2Bottom String?   // ผล 2 ตัวล่าง
   closedAt      DateTime?

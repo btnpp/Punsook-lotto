@@ -176,6 +176,7 @@ interface Round {
   roundDate: Date;
   status: string;
   result3Top?: string;
+  result3Bottom?: string;
   result2Top?: string;
   result2Bottom?: string;
   lotteryCode?: string;
@@ -212,6 +213,7 @@ export default function ResultsPage() {
   } | null>(null);
   const [resultInput, setResultInput] = useState({
     result3Top: "",
+    result3Bottom: "",
     result2Top: "",
     result2Bottom: "",
   });
@@ -274,6 +276,7 @@ export default function ResultsPage() {
     setSelectedRound(round);
     setResultInput({
       result3Top: "",
+      result3Bottom: "",
       result2Top: "",
       result2Bottom: "",
     });
@@ -291,6 +294,7 @@ export default function ResultsPage() {
         body: JSON.stringify({
           roundId: selectedRound.id,
           threeTop: resultInput.result3Top,
+          threeBottom: resultInput.result3Bottom,
           twoTop: resultInput.result2Top,
           twoBottom: resultInput.result2Bottom,
         }),
@@ -434,23 +438,29 @@ export default function ResultsPage() {
                     </div>
 
                     {/* Results Display */}
-                    <div className="grid grid-cols-3 gap-4 mb-4">
-                      <div className="text-center p-3 rounded-lg bg-slate-800/50">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                      <div className="text-center p-2 rounded-lg bg-slate-800/50">
                         <p className="text-xs text-slate-400 mb-1">3 ตัวบน</p>
-                        <p className="text-2xl font-mono font-bold text-amber-400">
-                          {round.result3Top}
+                        <p className="text-xl font-mono font-bold text-amber-400">
+                          {round.result3Top || "-"}
                         </p>
                       </div>
-                      <div className="text-center p-3 rounded-lg bg-slate-800/50">
+                      <div className="text-center p-2 rounded-lg bg-slate-800/50">
+                        <p className="text-xs text-slate-400 mb-1">3 ตัวล่าง</p>
+                        <p className="text-xl font-mono font-bold text-amber-400">
+                          {round.result3Bottom || "-"}
+                        </p>
+                      </div>
+                      <div className="text-center p-2 rounded-lg bg-slate-800/50">
                         <p className="text-xs text-slate-400 mb-1">2 ตัวบน</p>
-                        <p className="text-2xl font-mono font-bold text-amber-400">
-                          {round.result2Top}
+                        <p className="text-xl font-mono font-bold text-amber-400">
+                          {round.result2Top || "-"}
                         </p>
                       </div>
-                      <div className="text-center p-3 rounded-lg bg-slate-800/50">
+                      <div className="text-center p-2 rounded-lg bg-slate-800/50">
                         <p className="text-xs text-slate-400 mb-1">2 ตัวล่าง</p>
-                        <p className="text-2xl font-mono font-bold text-amber-400">
-                          {round.result2Bottom}
+                        <p className="text-xl font-mono font-bold text-amber-400">
+                          {round.result2Bottom || "-"}
                         </p>
                       </div>
                     </div>
@@ -537,21 +547,39 @@ export default function ResultsPage() {
               </div>
 
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>รางวัลที่ 1 (3 ตัวบน)</Label>
-                  <Input
-                    type="text"
-                    placeholder="xxx"
-                    maxLength={3}
-                    value={resultInput.result3Top}
-                    onChange={(e) =>
-                      setResultInput({
-                        ...resultInput,
-                        result3Top: e.target.value.replace(/\D/g, ""),
-                      })
-                    }
-                    className="text-3xl font-mono text-center tracking-widest"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>รางวัลที่ 1 (3 ตัวบน)</Label>
+                    <Input
+                      type="text"
+                      placeholder="xxx"
+                      maxLength={3}
+                      value={resultInput.result3Top}
+                      onChange={(e) =>
+                        setResultInput({
+                          ...resultInput,
+                          result3Top: e.target.value.replace(/\D/g, ""),
+                        })
+                      }
+                      className="text-2xl font-mono text-center tracking-widest"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>3 ตัวล่าง</Label>
+                    <Input
+                      type="text"
+                      placeholder="xxx"
+                      maxLength={3}
+                      value={resultInput.result3Bottom}
+                      onChange={(e) =>
+                        setResultInput({
+                          ...resultInput,
+                          result3Bottom: e.target.value.replace(/\D/g, ""),
+                        })
+                      }
+                      className="text-2xl font-mono text-center tracking-widest"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -724,7 +752,7 @@ export default function ResultsPage() {
             <Button onClick={() => {
               setIsSuccessDialogOpen(false);
               setLastCreatedRound(null);
-              setResultInput({ result3Top: "", result2Top: "", result2Bottom: "" });
+              setResultInput({ result3Top: "", result3Bottom: "", result2Top: "", result2Bottom: "" });
             }}>
               ตกลง
             </Button>
