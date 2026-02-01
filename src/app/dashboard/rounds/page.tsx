@@ -177,7 +177,28 @@ export default function RoundsPage() {
   // Handle input change and parse numbers
   const handleNumbersInputChange = (value: string) => {
     setNumbersInput(value);
-    setParsedNumbers(parseNumbers(value));
+    const parsed = parseNumbers(value);
+    setParsedNumbers(parsed);
+    
+    // Auto-select bet types based on digit count
+    if (parsed.length > 0) {
+      const digitCounts = new Set(parsed.map((n) => n.length));
+      const autoSelectedTypes: string[] = [];
+      
+      if (digitCounts.has(3)) {
+        autoSelectedTypes.push("THREE_TOP", "THREE_TOD");
+      }
+      if (digitCounts.has(2)) {
+        autoSelectedTypes.push("TWO_TOP", "TWO_BOTTOM");
+      }
+      if (digitCounts.has(1)) {
+        autoSelectedTypes.push("RUN_TOP", "RUN_BOTTOM");
+      }
+      
+      if (autoSelectedTypes.length > 0) {
+        setSelectedBetTypes(autoSelectedTypes);
+      }
+    }
   };
 
   // ฟังก์ชันกลับเลข - ได้ทุก permutations
