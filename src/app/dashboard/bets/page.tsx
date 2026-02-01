@@ -132,8 +132,12 @@ export default function BetsPage() {
   const [quickAmountBottom, setQuickAmountBottom] = useState("");
   const [quickReverse, setQuickReverse] = useState(false);
   
-  // Ref for auto-focus
+  // Refs for auto-focus and Enter navigation
   const quickNumberInputRef = useRef<HTMLInputElement>(null);
+  const quickAmountTopRef = useRef<HTMLInputElement>(null);
+  const quickAmountTodRef = useRef<HTMLInputElement>(null);
+  const quickAmountBottomRef = useRef<HTMLInputElement>(null);
+  const quickAddButtonRef = useRef<HTMLButtonElement>(null);
 
   // SWR for agents and rounds
   interface AgentsResponse { agents: Agent[] }
@@ -646,6 +650,12 @@ export default function BetsPage() {
                               setQuickNumber(val);
                             }
                           }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              quickAmountTopRef.current?.focus();
+                            }
+                          }}
                           className="text-2xl font-mono text-center tracking-widest h-12"
                           maxLength={3}
                         />
@@ -655,10 +665,22 @@ export default function BetsPage() {
                       <div className="space-y-1">
                         <Label className="text-xs text-slate-400 text-center block">บน</Label>
                         <Input
+                          ref={quickAmountTopRef}
                           type="number"
                           placeholder="0"
                           value={quickAmountTop}
                           onChange={(e) => setQuickAmountTop(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              // ถ้าเลข 3 ตัว → ไปโต๊ด, ถ้า 2 ตัว → ไปล่าง
+                              if (quickNumber.length === 3) {
+                                quickAmountTodRef.current?.focus();
+                              } else if (quickNumber.length >= 2) {
+                                quickAmountBottomRef.current?.focus();
+                              }
+                            }
+                          }}
                           className="text-lg font-mono text-center h-12"
                         />
                       </div>
@@ -667,10 +689,17 @@ export default function BetsPage() {
                       <div className="space-y-1">
                         <Label className="text-xs text-slate-400 text-center block">โต๊ด</Label>
                         <Input
+                          ref={quickAmountTodRef}
                           type="number"
                           placeholder="0"
                           value={quickAmountTod}
                           onChange={(e) => setQuickAmountTod(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              quickAmountBottomRef.current?.focus();
+                            }
+                          }}
                           className="text-lg font-mono text-center h-12"
                           disabled={quickNumber.length !== 3}
                         />
@@ -680,10 +709,18 @@ export default function BetsPage() {
                       <div className="space-y-1">
                         <Label className="text-xs text-slate-400 text-center block">ล่าง</Label>
                         <Input
+                          ref={quickAmountBottomRef}
                           type="number"
                           placeholder="0"
                           value={quickAmountBottom}
                           onChange={(e) => setQuickAmountBottom(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              // กด Enter ที่ช่องล่าง → กดปุ่มเพิ่มรายการ
+                              quickAddButtonRef.current?.click();
+                            }
+                          }}
                           className="text-lg font-mono text-center h-12"
                           disabled={quickNumber.length === 1}
                         />
@@ -738,6 +775,7 @@ export default function BetsPage() {
 
                     {/* ปุ่มเพิ่มรายการ */}
                     <Button
+                      ref={quickAddButtonRef}
                       onClick={() => {
                         if (!quickNumber) return;
                         
