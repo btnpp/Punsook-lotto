@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import useSWR from "swr";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -131,6 +131,9 @@ export default function BetsPage() {
   const [quickAmountTod, setQuickAmountTod] = useState("");
   const [quickAmountBottom, setQuickAmountBottom] = useState("");
   const [quickReverse, setQuickReverse] = useState(false);
+  
+  // Ref for auto-focus
+  const quickNumberInputRef = useRef<HTMLInputElement>(null);
 
   // SWR for agents and rounds
   interface AgentsResponse { agents: Agent[] }
@@ -633,6 +636,7 @@ export default function BetsPage() {
                       <div className="space-y-1">
                         <Label className="text-xs text-slate-400 text-center block">🔢 เลข</Label>
                         <Input
+                          ref={quickNumberInputRef}
                           type="text"
                           placeholder="123"
                           value={quickNumber}
@@ -834,11 +838,16 @@ export default function BetsPage() {
                                           toast.success(`เพิ่ม ${addedCount} รายการ`);
                                         }
                         
-                        // Reset
+                        // Reset and focus back to number input
                         setQuickNumber("");
                         setQuickAmountTop("");
                         setQuickAmountTod("");
                         setQuickAmountBottom("");
+                        
+                        // Auto-focus back to number input
+                        setTimeout(() => {
+                          quickNumberInputRef.current?.focus();
+                        }, 50);
                         setQuickReverse(false);
                       }}
                       disabled={!quickNumber || (parseFloat(quickAmountTop) <= 0 && parseFloat(quickAmountTod) <= 0 && parseFloat(quickAmountBottom) <= 0)}
