@@ -33,7 +33,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Plus, 
   Ban, 
@@ -962,12 +961,12 @@ export default function RoundsPage() {
                 onChange={(e) => handleNumbersInputChange(e.target.value)}
                 className="w-full min-h-[80px] p-3 rounded-lg bg-slate-800 border border-slate-700 text-lg font-mono focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none resize-none"
               />
-              {/* Checkbox อั้นทั้งไปและกลับ */}
+              {/* Toggle อั้นทั้งไปและกลับ */}
               <div className="flex items-center gap-2 mt-2">
-                <Checkbox
+                <Switch
                   id="includeReversed"
                   checked={includeReversed}
-                  onCheckedChange={(checked) => setIncludeReversed(checked as boolean)}
+                  onCheckedChange={setIncludeReversed}
                 />
                 <label htmlFor="includeReversed" className="text-sm text-slate-300 cursor-pointer">
                   🔄 อั้นทั้งไปและกลับ (รวม permutations ทั้งหมด)

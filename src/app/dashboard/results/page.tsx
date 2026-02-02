@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -724,11 +724,10 @@ export default function ResultsPage() {
               {/* Auto-create next round option */}
               <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
                 <div className="flex items-start gap-3">
-                  <Checkbox
+                  <Switch
                     id="autoCreate"
                     checked={autoCreateNextRound}
-                    onCheckedChange={(checked) => setAutoCreateNextRound(checked as boolean)}
-                    className="mt-0.5"
+                    onCheckedChange={setAutoCreateNextRound}
                   />
                   <div className="flex-1">
                     <label htmlFor="autoCreate" className="text-sm font-medium text-emerald-400 cursor-pointer">

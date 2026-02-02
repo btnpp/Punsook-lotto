@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -655,12 +655,12 @@ export default function BetsPage() {
                 {/* Quick Mode - แบบใส่เลขแล้วเลือกบน/โต๊ด/ล่าง */}
                 {mode === "quick" && (
                   <div className="space-y-4">
-                    {/* Checkbox ล้างยอดเงินอัตโนมัติ */}
+                    {/* Toggle ล้างยอดเงินอัตโนมัติ */}
                     <div className="flex items-center gap-3">
-                      <Checkbox
+                      <Switch
                         id="quickAutoClear"
                         checked={quickAutoClear}
-                        onCheckedChange={(checked) => setQuickAutoClear(checked === true)}
+                        onCheckedChange={setQuickAutoClear}
                       />
                       <Label htmlFor="quickAutoClear" className="cursor-pointer text-sm text-slate-300">
                         ล้างยอดเงินอัตโนมัติ หลังเพิ่มรายการ
@@ -760,13 +760,13 @@ export default function BetsPage() {
                       </div>
                     </div>
 
-                    {/* Checkbox กลับเลข */}
+                    {/* Toggle กลับเลข */}
                     {quickNumber.length >= 2 && (
                       <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50 border border-slate-700">
-                        <Checkbox
+                        <Switch
                           id="quickReverse"
                           checked={quickReverse}
-                          onCheckedChange={(checked) => setQuickReverse(checked === true)}
+                          onCheckedChange={setQuickReverse}
                         />
                         <Label htmlFor="quickReverse" className="cursor-pointer">
                           {quickNumber.length === 2 ? "2กลับ" : "6กลับ"} (เพิ่มเลขกลับอัตโนมัติ)
