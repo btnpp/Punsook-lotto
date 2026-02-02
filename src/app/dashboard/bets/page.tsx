@@ -131,6 +131,7 @@ export default function BetsPage() {
   const [quickAmountTod, setQuickAmountTod] = useState("");
   const [quickAmountBottom, setQuickAmountBottom] = useState("");
   const [quickReverse, setQuickReverse] = useState(false);
+  const [quickAutoClear, setQuickAutoClear] = useState(true); // ล้างยอดเงินอัตโนมัติ
   
   // Refs for auto-focus and Enter navigation
   const quickNumberInputRef = useRef<HTMLInputElement>(null);
@@ -654,6 +655,18 @@ export default function BetsPage() {
                 {/* Quick Mode - แบบใส่เลขแล้วเลือกบน/โต๊ด/ล่าง */}
                 {mode === "quick" && (
                   <div className="space-y-4">
+                    {/* Checkbox ล้างยอดเงินอัตโนมัติ */}
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id="quickAutoClear"
+                        checked={quickAutoClear}
+                        onCheckedChange={(checked) => setQuickAutoClear(checked === true)}
+                      />
+                      <Label htmlFor="quickAutoClear" className="cursor-pointer text-sm text-slate-300">
+                        ล้างยอดเงินอัตโนมัติ หลังเพิ่มรายการ
+                      </Label>
+                    </div>
+
                     {/* ช่องใส่เลขและจำนวนเงิน - อยู่แถวเดียวกัน ความกว้างเท่ากัน */}
                     <div className="grid grid-cols-4 gap-3">
                       {/* เลข */}
@@ -897,10 +910,14 @@ export default function BetsPage() {
                                         }
                         
                         // Reset and focus back to number input
-                        setQuickNumber("");
-                        setQuickAmountTop("");
-                        setQuickAmountTod("");
-                        setQuickAmountBottom("");
+                        setQuickNumber(""); // ล้างเลขเสมอ
+                        
+                        // ล้างยอดเงินเฉพาะเมื่อติ๊ก "ล้างยอดเงินอัตโนมัติ"
+                        if (quickAutoClear) {
+                          setQuickAmountTop("");
+                          setQuickAmountTod("");
+                          setQuickAmountBottom("");
+                        }
                         
                         // Auto-focus back to number input
                         setTimeout(() => {
