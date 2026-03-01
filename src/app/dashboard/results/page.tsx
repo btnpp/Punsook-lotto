@@ -24,7 +24,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Check, Calendar, Trophy, Calculator, Plus, ArrowRight, Eye, Users } from "lucide-react";
+import { Check, Calendar, Trophy, Calculator, Plus, ArrowRight, Eye, Users, Edit } from "lucide-react";
 import { ResultsSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -281,14 +281,15 @@ export default function ResultsPage() {
 
   const handleOpenResultDialog = (round: Round) => {
     setSelectedRound(round);
+    // Fill with existing results if editing, otherwise empty
     setResultInput({
-      result3Top: "",
-      result3Front1: "",
-      result3Front2: "",
-      result3Back1: "",
-      result3Back2: "",
-      result2Top: "",
-      result2Bottom: "",
+      result3Top: round.result3Top || "",
+      result3Front1: round.result3Front1 || "",
+      result3Front2: round.result3Front2 || "",
+      result3Back1: round.result3Back1 || "",
+      result3Back2: round.result3Back2 || "",
+      result2Top: round.result2Top || "",
+      result2Bottom: round.result2Bottom || "",
     });
     setIsResultDialogOpen(true);
   };
@@ -535,16 +536,26 @@ export default function ResultsPage() {
                       </div>
                     </div>
 
-                    {/* View Winners Button */}
+                    {/* Buttons for closed rounds */}
                     {round.status === "CLOSED" && (
-                      <Button
-                        variant="outline"
-                        className="w-full mt-4 gap-2"
-                        onClick={() => handleOpenWinnersDialog(round)}
-                      >
-                        <Users className="w-4 h-4" />
-                        ดูผู้ถูกรางวัล
-                      </Button>
+                      <div className="flex flex-col gap-2 mt-4">
+                        <Button
+                          variant="outline"
+                          className="w-full gap-2"
+                          onClick={() => handleOpenWinnersDialog(round)}
+                        >
+                          <Users className="w-4 h-4" />
+                          ดูผู้ถูกรางวัล
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="w-full gap-2 text-amber-400 hover:text-amber-300"
+                          onClick={() => handleOpenResultDialog(round)}
+                        >
+                          <Edit className="w-4 h-4" />
+                          แก้ไขผลหวย
+                        </Button>
+                      </div>
                     )}
                   </CardContent>
                 </Card>

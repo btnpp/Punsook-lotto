@@ -104,11 +104,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Calculate winners
+    // Calculate winners - include all non-cancelled bets (for re-calculation)
     const bets = await prisma.bet.findMany({
       where: {
         roundId,
-        status: "ACTIVE",
+        status: { not: "CANCELLED" },
       },
     });
 
