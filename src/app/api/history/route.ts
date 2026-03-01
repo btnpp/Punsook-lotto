@@ -16,6 +16,10 @@ export async function GET(request: NextRequest) {
     if (agentId) where.agentId = agentId;
     if (status) where.status = status;
 
+    // If filtering by roundId, don't limit - get all bets for that round
+    // Otherwise use limit to prevent too large responses
+    const takeLimit = roundId ? undefined : limit;
+
     const bets = await prisma.bet.findMany({
       where,
       include: {
@@ -31,7 +35,7 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { createdAt: "desc" },
-      take: limit,
+      ...(takeLimit && { take: takeLimit }),
     });
 
     // Group bets by slip (createdAt within same minute from same agent)
