@@ -45,6 +45,7 @@ interface BetItem {
   amount: number;
   discount: number;
   netAmount: number;
+  payRate: number;
   status: string;
   winAmount?: number;
 }
@@ -85,9 +86,9 @@ const demoSlips: Slip[] = [
     agent: { code: "A001", name: "นายสมชาย" },
     lottery: "THAI",
     items: [
-      { id: "1", number: "25", betType: "TWO_TOP", amount: 500, discount: 15, netAmount: 425, status: "ACTIVE" },
-      { id: "2", number: "36", betType: "TWO_TOP", amount: 300, discount: 15, netAmount: 255, status: "ACTIVE" },
-      { id: "3", number: "52", betType: "TWO_TOP", amount: 200, discount: 15, netAmount: 170, status: "ACTIVE" },
+      { id: "1", number: "25", betType: "TWO_TOP", amount: 500, discount: 15, netAmount: 425, payRate: 70, status: "ACTIVE" },
+      { id: "2", number: "36", betType: "TWO_TOP", amount: 300, discount: 15, netAmount: 255, payRate: 70, status: "ACTIVE" },
+      { id: "3", number: "52", betType: "TWO_TOP", amount: 200, discount: 15, netAmount: 170, payRate: 70, status: "ACTIVE" },
     ],
     totalAmount: 1000,
     totalDiscount: 15,
@@ -102,7 +103,7 @@ const demoSlips: Slip[] = [
     agent: { code: "A001", name: "นายสมชาย" },
     lottery: "THAI",
     items: [
-      { id: "4", number: "456", betType: "THREE_TOD", amount: 200, discount: 15, netAmount: 170, status: "ACTIVE" },
+      { id: "4", number: "456", betType: "THREE_TOD", amount: 200, discount: 15, netAmount: 170, payRate: 120, status: "ACTIVE" },
     ],
     totalAmount: 200,
     totalDiscount: 15,
@@ -117,10 +118,10 @@ const demoSlips: Slip[] = [
     agent: { code: "A002", name: "นายวิชัย" },
     lottery: "LAO",
     items: [
-      { id: "5", number: "123", betType: "THREE_TOP", amount: 100, discount: 12, netAmount: 88, status: "ACTIVE" },
-      { id: "6", number: "321", betType: "THREE_TOP", amount: 100, discount: 12, netAmount: 88, status: "ACTIVE" },
-      { id: "7", number: "12", betType: "TWO_TOP", amount: 500, discount: 12, netAmount: 440, status: "ACTIVE" },
-      { id: "8", number: "21", betType: "TWO_TOP", amount: 500, discount: 12, netAmount: 440, status: "ACTIVE" },
+      { id: "5", number: "123", betType: "THREE_TOP", amount: 100, discount: 12, netAmount: 88, payRate: 550, status: "ACTIVE" },
+      { id: "6", number: "321", betType: "THREE_TOP", amount: 100, discount: 12, netAmount: 88, payRate: 550, status: "ACTIVE" },
+      { id: "7", number: "12", betType: "TWO_TOP", amount: 500, discount: 12, netAmount: 440, payRate: 70, status: "ACTIVE" },
+      { id: "8", number: "21", betType: "TWO_TOP", amount: 500, discount: 12, netAmount: 440, payRate: 70, status: "ACTIVE" },
     ],
     totalAmount: 1200,
     totalDiscount: 12,
@@ -135,8 +136,8 @@ const demoSlips: Slip[] = [
     agent: { code: "A003", name: "นายประสิทธิ์" },
     lottery: "HANOI",
     items: [
-      { id: "9", number: "99", betType: "TWO_BOTTOM", amount: 1000, discount: 11, netAmount: 890, status: "WON", winAmount: 85500 },
-      { id: "10", number: "88", betType: "TWO_BOTTOM", amount: 500, discount: 11, netAmount: 445, status: "LOST" },
+      { id: "9", number: "99", betType: "TWO_BOTTOM", amount: 1000, discount: 11, netAmount: 890, payRate: 70, status: "WON", winAmount: 85500 },
+      { id: "10", number: "88", betType: "TWO_BOTTOM", amount: 500, discount: 11, netAmount: 445, payRate: 70, status: "LOST" },
     ],
     totalAmount: 1500,
     totalDiscount: 11,
@@ -151,9 +152,9 @@ const demoSlips: Slip[] = [
     agent: { code: "A001", name: "นายสมชาย" },
     lottery: "THAI",
     items: [
-      { id: "11", number: "78", betType: "TWO_TOP", amount: 500, discount: 15, netAmount: 425, status: "WON", winAmount: 45000 },
-      { id: "12", number: "87", betType: "TWO_TOP", amount: 500, discount: 15, netAmount: 425, status: "LOST" },
-      { id: "13", number: "789", betType: "THREE_TOD", amount: 100, discount: 15, netAmount: 85, status: "LOST" },
+      { id: "11", number: "78", betType: "TWO_TOP", amount: 500, discount: 15, netAmount: 425, payRate: 70, status: "WON", winAmount: 45000 },
+      { id: "12", number: "87", betType: "TWO_TOP", amount: 500, discount: 15, netAmount: 425, payRate: 70, status: "LOST" },
+      { id: "13", number: "789", betType: "THREE_TOD", amount: 100, discount: 15, netAmount: 85, payRate: 120, status: "LOST" },
     ],
     totalAmount: 1100,
     totalDiscount: 15,
@@ -168,7 +169,7 @@ const demoSlips: Slip[] = [
     agent: { code: "A002", name: "นายวิชัย" },
     lottery: "LAO",
     items: [
-      { id: "14", number: "55", betType: "TWO_TOP", amount: 300, discount: 12, netAmount: 264, status: "CANCELLED" },
+      { id: "14", number: "55", betType: "TWO_TOP", amount: 300, discount: 12, netAmount: 264, payRate: 70, status: "CANCELLED" },
     ],
     totalAmount: 300,
     totalDiscount: 12,
@@ -849,6 +850,7 @@ export default function HistoryPage() {
                       <TableHead className="text-right">ยอด</TableHead>
                       <TableHead className="text-right">ส่วนลด</TableHead>
                       <TableHead className="text-right">สุทธิ</TableHead>
+                      <TableHead className="text-right">อัตราจ่าย</TableHead>
                       <TableHead className="text-right">สถานะ</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -873,6 +875,9 @@ export default function HistoryPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           ฿{formatNumber(item.netAmount)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="text-cyan-400">×{item.payRate || 0}</span>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">

@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
         amount: number;
         discount: number;
         netAmount: number;
+        payRate: number;
         status: string;
         winAmount?: number;
       }>;
@@ -98,6 +99,7 @@ export async function GET(request: NextRequest) {
         amount: bet.amount,
         discount: bet.discountPct,
         netAmount: bet.netAmount,
+        payRate: bet.payRate,
         status: bet.status,
         winAmount: bet.winAmount || undefined,
       });
