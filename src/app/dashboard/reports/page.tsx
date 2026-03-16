@@ -877,9 +877,9 @@ export default function ReportsPage() {
                             </Badge>
                           </div>
                           <p className="text-xl font-bold text-amber-400">
-                            ฿{formatNumber(roundData.filter(r => r.status === "PENDING" || r.status === "OPEN").reduce((sum, r) => sum + r.totalBets, 0))}
+                            ฿{formatNumber(roundData.filter(r => r.status === "PENDING" || r.status === "OPEN").reduce((sum, r) => sum + r.netAmount, 0))}
                           </p>
-                          <p className="text-xs text-slate-400 mt-1">ยอดแทงรอผล</p>
+                          <p className="text-xs text-slate-400 mt-1">ยอดสุทธิรอผล</p>
                         </CardContent>
                       </Card>
                       <Card className="bg-gradient-to-br from-slate-700/50 to-slate-800/50">
@@ -887,11 +887,11 @@ export default function ReportsPage() {
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm text-slate-400">งวดที่ออกผลแล้ว</span>
                             <Badge variant="secondary">
-                              {roundData.filter(r => r.status === "RESULTED").length} งวด
+                              {roundData.filter(r => r.status === "CLOSED" || r.status === "RESULTED").length} งวด
                             </Badge>
                           </div>
                           <p className="text-xl font-bold text-emerald-400">
-                            ฿{formatNumber(roundData.filter(r => r.status === "RESULTED").reduce((sum, r) => sum + r.profit, 0))}
+                            ฿{formatNumber(roundData.filter(r => r.status === "CLOSED" || r.status === "RESULTED").reduce((sum, r) => sum + r.profit, 0))}
                           </p>
                           <p className="text-xs text-slate-400 mt-1">กำไรรวม</p>
                         </CardContent>
@@ -901,11 +901,11 @@ export default function ReportsPage() {
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm text-slate-400">จ่ายรางวัลแล้ว</span>
                             <Badge variant="destructive">
-                              {roundData.filter(r => r.status === "RESULTED").length} งวด
+                              {roundData.filter(r => r.status === "CLOSED" || r.status === "RESULTED").length} งวด
                             </Badge>
                           </div>
                           <p className="text-xl font-bold text-red-400">
-                            ฿{formatNumber(roundData.filter(r => r.status === "RESULTED").reduce((sum, r) => sum + r.payout, 0))}
+                            ฿{formatNumber(roundData.filter(r => r.status === "CLOSED" || r.status === "RESULTED").reduce((sum, r) => sum + r.payout, 0))}
                           </p>
                           <p className="text-xs text-slate-400 mt-1">จ่ายรางวัลทั้งหมด</p>
                         </CardContent>
