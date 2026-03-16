@@ -4,10 +4,19 @@ import { prisma } from "@/lib/db";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const roundId = searchParams.get("roundId");
+    let roundId = searchParams.get("roundId");
+
+    // If no roundId, find the most recent CLOSED round
+    if (!roundId) {
+      const recentRound = await prisma.lotteryRound.findFirst({
+        where: { status: "CLOSED" },
+        orderBy: { roundDate: "desc" },
+      });
+      if (recentRound) roundId = recentRound.id;
+    }
 
     if (!roundId) {
-      return NextResponse.json({ error: "roundId required" }, { status: 400 });
+      return NextResponse.json({ error: "No closed rounds found" }, { status: 404 });
     }
 
     const round = await prisma.lotteryRound.findUnique({
