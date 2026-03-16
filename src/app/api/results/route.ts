@@ -157,28 +157,27 @@ export async function POST(request: NextRequest) {
     const threeBottomNumbers = [threeFront1, threeFront2, threeBack1, threeBack2].filter(Boolean) as string[];
 
     // Step 1: Fix all bets' payRates first (agent custom > global)
-    const payRateFixUpdates: { id: string; correctPayRate: number }[] = [];
+    // Group by payRate value to use updateMany (much faster)
+    const payRateGroups = new Map<number, string[]>();
     for (const bet of bets) {
       const agentRate = agentPayRateMap.get(`${bet.agentId}-${bet.betType}`);
       const globalRate = globalPayRateMap.get(bet.betType);
       const correctPayRate = agentRate ?? globalRate ?? bet.payRate;
       
       if (bet.payRate !== correctPayRate) {
-        payRateFixUpdates.push({ id: bet.id, correctPayRate });
+        if (!payRateGroups.has(correctPayRate)) {
+          payRateGroups.set(correctPayRate, []);
+        }
+        payRateGroups.get(correctPayRate)!.push(bet.id);
       }
     }
 
-    // Batch fix payRates
-    if (payRateFixUpdates.length > 0) {
-      console.log(`Fixing ${payRateFixUpdates.length} bets with wrong payRate`);
-      await prisma.$transaction(
-        payRateFixUpdates.map((fix) =>
-          prisma.bet.update({
-            where: { id: fix.id },
-            data: { payRate: fix.correctPayRate },
-          })
-        )
-      );
+    // Batch fix payRates using updateMany per rate group
+    for (const [rate, ids] of payRateGroups) {
+      await prisma.bet.updateMany({
+        where: { id: { in: ids } },
+        data: { payRate: rate },
+      });
     }
 
     // Step 2: Calculate results
@@ -257,16 +256,20 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Step 4: Batch update winners
+    // Step 4: Batch update winners (in chunks of 50 to avoid timeout)
     if (winnerUpdates.length > 0) {
-      await prisma.$transaction(
-        winnerUpdates.map((w) =>
-          prisma.bet.update({
-            where: { id: w.id },
-            data: { isWin: true, winAmount: w.winAmount, status: "WON" },
-          })
-        )
-      );
+      const CHUNK_SIZE = 50;
+      for (let i = 0; i < winnerUpdates.length; i += CHUNK_SIZE) {
+        const chunk = winnerUpdates.slice(i, i + CHUNK_SIZE);
+        await prisma.$transaction(
+          chunk.map((w) =>
+            prisma.bet.update({
+              where: { id: w.id },
+              data: { isWin: true, winAmount: w.winAmount, status: "WON" },
+            })
+          )
+        );
+      }
     }
 
     return NextResponse.json({
