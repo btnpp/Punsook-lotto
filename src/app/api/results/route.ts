@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
     // Check if round exists
     const round = await prisma.lotteryRound.findUnique({
       where: { id: roundId },
+      include: { lotteryType: true },
     });
 
     if (!round) {
@@ -126,6 +127,31 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Get global pay rates
+    const globalPayRates = await prisma.payRate.findMany({
+      where: { lotteryTypeId: round.lotteryTypeId },
+    });
+    const globalPayRateMap = new Map<string, number>();
+    for (const pr of globalPayRates) {
+      globalPayRateMap.set(pr.betType, pr.payRate);
+    }
+
+    // Get all agent IDs from bets and fetch their custom pay rates
+    const agentIds = [...new Set(bets.map(b => b.agentId))];
+    const agentPayRates = await prisma.agentPayRate.findMany({
+      where: { 
+        agentId: { in: agentIds },
+        lotteryType: round.lotteryType.code,
+      },
+    });
+    // Map: "agentId-betType" -> payRate
+    const agentPayRateMap = new Map<string, number>();
+    for (const apr of agentPayRates) {
+      if (apr.payRate > 0) {
+        agentPayRateMap.set(`${apr.agentId}-${apr.betType}`, apr.payRate);
+      }
+    }
+
     // Pre-calculate winning numbers for quick lookup
     const threeTopPerms = getPermutations(threeTop || "");
     const threeBottomNumbers = [threeFront1, threeFront2, threeBack1, threeBack2].filter(Boolean) as string[];
@@ -133,11 +159,17 @@ export async function POST(request: NextRequest) {
     // Calculate results for all bets
     const winnerIds: string[] = [];
     const loserIds: string[] = [];
-    const winnerUpdates: { id: string; winAmount: number }[] = [];
+    const winnerUpdates: { id: string; winAmount: number; payRate: number; needsPayRateUpdate: boolean; isLoser?: boolean }[] = [];
     let totalWinAmount = 0;
 
     for (const bet of bets) {
       let isWin = false;
+
+      // Resolve correct pay rate: agent custom > stored bet rate > global rate
+      const correctPayRate = agentPayRateMap.get(`${bet.agentId}-${bet.betType}`)
+        || globalPayRateMap.get(bet.betType)
+        || bet.payRate;
+
       let winAmount = 0;
 
       // Check winning based on bet type
@@ -145,43 +177,43 @@ export async function POST(request: NextRequest) {
         case "THREE_TOP":
           if (bet.number === threeTop) {
             isWin = true;
-            winAmount = bet.amount * bet.payRate;
+            winAmount = bet.amount * correctPayRate;
           }
           break;
         case "THREE_TOD":
           if (threeTopPerms.includes(bet.number)) {
             isWin = true;
-            winAmount = bet.amount * bet.payRate;
+            winAmount = bet.amount * correctPayRate;
           }
           break;
         case "THREE_BOTTOM":
           if (threeBottomNumbers.includes(bet.number)) {
             isWin = true;
-            winAmount = bet.amount * bet.payRate;
+            winAmount = bet.amount * correctPayRate;
           }
           break;
         case "TWO_TOP":
           if (bet.number === twoTop) {
             isWin = true;
-            winAmount = bet.amount * bet.payRate;
+            winAmount = bet.amount * correctPayRate;
           }
           break;
         case "TWO_BOTTOM":
           if (bet.number === twoBottom) {
             isWin = true;
-            winAmount = bet.amount * bet.payRate;
+            winAmount = bet.amount * correctPayRate;
           }
           break;
         case "RUN_TOP":
           if (threeTop && threeTop.includes(bet.number)) {
             isWin = true;
-            winAmount = bet.amount * bet.payRate;
+            winAmount = bet.amount * correctPayRate;
           }
           break;
         case "RUN_BOTTOM":
           if (twoBottom && twoBottom.includes(bet.number)) {
             isWin = true;
-            winAmount = bet.amount * bet.payRate;
+            winAmount = bet.amount * correctPayRate;
           }
           break;
       }
@@ -192,32 +224,34 @@ export async function POST(request: NextRequest) {
         if (restriction) {
           switch (restriction.type) {
             case "BLOCKED":
-              // ปิดรับ - ไม่จ่าย
               winAmount = 0;
               break;
             case "HALF_PAYOUT":
-              // จ่ายครึ่งราคา
-              winAmount = bet.amount * (bet.payRate / 2);
+              winAmount = bet.amount * (correctPayRate / 2);
               break;
             case "REDUCED_PAYOUT":
-              // จ่ายตามอัตราที่กำหนด
               if (restriction.value && restriction.value > 0) {
                 winAmount = bet.amount * restriction.value;
               }
               break;
             case "REDUCED_LIMIT":
-              // REDUCED_LIMIT ไม่กระทบการจ่าย (กระทบแค่ตอนรับ)
               break;
           }
         }
       }
 
+      // Also fix stored payRate if it's wrong
+      const needsPayRateUpdate = bet.payRate !== correctPayRate;
+
       if (isWin) {
         winnerIds.push(bet.id);
-        winnerUpdates.push({ id: bet.id, winAmount });
+        winnerUpdates.push({ id: bet.id, winAmount, payRate: correctPayRate, needsPayRateUpdate });
         totalWinAmount += winAmount;
       } else {
         loserIds.push(bet.id);
+        if (needsPayRateUpdate) {
+          winnerUpdates.push({ id: bet.id, winAmount: 0, payRate: correctPayRate, needsPayRateUpdate, isLoser: true });
+        }
       }
     }
 
@@ -229,14 +263,17 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Batch update winners (need individual updates for different winAmount)
-    // Use transaction for better performance
+    // Batch update winners and fix payRates
     if (winnerUpdates.length > 0) {
       await prisma.$transaction(
         winnerUpdates.map((w) =>
           prisma.bet.update({
             where: { id: w.id },
-            data: { isWin: true, winAmount: w.winAmount, status: "WON" },
+            data: {
+              ...((w as { isLoser?: boolean }).isLoser
+                ? { payRate: w.payRate }
+                : { isWin: true, winAmount: w.winAmount, status: "WON", payRate: w.payRate }),
+            },
           })
         )
       );

@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Get pay rates for this lottery type
+    // Get global pay rates for this lottery type
     const payRates = await prisma.payRate.findMany({
       where: { lotteryTypeId: round.lotteryTypeId },
     });
@@ -155,6 +155,18 @@ export async function POST(request: NextRequest) {
     const payRateMap = new Map<string, number>();
     for (const pr of payRates) {
       payRateMap.set(pr.betType, pr.payRate);
+    }
+
+    // Get agent-specific pay rates (override global rates)
+    const agentPayRates = await prisma.agentPayRate.findMany({
+      where: { agentId, lotteryType: round.lotteryType.code },
+    });
+
+    const agentPayRateMap = new Map<string, number>();
+    for (const apr of agentPayRates) {
+      if (apr.payRate > 0) {
+        agentPayRateMap.set(apr.betType, apr.payRate);
+      }
     }
 
     // Prepare all bets data first (no DB calls in loop)
@@ -188,7 +200,8 @@ export async function POST(request: NextRequest) {
       const { number, betType, amount } = item;
       if (!number || !betType || !amount) continue;
 
-      const payRate = payRateMap.get(betType) || 0;
+      // Agent custom rate takes priority over global rate
+      const payRate = agentPayRateMap.get(betType) || payRateMap.get(betType) || 0;
       
       // Get discount from preset or fallback to agent discount
       const discountPct = discountPreset 
