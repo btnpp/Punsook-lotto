@@ -186,14 +186,28 @@ export async function POST(request: NextRequest) {
           break;
       }
 
-      // Apply restriction if applicable
+      // Apply restriction if applicable (skip for full-pay bets)
       if (isWin && !bet.isFullPay) {
         const restriction = restrictionMap.get(`${bet.number}-${bet.betType}`);
         if (restriction) {
-          if (restriction.type === "BLOCKED") {
-            winAmount = 0;
-          } else if (restriction.type === "REDUCED_PAYOUT" && restriction.value && restriction.value > 0) {
-            winAmount = bet.amount * restriction.value;
+          switch (restriction.type) {
+            case "BLOCKED":
+              // ปิดรับ - ไม่จ่าย
+              winAmount = 0;
+              break;
+            case "HALF_PAYOUT":
+              // จ่ายครึ่งราคา
+              winAmount = bet.amount * (bet.payRate / 2);
+              break;
+            case "REDUCED_PAYOUT":
+              // จ่ายตามอัตราที่กำหนด
+              if (restriction.value && restriction.value > 0) {
+                winAmount = bet.amount * restriction.value;
+              }
+              break;
+            case "REDUCED_LIMIT":
+              // REDUCED_LIMIT ไม่กระทบการจ่าย (กระทบแค่ตอนรับ)
+              break;
           }
         }
       }
