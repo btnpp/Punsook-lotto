@@ -53,7 +53,9 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ rounds: roundsWithStats }, { headers: getCacheHeaders(30, 60) });
+    return NextResponse.json({ rounds: roundsWithStats }, { 
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate" }
+    });
   } catch (error) {
     console.error("Get results error:", error);
     return NextResponse.json(

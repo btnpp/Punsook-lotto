@@ -128,7 +128,9 @@ export async function GET(request: NextRequest) {
       return slip;
     });
 
-    return NextResponse.json({ slips, total: slips.length }, { headers: getCacheHeaders(10, 30) });
+    return NextResponse.json({ slips, total: slips.length }, { 
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate" } 
+    });
   } catch (error) {
     console.error("Get history error:", error);
     return NextResponse.json(
