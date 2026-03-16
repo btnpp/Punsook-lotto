@@ -71,6 +71,23 @@ export async function GET(request: NextRequest) {
       take: 20,
     });
 
+    // Search for specific winning number restrictions
+    const winningNumbers = [
+      round.result3Top, round.result2Top, round.result2Bottom,
+    ].filter(Boolean) as string[];
+    
+    // Also check 2-digit versions of 3-digit winners
+    if (round.result3Top) {
+      winningNumbers.push(round.result3Top.slice(1)); // last 2 digits
+    }
+    
+    const winningRestrictions = await prisma.numberRestriction.findMany({
+      where: { 
+        roundId,
+        number: { in: winningNumbers },
+      },
+    });
+
     // Get agents info
     const agents = await prisma.agent.findMany({
       where: { id: { in: agentIds } },
@@ -90,6 +107,9 @@ export async function GET(request: NextRequest) {
       agentPayRates_all: allAgentPayRates,
       globalPayRates: globalPayRates.map(p => ({ betType: p.betType, payRate: p.payRate })),
       restrictions_sample: restrictions.map(r => ({ number: r.number, betType: r.betType, type: r.restrictionType })),
+      winningNumbers,
+      restrictions_for_winners: winningRestrictions.map(r => ({ number: r.number, betType: r.betType, type: r.restrictionType, value: r.value })),
+      totalRestrictions: await prisma.numberRestriction.count({ where: { roundId } }),
       sampleBets_winners: sampleBets,
       totalBets: allBets.length,
     });
