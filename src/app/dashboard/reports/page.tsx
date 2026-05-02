@@ -67,31 +67,20 @@ interface Payment {
 // Payment history (will be loaded from API in future)
 
 // Default empty data (will be replaced by API data)
-const financialSummary = {
-  today: {
-    totalBets: 0,
-    discount: 0,
-    netAmount: 0,
-    totalPayout: 0,
-    profit: 0,
-    profitPct: 0,
-  },
-  thisWeek: {
-    totalBets: 0,
-    discount: 0,
-    netAmount: 0,
-    totalPayout: 0,
-    profit: 0,
-    profitPct: 0,
-  },
-  thisMonth: {
-    totalBets: 0,
-    discount: 0,
-    netAmount: 0,
-    totalPayout: 0,
-    profit: 0,
-    profitPct: 0,
-  },
+const EMPTY_SUMMARY = {
+  totalBets: 0,
+  discount: 0,
+  netAmount: 0,
+  totalPayout: 0,
+  profit: 0,
+  profitPct: 0,
+};
+
+const financialSummary: Record<string, typeof EMPTY_SUMMARY> = {
+  today: { ...EMPTY_SUMMARY },
+  thisWeek: { ...EMPTY_SUMMARY },
+  thisMonth: { ...EMPTY_SUMMARY },
+  custom: { ...EMPTY_SUMMARY },
 };
 
 // Will be populated from API
@@ -306,7 +295,7 @@ export default function ReportsPage() {
   // คำนวณยอดคงค้างรวม
   const totalBalance = agents.reduce((sum, a) => sum + a.balance, 0);
 
-  const fallbackSummary = financialSummary[period as keyof typeof financialSummary];
+  const fallbackSummary = financialSummary[period] ?? EMPTY_SUMMARY;
   const apiSummary = reportData?.summary;
   
   const currentSummary = {
