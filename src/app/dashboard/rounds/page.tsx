@@ -72,7 +72,7 @@ const defaultLotterySettings = {
   LAO: {
     openTime: "00:00",
     closeTime: "20:00",
-    drawDays: "จันทร์,พุธ,ศุกร์",
+    drawDays: "จันทร์ - ศุกร์",
     isActive: true,
   },
   HANOI: {
@@ -920,7 +920,7 @@ export default function RoundsPage() {
                       <span className="text-2xl">🇱🇦</span>
                       <span className="font-bold">หวยลาว</span>
                     </div>
-                    <p className="text-sm text-slate-400">จันทร์ พุธ ศุกร์</p>
+                    <p className="text-sm text-slate-400">จันทร์ - ศุกร์</p>
                     <p className="text-amber-400 text-sm mt-1">ปิดรับ 20:00 น.</p>
                   </div>
                   <div className="p-4 rounded-lg bg-slate-800/50">

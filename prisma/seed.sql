@@ -31,7 +31,7 @@ ON CONFLICT (username) DO NOTHING;
 INSERT INTO "LotteryType" (id, code, name, description, "drawDays", "closeTime", "isActive", "createdAt", "updatedAt")
 VALUES 
   ('lottery_thai', 'THAI', 'หวยไทย', 'หวยรัฐบาลไทย', '1,16', '14:30', true, NOW(), NOW()),
-  ('lottery_lao', 'LAO', 'หวยลาว', 'หวยลาว', 'MON,WED,FRI', '20:00', true, NOW(), NOW()),
+  ('lottery_lao', 'LAO', 'หวยลาว', 'หวยลาว', 'MON,TUE,WED,THU,FRI', '20:00', true, NOW(), NOW()),
   ('lottery_hanoi', 'HANOI', 'หวยฮานอย', 'หวยฮานอย', 'DAILY', '18:00', true, NOW(), NOW())
 ON CONFLICT (code) DO NOTHING;
 

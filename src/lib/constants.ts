@@ -14,7 +14,7 @@ export const LOTTERY_TYPES = {
     code: "LAO",
     name: "หวยลาว",
     flag: "🇱🇦",
-    drawDays: "MON,WED,FRI", // จันทร์, พุธ, ศุกร์
+    drawDays: "MON,TUE,WED,THU,FRI", // จันทร์ - ศุกร์
     closeTime: "20:00",
   },
   HANOI: {
