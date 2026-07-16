@@ -441,51 +441,52 @@ export default function ResultsPage() {
                   LOTTERY_TYPES[(round.lotteryCode || round.lotteryType?.code || "THAI") as keyof typeof LOTTERY_TYPES];
                 return (
                   <Card key={round.id} className="border-emerald-500/20 hover:border-emerald-500/40 transition-colors">
-                    <CardContent className="p-4">
-                      <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                    <CardContent className="p-3">
+                      <div className="flex flex-col md:flex-row md:items-center gap-3">
                         {/* Identity */}
-                        <div className="flex items-center gap-3 lg:min-w-[240px] lg:flex-shrink-0">
-                          <span className="text-4xl">{lottery?.flag}</span>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-bold text-slate-100 text-base">{lottery?.name}</h3>
-                              <Badge variant="success" className="text-[10px] px-2 py-0">เปิดรับ</Badge>
+                        <div className="flex items-center gap-2 md:min-w-[190px] md:flex-shrink-0">
+                          <span className="text-3xl leading-none">{lottery?.flag}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h3 className="font-bold text-slate-100 text-sm">{lottery?.name}</h3>
+                              <Badge variant="success" className="text-[9px] px-1.5 py-0 leading-4">เปิดรับ</Badge>
                             </div>
-                            <p className="text-sm text-slate-400 mt-0.5">
+                            <p className="text-xs text-slate-400 mt-0.5">
                               งวด {round.roundDate.toLocaleDateString("th-TH")}
                             </p>
                           </div>
                         </div>
 
                         {/* Stats */}
-                        <div className="grid grid-cols-2 gap-6 lg:flex-1 lg:pl-4 lg:border-l lg:border-slate-700/60">
-                          <div>
-                            <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1">
-                              <Wallet className="w-3.5 h-3.5" />
+                        <div className="grid grid-cols-2 gap-4 md:flex-1 md:pl-3 md:border-l md:border-slate-700/60">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1 text-[10px] text-slate-400 leading-none mb-0.5">
+                              <Wallet className="w-3 h-3" />
                               ยอดรวม
                             </div>
-                            <p className="text-xl font-bold text-amber-400">
+                            <p className="text-base font-bold text-amber-400 leading-tight truncate">
                               ฿{formatNumber(round.totalBets || 0)}
                             </p>
                           </div>
-                          <div>
-                            <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1">
-                              <FileText className="w-3.5 h-3.5" />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1 text-[10px] text-slate-400 leading-none mb-0.5">
+                              <FileText className="w-3 h-3" />
                               จำนวนโพย
                             </div>
-                            <p className="text-xl font-bold text-slate-100">
-                              {formatNumber(round.betCount || 0)} <span className="text-sm font-normal text-slate-400">รายการ</span>
+                            <p className="text-base font-bold text-slate-100 leading-tight truncate">
+                              {formatNumber(round.betCount || 0)} <span className="text-xs font-normal text-slate-400">รายการ</span>
                             </p>
                           </div>
                         </div>
 
                         {/* Action */}
-                        <div className="lg:flex-shrink-0">
+                        <div className="md:flex-shrink-0">
                           <Button
-                            className="w-full lg:w-auto gap-2 bg-amber-500 hover:bg-amber-600 text-slate-900"
+                            size="sm"
+                            className="w-full md:w-auto gap-1.5 bg-amber-500 hover:bg-amber-600 text-slate-900 h-8"
                             onClick={() => handleOpenResultDialog(round)}
                           >
-                            <Trophy className="w-4 h-4" />
+                            <Trophy className="w-3.5 h-3.5" />
                             กรอกผลหวย
                           </Button>
                         </div>
@@ -596,69 +597,59 @@ export default function ResultsPage() {
                 const profitPositive = profit >= 0;
                 return (
                   <Card key={round.id} className="hover:border-amber-500/30 transition-colors">
-                    <CardContent className="p-4">
-                      <div className="flex flex-col xl:flex-row xl:items-center gap-4 xl:gap-5">
+                    <CardContent className="p-2.5">
+                      <div className="flex flex-col lg:flex-row lg:items-center gap-2.5 lg:gap-3">
                         {/* Identity */}
-                        <div className="flex items-center gap-3 xl:min-w-[210px] xl:flex-shrink-0">
-                          <span className="text-4xl">{lottery?.flag}</span>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-bold text-slate-100 text-base">{lottery?.name}</h3>
-                              <Badge variant="secondary" className="text-[10px] px-2 py-0">ออกผลแล้ว</Badge>
+                        <div className="flex items-center gap-2 lg:min-w-[170px] lg:flex-shrink-0">
+                          <span className="text-2xl leading-none">{lottery?.flag}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h3 className="font-bold text-slate-100 text-sm">{lottery?.name}</h3>
+                              <Badge variant="secondary" className="text-[9px] px-1.5 py-0 leading-4">ออกผลแล้ว</Badge>
                             </div>
-                            <p className="text-sm text-slate-400 mt-0.5">
+                            <p className="text-[11px] text-slate-400 mt-0.5 leading-tight">
                               งวด {round.roundDate.toLocaleDateString("th-TH")}
                             </p>
                           </div>
                         </div>
 
-                        {/* Results - main */}
-                        <div className="flex flex-wrap gap-2 xl:flex-1 xl:pl-4 xl:border-l xl:border-slate-700/60">
-                          <div className="text-center px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 min-w-[76px]">
-                            <p className="text-[10px] text-slate-400 leading-tight">3 ตัวบน</p>
-                            <p className="text-xl font-mono font-bold text-amber-400 tracking-wider">
+                        {/* Results - main + combined secondary */}
+                        <div className="flex flex-wrap items-stretch gap-1.5 lg:flex-1 lg:pl-3 lg:border-l lg:border-slate-700/60">
+                          {/* 3 บน */}
+                          <div className="text-center px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 min-w-[56px]">
+                            <p className="text-[9px] text-slate-400 leading-none">3 บน</p>
+                            <p className="text-base font-mono font-bold text-amber-400 tracking-wider leading-tight">
                               {round.result3Top || "-"}
                             </p>
                           </div>
-                          <div className="text-center px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 min-w-[64px]">
-                            <p className="text-[10px] text-slate-400 leading-tight">2 ตัวบน</p>
-                            <p className="text-xl font-mono font-bold text-amber-400 tracking-wider">
+                          {/* 2 บน */}
+                          <div className="text-center px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 min-w-[46px]">
+                            <p className="text-[9px] text-slate-400 leading-none">2 บน</p>
+                            <p className="text-base font-mono font-bold text-amber-400 tracking-wider leading-tight">
                               {round.result2Top || "-"}
                             </p>
                           </div>
-                          <div className="text-center px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 min-w-[64px]">
-                            <p className="text-[10px] text-slate-400 leading-tight">2 ตัวล่าง</p>
-                            <p className="text-xl font-mono font-bold text-amber-400 tracking-wider">
+                          {/* 2 ล่าง */}
+                          <div className="text-center px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 min-w-[46px]">
+                            <p className="text-[9px] text-slate-400 leading-none">2 ล่าง</p>
+                            <p className="text-base font-mono font-bold text-amber-400 tracking-wider leading-tight">
                               {round.result2Bottom || "-"}
                             </p>
                           </div>
 
-                          {/* Secondary results - only render for THAI (only lottery with front/back 3-digit) */}
+                          {/* Thai-only: combined หน้า 3 + ท้าย 3 (2 numbers per box) */}
                           {(round.lotteryCode || round.lotteryType?.code) === "THAI" && (
                             <>
-                              <div className="w-px bg-slate-700 hidden sm:block" />
-                              <div className="text-center px-2.5 py-2 rounded-lg bg-purple-500/10 border border-purple-500/30 min-w-[62px]">
-                                <p className="text-[10px] text-slate-400 leading-tight">หน้า 3</p>
-                                <p className="text-sm font-mono font-bold text-purple-300">
-                                  {round.result3Front1 || "-"}
+                              <div className="text-center px-2 py-1 rounded-md bg-purple-500/10 border border-purple-500/30">
+                                <p className="text-[9px] text-slate-400 leading-none">หน้า 3</p>
+                                <p className="text-sm font-mono font-bold text-purple-300 leading-tight tracking-wide whitespace-nowrap">
+                                  {round.result3Front1 || "-"} · {round.result3Front2 || "-"}
                                 </p>
                               </div>
-                              <div className="text-center px-2.5 py-2 rounded-lg bg-purple-500/10 border border-purple-500/30 min-w-[62px]">
-                                <p className="text-[10px] text-slate-400 leading-tight">หน้า 3</p>
-                                <p className="text-sm font-mono font-bold text-purple-300">
-                                  {round.result3Front2 || "-"}
-                                </p>
-                              </div>
-                              <div className="text-center px-2.5 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 min-w-[62px]">
-                                <p className="text-[10px] text-slate-400 leading-tight">ท้าย 3</p>
-                                <p className="text-sm font-mono font-bold text-cyan-300">
-                                  {round.result3Back1 || "-"}
-                                </p>
-                              </div>
-                              <div className="text-center px-2.5 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 min-w-[62px]">
-                                <p className="text-[10px] text-slate-400 leading-tight">ท้าย 3</p>
-                                <p className="text-sm font-mono font-bold text-cyan-300">
-                                  {round.result3Back2 || "-"}
+                              <div className="text-center px-2 py-1 rounded-md bg-cyan-500/10 border border-cyan-500/30">
+                                <p className="text-[9px] text-slate-400 leading-none">ท้าย 3</p>
+                                <p className="text-sm font-mono font-bold text-cyan-300 leading-tight tracking-wide whitespace-nowrap">
+                                  {round.result3Back1 || "-"} · {round.result3Back2 || "-"}
                                 </p>
                               </div>
                             </>
@@ -666,43 +657,43 @@ export default function ResultsPage() {
                         </div>
 
                         {/* Money summary */}
-                        <div className="grid grid-cols-3 gap-4 xl:min-w-[290px] xl:flex-shrink-0 xl:pl-4 xl:border-l xl:border-slate-700/60">
-                          <div>
-                            <p className="text-[11px] text-slate-400 leading-tight">ยอดรับ</p>
-                            <p className="font-bold text-slate-100">
+                        <div className="grid grid-cols-3 gap-3 lg:min-w-[220px] lg:flex-shrink-0 lg:pl-3 lg:border-l lg:border-slate-700/60">
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-slate-400 leading-none">ยอดรับ</p>
+                            <p className="text-sm font-bold text-slate-100 leading-tight truncate">
                               ฿{formatNumber(round.totalBets || 0)}
                             </p>
                           </div>
-                          <div>
-                            <p className="text-[11px] text-slate-400 leading-tight">ยอดจ่าย</p>
-                            <p className="font-bold text-red-400">
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-slate-400 leading-none">ยอดจ่าย</p>
+                            <p className="text-sm font-bold text-red-400 leading-tight truncate">
                               {round.winAmount ? `-฿${formatNumber(round.winAmount)}` : "฿0"}
                             </p>
                           </div>
-                          <div>
-                            <p className="text-[11px] text-slate-400 leading-tight">กำไร</p>
-                            <p className={`font-bold ${profitPositive ? "text-emerald-400" : "text-red-400"}`}>
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-slate-400 leading-none">กำไร</p>
+                            <p className={`text-sm font-bold leading-tight truncate ${profitPositive ? "text-emerald-400" : "text-red-400"}`}>
                               {profitPositive ? "+" : ""}฿{formatNumber(profit)}
                             </p>
                           </div>
                         </div>
 
-                        {/* Actions */}
-                        <div className="flex gap-2 xl:flex-shrink-0 xl:border-l xl:border-slate-700/60 xl:pl-4">
+                        {/* Actions - icon only */}
+                        <div className="flex gap-1 lg:flex-shrink-0 lg:pl-2 lg:border-l lg:border-slate-700/60">
                           <Button
                             variant="outline"
-                            size="sm"
+                            size="icon"
                             onClick={() => handleOpenWinnersDialog(round)}
-                            className="gap-2 flex-1 xl:flex-none"
+                            className="h-8 w-8"
+                            title="ดูผู้ถูกรางวัล"
                           >
                             <Users className="w-4 h-4" />
-                            ผู้ถูกรางวัล
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => handleOpenResultDialog(round)}
-                            className="text-amber-400 hover:text-amber-300 h-9 w-9"
+                            className="text-amber-400 hover:text-amber-300 h-8 w-8"
                             title="แก้ไขผลหวย"
                           >
                             <Edit className="w-4 h-4" />
