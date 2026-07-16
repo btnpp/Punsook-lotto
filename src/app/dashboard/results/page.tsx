@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import useSWR from "swr";
 import { Header } from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +24,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Check, Calendar, Trophy, Calculator, Plus, ArrowRight, Eye, Users, Edit } from "lucide-react";
+import { Check, Calendar, Trophy, Calculator, Plus, ArrowRight, Eye, Users, Edit, FileText, Wallet, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
 import { ResultsSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -224,6 +224,7 @@ export default function ResultsPage() {
     result2Bottom: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<string>(""); // format: YYYY-MM
 
   // SWR for rounds
   interface ResultsResponse {
@@ -258,6 +259,44 @@ export default function ResultsPage() {
 
   const openRounds = rounds.filter((r) => r.status === "OPEN");
   const resultedRounds = rounds.filter((r) => r.status === "CLOSED" || r.status === "RESULTED");
+
+  // Filter resulted rounds by selected month
+  const filteredResultedRounds = useMemo(() => {
+    if (!selectedMonth) return resultedRounds;
+    const [year, month] = selectedMonth.split("-").map(Number);
+    return resultedRounds.filter((r) => {
+      const d = r.roundDate;
+      return d.getFullYear() === year && d.getMonth() + 1 === month;
+    });
+  }, [resultedRounds, selectedMonth]);
+
+  // Available months (from resulted rounds) for quick navigation
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of resultedRounds) {
+      const d = r.roundDate;
+      set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return Array.from(set).sort().reverse();
+  }, [resultedRounds]);
+
+  const formatMonthLabel = (ym: string) => {
+    const [year, month] = ym.split("-").map(Number);
+    const d = new Date(year, month - 1, 1);
+    return d.toLocaleDateString("th-TH", { month: "long", year: "numeric" });
+  };
+
+  const shiftMonth = (direction: -1 | 1) => {
+    const base = selectedMonth
+      ? (() => {
+          const [y, m] = selectedMonth.split("-").map(Number);
+          return new Date(y, m - 1, 1);
+        })()
+      : new Date();
+    base.setMonth(base.getMonth() + direction);
+    const ym = `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}`;
+    setSelectedMonth(ym);
+  };
 
   // Get winners for selected round
   const getWinners = () => {
@@ -378,191 +417,344 @@ export default function ResultsPage() {
     <div className="min-h-screen">
       <Header title="ออกผลหวย" subtitle="กรอกผลหวยและดูสรุป" />
 
-      <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
-        {/* Open Rounds */}
-        <div>
-          <h2 className="text-lg font-bold text-slate-100 mb-4">🎰 งวดที่เปิดรับ</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {openRounds.map((round) => {
-              const lottery =
-                LOTTERY_TYPES[(round.lotteryCode || round.lotteryType?.code || "THAI") as keyof typeof LOTTERY_TYPES];
-              return (
-                <Card key={round.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="text-3xl">{lottery?.flag}</span>
-                      <div>
-                        <h3 className="font-bold text-slate-100">{lottery?.name}</h3>
-                        <p className="text-sm text-slate-400">
-                          งวด {round.roundDate.toLocaleDateString("th-TH")}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 mb-4">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">ยอดรวม</span>
-                        <span className="font-bold text-amber-400">
-                          ฿{formatNumber(round.totalBets || 0)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">จำนวนโพย</span>
-                        <span className="text-slate-100">{round.betCount || 0} รายการ</span>
-                      </div>
-                    </div>
-
-                    <Badge variant="success" className="w-full justify-center mb-4">
-                      เปิดรับ
-                    </Badge>
-
-                    <Button
-                      className="w-full gap-2"
-                      onClick={() => handleOpenResultDialog(round)}
-                    >
-                      <Trophy className="w-4 h-4" />
-                      กรอกผลหวย
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
+      <div className="p-4 lg:p-6 space-y-6">
+        {/* Open Rounds - Horizontal wide cards */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-lg">🎰</span>
+            <h2 className="text-lg font-bold text-slate-100">งวดที่เปิดรับ</h2>
+            <Badge variant="outline" className="ml-2 text-emerald-400 border-emerald-500/30">
+              {openRounds.length} งวด
+            </Badge>
           </div>
-        </div>
 
-        {/* Resulted Rounds */}
-        <div>
-          <h2 className="text-lg font-bold text-slate-100 mb-4">
-            📊 งวดที่ออกผลแล้ว
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {resultedRounds.map((round) => {
-              const lottery =
-                LOTTERY_TYPES[(round.lotteryCode || round.lotteryType?.code || "THAI") as keyof typeof LOTTERY_TYPES];
-              return (
-                <Card key={round.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-3xl">{lottery?.flag}</span>
-                        <div>
-                          <h3 className="font-bold text-slate-100">{lottery?.name}</h3>
-                          <p className="text-sm text-slate-400">
-                            งวด {round.roundDate.toLocaleDateString("th-TH")}
-                          </p>
+          {openRounds.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center text-slate-400">
+                ไม่มีงวดที่เปิดรับอยู่
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {openRounds.map((round) => {
+                const lottery =
+                  LOTTERY_TYPES[(round.lotteryCode || round.lotteryType?.code || "THAI") as keyof typeof LOTTERY_TYPES];
+                return (
+                  <Card key={round.id} className="border-emerald-500/20 hover:border-emerald-500/40 transition-colors">
+                    <CardContent className="p-4">
+                      <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                        {/* Identity */}
+                        <div className="flex items-center gap-3 lg:min-w-[240px] lg:flex-shrink-0">
+                          <span className="text-4xl">{lottery?.flag}</span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-bold text-slate-100 text-base">{lottery?.name}</h3>
+                              <Badge variant="success" className="text-[10px] px-2 py-0">เปิดรับ</Badge>
+                            </div>
+                            <p className="text-sm text-slate-400 mt-0.5">
+                              งวด {round.roundDate.toLocaleDateString("th-TH")}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      <Badge variant="default">ออกผลแล้ว</Badge>
-                    </div>
 
-                    {/* Results Display */}
-                    <div className="space-y-2 mb-4">
-                      {/* Row 1: 3 ตัวบน + 2 ตัว */}
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="text-center p-2 rounded-lg bg-slate-800/50">
-                          <p className="text-xs text-slate-400 mb-1">3 ตัวบน</p>
-                          <p className="text-lg font-mono font-bold text-amber-400">
-                            {round.result3Top || "-"}
-                          </p>
+                        {/* Stats */}
+                        <div className="grid grid-cols-2 gap-6 lg:flex-1 lg:pl-4 lg:border-l lg:border-slate-700/60">
+                          <div>
+                            <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1">
+                              <Wallet className="w-3.5 h-3.5" />
+                              ยอดรวม
+                            </div>
+                            <p className="text-xl font-bold text-amber-400">
+                              ฿{formatNumber(round.totalBets || 0)}
+                            </p>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1">
+                              <FileText className="w-3.5 h-3.5" />
+                              จำนวนโพย
+                            </div>
+                            <p className="text-xl font-bold text-slate-100">
+                              {formatNumber(round.betCount || 0)} <span className="text-sm font-normal text-slate-400">รายการ</span>
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-center p-2 rounded-lg bg-slate-800/50">
-                          <p className="text-xs text-slate-400 mb-1">2 ตัวบน</p>
-                          <p className="text-lg font-mono font-bold text-amber-400">
-                            {round.result2Top || "-"}
-                          </p>
-                        </div>
-                        <div className="text-center p-2 rounded-lg bg-slate-800/50">
-                          <p className="text-xs text-slate-400 mb-1">2 ตัวล่าง</p>
-                          <p className="text-lg font-mono font-bold text-amber-400">
-                            {round.result2Bottom || "-"}
-                          </p>
-                        </div>
-                      </div>
-                      {/* Row 2: เลขหน้า 3 ตัว + เลขท้าย 3 ตัว */}
-                      <div className="grid grid-cols-4 gap-2">
-                        <div className="text-center p-2 rounded-lg bg-purple-800/30 border border-purple-500/30">
-                          <p className="text-xs text-slate-400 mb-1">หน้า3ตัว</p>
-                          <p className="text-sm font-mono font-bold text-purple-400">
-                            {round.result3Front1 || "-"}
-                          </p>
-                        </div>
-                        <div className="text-center p-2 rounded-lg bg-purple-800/30 border border-purple-500/30">
-                          <p className="text-xs text-slate-400 mb-1">หน้า3ตัว</p>
-                          <p className="text-sm font-mono font-bold text-purple-400">
-                            {round.result3Front2 || "-"}
-                          </p>
-                        </div>
-                        <div className="text-center p-2 rounded-lg bg-cyan-800/30 border border-cyan-500/30">
-                          <p className="text-xs text-slate-400 mb-1">ท้าย3ตัว</p>
-                          <p className="text-sm font-mono font-bold text-cyan-400">
-                            {round.result3Back1 || "-"}
-                          </p>
-                        </div>
-                        <div className="text-center p-2 rounded-lg bg-cyan-800/30 border border-cyan-500/30">
-                          <p className="text-xs text-slate-400 mb-1">ท้าย3ตัว</p>
-                          <p className="text-sm font-mono font-bold text-cyan-400">
-                            {round.result3Back2 || "-"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
 
-                    {/* Summary */}
-                    <div className="space-y-2 border-t border-slate-700 pt-4">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">ยอดรับ</span>
-                        <span className="text-slate-100">
-                          ฿{formatNumber(round.totalBets || 0)}
-                        </span>
+                        {/* Action */}
+                        <div className="lg:flex-shrink-0">
+                          <Button
+                            className="w-full lg:w-auto gap-2 bg-amber-500 hover:bg-amber-600 text-slate-900"
+                            onClick={() => handleOpenResultDialog(round)}
+                          >
+                            <Trophy className="w-4 h-4" />
+                            กรอกผลหวย
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">ยอดจ่าย</span>
-                        <span className="text-red-400">
-                          -฿{formatNumber(round.winAmount || 0)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm font-bold border-t border-slate-700 pt-2">
-                        <span className="text-slate-100">กำไร</span>
-                        <span
-                          className={
-                            (round.profit || 0) >= 0
-                              ? "text-emerald-400"
-                              : "text-red-400"
-                          }
-                        >
-                          {(round.profit || 0) >= 0 ? "+" : ""}฿
-                          {formatNumber(round.profit || 0)}
-                        </span>
-                      </div>
-                    </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </section>
 
-                    {/* Buttons for closed rounds */}
-                    {round.status === "CLOSED" && (
-                      <div className="flex flex-col gap-2 mt-4">
-                        <Button
-                          variant="outline"
-                          className="w-full gap-2"
-                          onClick={() => handleOpenWinnersDialog(round)}
-                        >
-                          <Users className="w-4 h-4" />
-                          ดูผู้ถูกรางวัล
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="w-full gap-2 text-amber-400 hover:text-amber-300"
-                          onClick={() => handleOpenResultDialog(round)}
-                        >
-                          <Edit className="w-4 h-4" />
-                          แก้ไขผลหวย
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+        {/* Resulted Rounds - Horizontal wide cards + Month filter */}
+        <section>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">📊</span>
+              <h2 className="text-lg font-bold text-slate-100">งวดที่ออกผลแล้ว</h2>
+              <Badge variant="outline" className="ml-2">
+                {filteredResultedRounds.length} งวด
+              </Badge>
+            </div>
+
+            {/* Month Filter */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => shiftMonth(-1)}
+                title="เดือนก่อนหน้า"
+                className="h-9 w-9"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <div className="relative">
+                <Calendar className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <Input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="pl-8 h-9 w-[180px]"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => shiftMonth(1)}
+                title="เดือนถัดไป"
+                className="h-9 w-9"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              {selectedMonth && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedMonth("")}
+                  className="text-slate-400 hover:text-slate-100"
+                >
+                  ทั้งหมด
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
+
+          {/* Quick month chips */}
+          {availableMonths.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap mb-4">
+              <Button
+                variant={selectedMonth === "" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedMonth("")}
+                className="h-7 text-xs"
+              >
+                ทั้งหมด
+              </Button>
+              {availableMonths.slice(0, 6).map((ym) => (
+                <Button
+                  key={ym}
+                  variant={selectedMonth === ym ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedMonth(ym)}
+                  className="h-7 text-xs"
+                >
+                  {formatMonthLabel(ym)}
+                </Button>
+              ))}
+            </div>
+          )}
+
+          {filteredResultedRounds.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center text-slate-400">
+                <Calendar className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                <p>
+                  {selectedMonth
+                    ? `ไม่มีงวดที่ออกผลใน${formatMonthLabel(selectedMonth)}`
+                    : "ยังไม่มีงวดที่ออกผล"}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {filteredResultedRounds.map((round) => {
+                const lottery =
+                  LOTTERY_TYPES[(round.lotteryCode || round.lotteryType?.code || "THAI") as keyof typeof LOTTERY_TYPES];
+                const profit = round.profit || 0;
+                const profitPositive = profit >= 0;
+                return (
+                  <Card key={round.id} className="hover:border-amber-500/30 transition-colors">
+                    <CardContent className="p-4">
+                      <div className="flex flex-col xl:flex-row xl:items-center gap-4 xl:gap-5">
+                        {/* Identity */}
+                        <div className="flex items-center gap-3 xl:min-w-[210px] xl:flex-shrink-0">
+                          <span className="text-4xl">{lottery?.flag}</span>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-bold text-slate-100 text-base">{lottery?.name}</h3>
+                              <Badge variant="secondary" className="text-[10px] px-2 py-0">ออกผลแล้ว</Badge>
+                            </div>
+                            <p className="text-sm text-slate-400 mt-0.5">
+                              งวด {round.roundDate.toLocaleDateString("th-TH")}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Results - main */}
+                        <div className="flex flex-wrap gap-2 xl:flex-1 xl:pl-4 xl:border-l xl:border-slate-700/60">
+                          <div className="text-center px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 min-w-[76px]">
+                            <p className="text-[10px] text-slate-400 leading-tight">3 ตัวบน</p>
+                            <p className="text-xl font-mono font-bold text-amber-400 tracking-wider">
+                              {round.result3Top || "-"}
+                            </p>
+                          </div>
+                          <div className="text-center px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 min-w-[64px]">
+                            <p className="text-[10px] text-slate-400 leading-tight">2 ตัวบน</p>
+                            <p className="text-xl font-mono font-bold text-amber-400 tracking-wider">
+                              {round.result2Top || "-"}
+                            </p>
+                          </div>
+                          <div className="text-center px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 min-w-[64px]">
+                            <p className="text-[10px] text-slate-400 leading-tight">2 ตัวล่าง</p>
+                            <p className="text-xl font-mono font-bold text-amber-400 tracking-wider">
+                              {round.result2Bottom || "-"}
+                            </p>
+                          </div>
+
+                          {/* Secondary results - only render for THAI (only lottery with front/back 3-digit) */}
+                          {(round.lotteryCode || round.lotteryType?.code) === "THAI" && (
+                            <>
+                              <div className="w-px bg-slate-700 hidden sm:block" />
+                              <div className="text-center px-2.5 py-2 rounded-lg bg-purple-500/10 border border-purple-500/30 min-w-[62px]">
+                                <p className="text-[10px] text-slate-400 leading-tight">หน้า 3</p>
+                                <p className="text-sm font-mono font-bold text-purple-300">
+                                  {round.result3Front1 || "-"}
+                                </p>
+                              </div>
+                              <div className="text-center px-2.5 py-2 rounded-lg bg-purple-500/10 border border-purple-500/30 min-w-[62px]">
+                                <p className="text-[10px] text-slate-400 leading-tight">หน้า 3</p>
+                                <p className="text-sm font-mono font-bold text-purple-300">
+                                  {round.result3Front2 || "-"}
+                                </p>
+                              </div>
+                              <div className="text-center px-2.5 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 min-w-[62px]">
+                                <p className="text-[10px] text-slate-400 leading-tight">ท้าย 3</p>
+                                <p className="text-sm font-mono font-bold text-cyan-300">
+                                  {round.result3Back1 || "-"}
+                                </p>
+                              </div>
+                              <div className="text-center px-2.5 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 min-w-[62px]">
+                                <p className="text-[10px] text-slate-400 leading-tight">ท้าย 3</p>
+                                <p className="text-sm font-mono font-bold text-cyan-300">
+                                  {round.result3Back2 || "-"}
+                                </p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Money summary */}
+                        <div className="grid grid-cols-3 gap-4 xl:min-w-[290px] xl:flex-shrink-0 xl:pl-4 xl:border-l xl:border-slate-700/60">
+                          <div>
+                            <p className="text-[11px] text-slate-400 leading-tight">ยอดรับ</p>
+                            <p className="font-bold text-slate-100">
+                              ฿{formatNumber(round.totalBets || 0)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] text-slate-400 leading-tight">ยอดจ่าย</p>
+                            <p className="font-bold text-red-400">
+                              {round.winAmount ? `-฿${formatNumber(round.winAmount)}` : "฿0"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] text-slate-400 leading-tight">กำไร</p>
+                            <p className={`font-bold ${profitPositive ? "text-emerald-400" : "text-red-400"}`}>
+                              {profitPositive ? "+" : ""}฿{formatNumber(profit)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-2 xl:flex-shrink-0 xl:border-l xl:border-slate-700/60 xl:pl-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenWinnersDialog(round)}
+                            className="gap-2 flex-1 xl:flex-none"
+                          >
+                            <Users className="w-4 h-4" />
+                            ผู้ถูกรางวัล
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenResultDialog(round)}
+                            className="text-amber-400 hover:text-amber-300 h-9 w-9"
+                            title="แก้ไขผลหวย"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Section summary (when filtered by month) */}
+          {filteredResultedRounds.length > 0 && (
+            <div className="mt-4 grid grid-cols-3 gap-3">
+              <Card className="bg-slate-800/40 border-slate-700/50">
+                <CardContent className="p-3">
+                  <p className="text-xs text-slate-400">รวมยอดรับ</p>
+                  <p className="text-lg font-bold text-slate-100">
+                    ฿{formatNumber(filteredResultedRounds.reduce((s, r) => s + (r.totalBets || 0), 0))}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="bg-slate-800/40 border-slate-700/50">
+                <CardContent className="p-3">
+                  <p className="text-xs text-slate-400">รวมยอดจ่าย</p>
+                  <p className="text-lg font-bold text-red-400">
+                    -฿{formatNumber(filteredResultedRounds.reduce((s, r) => s + (r.winAmount || 0), 0))}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="bg-slate-800/40 border-slate-700/50">
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                    <p className="text-xs text-slate-400">กำไรรวม</p>
+                  </div>
+                  {(() => {
+                    const total = filteredResultedRounds.reduce((s, r) => s + (r.profit || 0), 0);
+                    const positive = total >= 0;
+                    return (
+                      <p className={`text-lg font-bold ${positive ? "text-emerald-400" : "text-red-400"}`}>
+                        {positive ? "+" : ""}฿{formatNumber(total)}
+                      </p>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </section>
       </div>
 
       {/* Result Dialog */}
