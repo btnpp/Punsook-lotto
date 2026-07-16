@@ -443,8 +443,8 @@ export default function ResultsPage() {
                   <Card key={round.id} className="border-emerald-500/20 hover:border-emerald-500/40 transition-colors">
                     <CardContent className="p-3">
                       <div className="flex flex-col md:flex-row md:items-center gap-3">
-                        {/* Identity */}
-                        <div className="flex items-center gap-2 md:min-w-[190px] md:flex-shrink-0">
+                        {/* Identity - fixed width */}
+                        <div className="flex items-center gap-2 md:w-[180px] md:flex-shrink-0">
                           <span className="text-3xl leading-none">{lottery?.flag}</span>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
@@ -457,10 +457,10 @@ export default function ResultsPage() {
                           </div>
                         </div>
 
-                        {/* Stats */}
+                        {/* Stats - fill space, right-aligned for consistency */}
                         <div className="grid grid-cols-2 gap-4 md:flex-1 md:pl-3 md:border-l md:border-slate-700/60">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1 text-[10px] text-slate-400 leading-none mb-0.5">
+                          <div className="min-w-0 md:text-right">
+                            <div className="flex items-center gap-1 text-[10px] text-slate-400 leading-none mb-0.5 md:justify-end">
                               <Wallet className="w-3 h-3" />
                               ยอดรวม
                             </div>
@@ -468,8 +468,8 @@ export default function ResultsPage() {
                               ฿{formatNumber(round.totalBets || 0)}
                             </p>
                           </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1 text-[10px] text-slate-400 leading-none mb-0.5">
+                          <div className="min-w-0 md:text-right">
+                            <div className="flex items-center gap-1 text-[10px] text-slate-400 leading-none mb-0.5 md:justify-end">
                               <FileText className="w-3 h-3" />
                               จำนวนโพย
                             </div>
@@ -480,7 +480,7 @@ export default function ResultsPage() {
                         </div>
 
                         {/* Action */}
-                        <div className="md:flex-shrink-0">
+                        <div className="md:flex-shrink-0 md:pl-3 md:border-l md:border-slate-700/60">
                           <Button
                             size="sm"
                             className="w-full md:w-auto gap-1.5 bg-amber-500 hover:bg-amber-600 text-slate-900 h-8"
@@ -554,7 +554,7 @@ export default function ResultsPage() {
 
           {/* Quick month chips */}
           {availableMonths.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap mb-4">
+            <div className="flex items-center gap-2 flex-wrap mb-3">
               <Button
                 variant={selectedMonth === "" ? "default" : "outline"}
                 size="sm"
@@ -576,6 +576,49 @@ export default function ResultsPage() {
               ))}
             </div>
           )}
+
+          {/* Summary strip (top) */}
+          {filteredResultedRounds.length > 0 && (() => {
+            const totalIn = filteredResultedRounds.reduce((s, r) => s + (r.totalBets || 0), 0);
+            const totalOut = filteredResultedRounds.reduce((s, r) => s + (r.winAmount || 0), 0);
+            const totalProfit = filteredResultedRounds.reduce((s, r) => s + (r.profit || 0), 0);
+            const profitPositive = totalProfit >= 0;
+            return (
+              <Card className="bg-slate-800/40 border-slate-700/60 mb-3">
+                <CardContent className="p-3">
+                  <div className="grid grid-cols-3 divide-x divide-slate-700/60">
+                    <div className="px-4 first:pl-2">
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mb-0.5">
+                        <Wallet className="w-3.5 h-3.5 text-slate-400" />
+                        รวมยอดรับ
+                      </div>
+                      <p className="text-lg font-bold text-slate-100">
+                        ฿{formatNumber(totalIn)}
+                      </p>
+                    </div>
+                    <div className="px-4">
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mb-0.5">
+                        <Trophy className="w-3.5 h-3.5 text-red-400" />
+                        รวมยอดจ่าย
+                      </div>
+                      <p className="text-lg font-bold text-red-400">
+                        -฿{formatNumber(totalOut)}
+                      </p>
+                    </div>
+                    <div className="px-4">
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mb-0.5">
+                        <TrendingUp className={`w-3.5 h-3.5 ${profitPositive ? "text-emerald-400" : "text-red-400"}`} />
+                        กำไรรวม
+                      </div>
+                      <p className={`text-lg font-bold ${profitPositive ? "text-emerald-400" : "text-red-400"}`}>
+                        {profitPositive ? "+" : ""}฿{formatNumber(totalProfit)}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {filteredResultedRounds.length === 0 ? (
             <Card>
@@ -600,7 +643,7 @@ export default function ResultsPage() {
                     <CardContent className="p-2.5">
                       <div className="flex flex-col lg:flex-row lg:items-center gap-2.5 lg:gap-3">
                         {/* Identity */}
-                        <div className="flex items-center gap-2 lg:min-w-[170px] lg:flex-shrink-0">
+                        <div className="flex items-center gap-2 lg:w-[180px] lg:flex-shrink-0">
                           <span className="text-2xl leading-none">{lottery?.flag}</span>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
@@ -656,21 +699,21 @@ export default function ResultsPage() {
                           )}
                         </div>
 
-                        {/* Money summary */}
-                        <div className="grid grid-cols-3 gap-3 lg:min-w-[220px] lg:flex-shrink-0 lg:pl-3 lg:border-l lg:border-slate-700/60">
-                          <div className="min-w-0">
+                        {/* Money summary - fixed width, right-aligned for column alignment */}
+                        <div className="grid grid-cols-3 gap-2 lg:w-[280px] lg:flex-shrink-0 lg:pl-3 lg:border-l lg:border-slate-700/60">
+                          <div className="min-w-0 lg:text-right">
                             <p className="text-[10px] text-slate-400 leading-none">ยอดรับ</p>
                             <p className="text-sm font-bold text-slate-100 leading-tight truncate">
                               ฿{formatNumber(round.totalBets || 0)}
                             </p>
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 lg:text-right">
                             <p className="text-[10px] text-slate-400 leading-none">ยอดจ่าย</p>
                             <p className="text-sm font-bold text-red-400 leading-tight truncate">
                               {round.winAmount ? `-฿${formatNumber(round.winAmount)}` : "฿0"}
                             </p>
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 lg:text-right">
                             <p className="text-[10px] text-slate-400 leading-none">กำไร</p>
                             <p className={`text-sm font-bold leading-tight truncate ${profitPositive ? "text-emerald-400" : "text-red-400"}`}>
                               {profitPositive ? "+" : ""}฿{formatNumber(profit)}
@@ -707,44 +750,6 @@ export default function ResultsPage() {
             </div>
           )}
 
-          {/* Section summary (when filtered by month) */}
-          {filteredResultedRounds.length > 0 && (
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              <Card className="bg-slate-800/40 border-slate-700/50">
-                <CardContent className="p-3">
-                  <p className="text-xs text-slate-400">รวมยอดรับ</p>
-                  <p className="text-lg font-bold text-slate-100">
-                    ฿{formatNumber(filteredResultedRounds.reduce((s, r) => s + (r.totalBets || 0), 0))}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="bg-slate-800/40 border-slate-700/50">
-                <CardContent className="p-3">
-                  <p className="text-xs text-slate-400">รวมยอดจ่าย</p>
-                  <p className="text-lg font-bold text-red-400">
-                    -฿{formatNumber(filteredResultedRounds.reduce((s, r) => s + (r.winAmount || 0), 0))}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="bg-slate-800/40 border-slate-700/50">
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-1.5">
-                    <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-                    <p className="text-xs text-slate-400">กำไรรวม</p>
-                  </div>
-                  {(() => {
-                    const total = filteredResultedRounds.reduce((s, r) => s + (r.profit || 0), 0);
-                    const positive = total >= 0;
-                    return (
-                      <p className={`text-lg font-bold ${positive ? "text-emerald-400" : "text-red-400"}`}>
-                        {positive ? "+" : ""}฿{formatNumber(total)}
-                      </p>
-                    );
-                  })()}
-                </CardContent>
-              </Card>
-            </div>
-          )}
         </section>
       </div>
 
